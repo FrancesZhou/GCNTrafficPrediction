@@ -21,7 +21,7 @@ def main():
     parse.add_argument('-output_steps', '--output_steps', type=int, default=6,
                        help='number of output steps')
     # ---------- station embeddings --------
-    parse.add_argument('-pretrained_embeddings', '--pretrained_embeddings', type=int, default=0,
+    parse.add_argument('-pretrained_embeddings', '--pretrained_embeddings', type=int, default=1,
                        help='whether to use pretrained embeddings')
     parse.add_argument('-embedding_size', '--embedding_size', type=int, default=100,
                        help='dim of embedding')
@@ -38,7 +38,7 @@ def main():
                        default=0.5, help='keep probability in dropout layer')
     # ---------- training parameters --------
     parse.add_argument('-n_epochs', '--n_epochs', type=int, default=10, help='number of epochs')
-    parse.add_argument('-batch_size', '--batch_size', type=int, default=32, help='batch size for training')
+    parse.add_argument('-batch_size', '--batch_size', type=int, default=128, help='batch size for training')
     parse.add_argument('-show_batches', '--show_batches', type=int,
                        default=100, help='show how many batches have been processed.')
     parse.add_argument('-lr', '--learning_rate', type=float, default=0.0001, help='learning rate')
@@ -65,8 +65,10 @@ def main():
     print('preprocess train data...')
     pre_process.fit(train_data)
     # embeddings
+    id_map = load_pickle(args.folder_name+'station_map.pkl')
+    num_station = len(id_map)
     if args.pretrained_embeddings:
-        
+        embeddings = get_embedding_from_file('datasets/citibike-data/embedding_file/embeddings.txt', num_station)
         #load_pickle(args.pretrained_embeddings)
     else:
         #trip_data = np.load(args.folder_name+'all_trip_data.npy')
@@ -78,8 +80,9 @@ def main():
         #embeddings = word2vec_model.wv
         word2vec_model.wv.save_word2vec_format('datasets/citibike-data/embedding_file/embeddings.txt', binary=False)
         del word2vec_model
-    id_map = load_pickle(args.folder_name+'station_map.pkl')
-    num_station = len(id_map)
+        embeddings = get_embedding_from_file('datasets/citibike-data/embedding_file/embeddings.txt', num_station)
+    # id_map = load_pickle(args.folder_name+'station_map.pkl')
+    # num_station = len(id_map)
     # self, d_data, f_data, input_steps, output_steps, num_station, pre_process
     train_loader = DataLoader(train_data, train_f_data,
                               args.input_steps, args.output_steps,
@@ -90,18 +93,18 @@ def main():
     test_loader = DataLoader(test_data, test_f_data,
                             args.input_steps, args.output_steps,
                             num_station, pre_process)
-    model = DyST(num_station, args.input_steps, args.output_steps, batch_size=args.batch_size, dynamic_spatial=False)
+    model = DyST(num_station, args.input_steps, args.output_steps, embedding_dim=args.embedding_size, embeddings=embeddings, batch_size=args.batch_size, dynamic_spatial=True)
     solver = ModelSolver(model, train_loader, val_loader, test_loader, pre_process,
                          batch_size=args.batch_size,
                          show_batches=args.show_batches,
                          n_epochs=args.n_epochs,
                          update_rule=args.update_rule,
-                         learning_rate=args.lr,
+                         learning_rate=args.learning_rate,
                          model_path='datasets/citibike-data/model_save/'
                          )
     if args.train:
         print '==================== begin training ======================'
-        solver.train()
+        solver.train('datasets/citibike-data/out')
     # np.save('citybike-results/results/' + args.model + '/test_target.npy', test_target)
     # np.save('citybike-results/results/' + args.model + '/test_prediction.npy', test_prediction)
 

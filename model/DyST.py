@@ -25,7 +25,7 @@ class DyST():
             self.embeddings = tf.Variable(tf.constant(0.0, dtype=tf.float32, shape=[self.num_station, self.embedding_dim]), name='embeddings')
 
         self.x = tf.placeholder(tf.float32, [batch_size, self.input_steps, self.num_station, 2])
-        self.y_train = tf.placeholder_with_default(tf.constant(0, dtype=tf.float32, shape=[batch_size, self.input_steps, self.num_station, 2]]), shape=[batch_size, self.input_steps, self.num_station, 2])
+        self.y_train = tf.placeholder_with_default(tf.constant(0, dtype=tf.float32, shape=[batch_size, self.input_steps, self.num_station, 2]), shape=[batch_size, self.input_steps, self.num_station, 2])
         self.f_train = tf.placeholder_with_default(tf.constant(0, dtype=tf.float32, shape=[batch_size, self.input_steps, self.num_station, self.num_station]), shape=[batch_size, self.input_steps, self.num_station, self.num_station])
         #
         self.y_test = tf.placeholder_with_default(tf.constant(0, dtype=tf.float32, shape=[batch_size, self.output_steps, self.num_station, 2]), shape=[batch_size, self.output_steps, self.num_station, 2])
@@ -34,7 +34,7 @@ class DyST():
     def fusion(self, data, out_dim, reuse=True):
         out_shape = data[0].get_shape().as_list()
         out_shape[-1] = out_dim
-        shape = [np.sum(out_shape[:-1]), out_dim]
+        shape = [np.prod(out_shape[:-1]), out_dim]
         out = tf.constant(0.0, dtype=tf.float32, shape=shape, name='fusion_output')
         for i in xrange(len(data)):
             with tf.variable_scope('fusion_{0}'.format(i), reuse=reuse):
@@ -65,14 +65,16 @@ class DyST():
 
         self.lstm = tf.contrib.rnn.BasicLSTMCell(self.embedding_dim)
         # Initial state of the LSTM memory.
-        hidden_state = tf.zeros([self.batch_size, self.lstm.state_size])
-        current_state = tf.zeros([self.batch_size, self.lstm.state_size])
+        #hidden_state = tf.zeros([self.batch_size, self.lstm.state_size])
+        #current_state = tf.zeros([self.batch_size, self.lstm.state_size])
+        hidden_state = tf.zeros([self.batch_size, self.embedding_dim])
+        current_state = tf.zeros([self.batch_size, self.embedding_dim])
         state = hidden_state, current_state
         y_ = []
         for i in xrange(self.input_steps):
             # for each step
             current_step_batch = x[i]
-            output, state = self.lstm(current_step_batch, state)
+            output, state = self.lstm(tf.reshape(current_step_batch, [self.batch_size, -1]), state)
             # output: [batch_size, state_size]
             # ------------------- dynamic spatial dependency ------------------------
             if self.dynamic_spatial:
@@ -92,6 +94,7 @@ class DyST():
             hidden_y = self.fusion((Dy_s, tf.tile(tf.expand_dims(output, axis=1), [1, self.num_station, 1])),
                                       out_dim=self.hidden_dim, reuse=tf.AUTO_REUSE)
             next_output = tf.layers.dense(tf.reshape(hidden_y, [-1, self.hidden_dim]), 2, activation=tf.nn.relu, reuse=tf.AUTO_REUSE)
+            next_output = tf.reshape(next_output, [self.batch_size, self.num_station, -1])
             y_.append(next_output)
         y_ = tf.stack(y_)
         y_ = tf.transpose(y_, [1, 0, 2, 3])
@@ -113,10 +116,12 @@ class DyST():
         tile_embeddings = tf.reshape(tile_embeddings,
                                      [self.batch_size, self.num_station, self.num_station, self.embedding_dim])
 
-        self.lstm = tf.contrib.rnn.BasicLSTMCell(self.embedding_dim)
+        #self.lstm = tf.contrib.rnn.BasicLSTMCell(self.embedding_dim)
         # Initial state of the LSTM memory.
-        hidden_state = tf.zeros([self.batch_size, self.lstm.state_size])
-        current_state = tf.zeros([self.batch_size, self.lstm.state_size])
+        # hidden_state = tf.zeros([self.batch_size, self.lstm.state_size])
+        # current_state = tf.zeros([self.batch_size, self.lstm.state_size])
+        hidden_state = tf.zeros([self.batch_size, self.embedding_dim])
+        current_state = tf.zeros([self.batch_size, self.embedding_dim])
         state = hidden_state, current_state
         y_ = []
         next_input = []
@@ -126,7 +131,7 @@ class DyST():
                 current_step_batch = next_input
             else:
                 current_step_batch = x[i]
-            output, state = self.lstm(current_step_batch, state)
+            output, state = self.lstm(tf.reshape(current_step_batch, [self.batch_size, -1]), state)
             # output: [batch_size, state_size]
             if i > self.input_steps-2:
                 # ------------------- dynamic spatial dependency ------------------------
@@ -150,6 +155,7 @@ class DyST():
                                        out_dim=self.hidden_dim, reuse=tf.AUTO_REUSE)
                 next_input = tf.layers.dense(tf.reshape(hidden_y, [-1, self.hidden_dim]), 2, activation=tf.nn.relu,
                                               reuse=tf.AUTO_REUSE)
+                next_input = tf.reshape(next_input, [self.batch_size, self.num_station, -1])
                 y_.append(next_input)
         y_ = tf.stack(y_)
         y_ = tf.transpose(y_, [1, 0, 2, 3])

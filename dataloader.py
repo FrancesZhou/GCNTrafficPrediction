@@ -21,6 +21,7 @@ class DataLoader():
         self.num_station = num_station
         self.pre_process = pre_process
         self.num_data = len(self.d_data)
+        self.data_index = np.arange(self.num_data)
         self.reset_data()
     # def initialize_dataloader(self):
     #     print 'num of doc:             ' + str(len(self.doc_wordID_data))
@@ -40,10 +41,10 @@ class DataLoader():
         flows = []
         for s_id, f in f_dict.items():
             ind, values = zip(*f.items())
-            values = self.pre_process.transform(values)
+            values = self.pre_process.transform(list(values))
             rows = rows + [s_id]*len(ind)
-            cols = cols + ind
-            flows = flows + values
+            cols = cols + list(ind)
+            flows = flows + list(values)
         f_map[rows, cols] = flows
         return f_map
 
@@ -78,4 +79,4 @@ class DataLoader():
         return batch_x, batch_y, batch_f
 
     def reset_data(self):
-        self.data_index = np.random.shuffle(np.arange(self.num_data))
+        np.random.shuffle(self.data_index)

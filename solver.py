@@ -88,7 +88,7 @@ class ModelSolver(object):
                 curr_loss = 0
                 num_train_batches = (train_loader.num_data-train_loader.input_steps) / self.batch_size
                 widgets = ['Train: ', Percentage(), ' ', Bar('#'), ' ', ETA()]
-                pbar = ProgressBar(widgets=widgets, maxval=len(x)).start()
+                pbar = ProgressBar(widgets=widgets, maxval=num_train_batches).start()
                 for i in xrange(num_train_batches):
                     # if i % self.show_batches == 0:
                     #     print 'train batch %d' % i
@@ -101,6 +101,7 @@ class ModelSolver(object):
                     _, l = sess.run([train_op, train_loss], feed_dict)
                     curr_loss += l
                 pbar.finish()
+                train_loader.reset_data()
                 # compute counts of all regions
                 t_count = num_train_batches*self.batch_size*(train_loader.input_steps*train_loader.num_station*2)
                 t_rmse = np.sqrt(curr_loss / t_count)
@@ -114,7 +115,7 @@ class ModelSolver(object):
                 y_pre = []
                 num_val_batches = (val_loader.num_data - val_loader.input_steps - val_loader.output_steps + 1) / self.batch_size
                 widgets = ['Train: ', Percentage(), ' ', Bar('#'), ' ', ETA()]
-                pbar = ProgressBar(widgets=widgets, maxval=len(x)).start()
+                pbar = ProgressBar(widgets=widgets, maxval=num_val_batches).start()
                 for i in xrange(num_val_batches):
                     # if i % self.show_batches == 0:
                     #     print 'validate batch %d' % i
@@ -149,7 +150,7 @@ class ModelSolver(object):
                     y_pre_test = []
                     num_test_batches = (test_loader.num_data - test_loader.input_steps - test_loader.output_steps + 1) / self.batch_size
                     widgets = ['Train: ', Percentage(), ' ', Bar('#'), ' ', ETA()]
-                    pbar = ProgressBar(widgets=widgets, maxval=len(x)).start()
+                    pbar = ProgressBar(widgets=widgets, maxval=num_test_batches).start()
                     for i in xrange(num_test_batches):
                         # if i % self.show_batches == 0:
                         #     print 'validate batch %d' % i
