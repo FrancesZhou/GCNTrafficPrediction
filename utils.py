@@ -148,11 +148,11 @@ def batch_data(d_data, f_data, batch_size=32, input_steps=10, output_steps=10):
         i += batch_size
     return x, y, f
 
-def get_embedding_from_file(file):
+def get_embedding_from_file(file, num):
     with open(file, 'r') as df:
         lines = df.readlines()
-        num, dim = lines[0].split(' ', 1)
-        num = int(num)
+        _, dim = lines[0].split(' ', 1)
+        #num = int(num)
         dim = int(dim)
         embeddings = np.zeros((num, dim), dtype=np.float32)
         for line in lines[1:]:

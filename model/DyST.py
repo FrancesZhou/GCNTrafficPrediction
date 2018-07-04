@@ -25,11 +25,11 @@ class DyST():
             self.embeddings = tf.Variable(tf.constant(0.0, dtype=tf.float32, shape=[self.num_station, self.embedding_dim]), name='embeddings')
 
         self.x = tf.placeholder(tf.float32, [batch_size, self.input_steps, self.num_station, 2])
-        self.y_train = tf.placeholder_with_default(tf.float32, [batch_size, self.input_steps, self.num_station, 2])
-        self.f_train = tf.placeholder_with_default(tf.float32, [batch_size, self.input_steps, self.num_station, self.num_station])
+        self.y_train = tf.placeholder_with_default(tf.constant(0, dtype=tf.float32, shape=[batch_size, self.input_steps, self.num_station, 2]]), shape=[batch_size, self.input_steps, self.num_station, 2])
+        self.f_train = tf.placeholder_with_default(tf.constant(0, dtype=tf.float32, shape=[batch_size, self.input_steps, self.num_station, self.num_station]), shape=[batch_size, self.input_steps, self.num_station, self.num_station])
         #
-        self.y_test = tf.placeholder_with_default(tf.float32, [batch_size, self.output_steps, self.num_station, 2])
-        self.f_test = tf.placeholder_with_default(tf.float32, [batch_size, self.output_steps, self.num_station, self.num_station])
+        self.y_test = tf.placeholder_with_default(tf.constant(0, dtype=tf.float32, shape=[batch_size, self.output_steps, self.num_station, 2]), shape=[batch_size, self.output_steps, self.num_station, 2])
+        self.f_test = tf.placeholder_with_default(tf.constant(0, dtype=tf.float32, shape=[batch_size, self.output_steps, self.num_station, self.num_station]), shape=[batch_size, self.output_steps, self.num_station, self.num_station])
 
     def fusion(self, data, out_dim, reuse=True):
         out_shape = data[0].get_shape().as_list()

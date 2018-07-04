@@ -21,7 +21,7 @@ def main():
     parse.add_argument('-output_steps', '--output_steps', type=int, default=6,
                        help='number of output steps')
     # ---------- station embeddings --------
-    parse.add_argument('-pretrained_embeddings', '--pretrained_embeddings', type=int, default=1,
+    parse.add_argument('-pretrained_embeddings', '--pretrained_embeddings', type=int, default=0,
                        help='whether to use pretrained embeddings')
     parse.add_argument('-embedding_size', '--embedding_size', type=int, default=100,
                        help='dim of embedding')
@@ -66,12 +66,14 @@ def main():
     pre_process.fit(train_data)
     # embeddings
     if args.pretrained_embeddings:
-        pass
+        
         #load_pickle(args.pretrained_embeddings)
     else:
         #trip_data = np.load(args.folder_name+'all_trip_data.npy')
+        print('train station embeddings via Word2Vec model...')
         trip_data = load_pickle(args.folder_name+'all_trip_data.pkl')
         word2vec_model = Word2Vec(sentences=trip_data, size=args.embedding_size)
+        print('save Word2Vec model and embeddings...')
         word2vec_model.save('datasets/citibike-data/embedding_file/word2vec_model')
         #embeddings = word2vec_model.wv
         word2vec_model.wv.save_word2vec_format('datasets/citibike-data/embedding_file/embeddings.txt', binary=False)
