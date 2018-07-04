@@ -89,10 +89,12 @@ class ModelSolver(object):
                 num_train_batches = (train_loader.num_data-train_loader.input_steps) / self.batch_size
                 widgets = ['Train: ', Percentage(), ' ', Bar('#'), ' ', ETA()]
                 pbar = ProgressBar(widgets=widgets, maxval=num_train_batches).start()
+                print('number of training batches: %d' % num_train_batches)
                 for i in xrange(num_train_batches):
                     # if i % self.show_batches == 0:
                     #     print 'train batch %d' % i
                     pbar.update(i)
+                    print i
                     x, y, f = train_loader.next_batch_for_train(i*self.batch_size, (i+1)*self.batch_size)
                     feed_dict = {self.model.x: np.array(x),
                                  self.model.y_train: np.array(y),
@@ -114,8 +116,9 @@ class ModelSolver(object):
                 val_loss = 0
                 y_pre = []
                 num_val_batches = (val_loader.num_data - val_loader.input_steps - val_loader.output_steps + 1) / self.batch_size
-                widgets = ['Train: ', Percentage(), ' ', Bar('#'), ' ', ETA()]
+                widgets = ['Validate: ', Percentage(), ' ', Bar('#'), ' ', ETA()]
                 pbar = ProgressBar(widgets=widgets, maxval=num_val_batches).start()
+                print('number of validation batches: %d' % num_val_batches)
                 for i in xrange(num_val_batches):
                     # if i % self.show_batches == 0:
                     #     print 'validate batch %d' % i
@@ -149,8 +152,9 @@ class ModelSolver(object):
                     t_loss = 0
                     y_pre_test = []
                     num_test_batches = (test_loader.num_data - test_loader.input_steps - test_loader.output_steps + 1) / self.batch_size
-                    widgets = ['Train: ', Percentage(), ' ', Bar('#'), ' ', ETA()]
+                    widgets = ['Test: ', Percentage(), ' ', Bar('#'), ' ', ETA()]
                     pbar = ProgressBar(widgets=widgets, maxval=num_test_batches).start()
+                    print('number of testing batches: %d' % num_test_batches)
                     for i in xrange(num_test_batches):
                         # if i % self.show_batches == 0:
                         #     print 'validate batch %d' % i
