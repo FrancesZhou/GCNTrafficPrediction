@@ -59,8 +59,8 @@ class DataLoader():
         for i in self.data_index[start:end]:
             batch_x.append(self.d_data[i: i + self.input_steps])
             batch_y.append(self.d_data[i + 1: i + self.input_steps + 1])
-            f_map = [self.get_flow_map(self.f_data[j]) for j in xrange(i, i + self.input_steps)]
-            batch_f.append(f_map)
+            #f_map = [self.get_flow_map(self.f_data[j]) for j in xrange(i, i + self.input_steps)]
+            #batch_f.append(f_map)
         return batch_x, batch_y, batch_f
 
     def next_batch_for_test(self, start, end):
@@ -74,8 +74,8 @@ class DataLoader():
         for i in self.data_index[start:end]:
             batch_x.append(self.d_data[i: i+self.input_steps])
             batch_y.append(self.d_data[i+self.input_steps: i+self.input_steps+self.output_steps])
-            f_map = [self.get_flow_map(self.f_data[j]) for j in xrange(i+self.input_steps-1, i+self.input_steps+self.output_steps-1)]
-            batch_f.append(f_map)
+            #f_map = [self.get_flow_map(self.f_data[j]) for j in xrange(i+self.input_steps-1, i+self.input_steps+self.output_steps-1)]
+            #batch_f.append(f_map)
         return batch_x, batch_y, batch_f
 
     def reset_data(self):

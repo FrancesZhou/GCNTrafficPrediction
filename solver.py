@@ -98,7 +98,7 @@ class ModelSolver(object):
                     x, y, f = train_loader.next_batch_for_train(i*self.batch_size, (i+1)*self.batch_size)
                     feed_dict = {self.model.x: np.array(x),
                                  self.model.y_train: np.array(y),
-                                 self.model.f_train: np.array(f)
+                                 #self.model.f_train: np.array(f)
                                  }
                     _, l = sess.run([train_op, train_loss], feed_dict)
                     curr_loss += l
@@ -126,7 +126,7 @@ class ModelSolver(object):
                     x, y, f = val_loader.next_batch_for_test(i * self.batch_size, (i + 1) * self.batch_size)
                     feed_dict = {self.model.x: np.array(x),
                                  self.model.y_test: np.array(y),
-                                 self.model.f_test: np.array(f)
+                                 #self.model.f_test: np.array(f)
                                  }
                     y_out, l = sess.run([y_, test_loss], feed_dict)
                     y_pre.append(y_out)
@@ -162,7 +162,7 @@ class ModelSolver(object):
                         x, y, f = test_loader.next_batch_for_test(i * self.batch_size, (i + 1) * self.batch_size)
                         feed_dict = {self.model.x: np.array(x),
                                      self.model.y_test: np.array(y),
-                                     self.model.f_test: np.array(f)
+                                     #self.model.f_test: np.array(f)
                                      }
                         y_out, l = sess.run([y_, test_loss], feed_dict)
                         y_pre_test.append(y_out)
