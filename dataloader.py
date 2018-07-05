@@ -12,16 +12,17 @@ class DataLoader():
                  input_steps, output_steps,
                  num_station,
                  pre_process):
-        self.d_data = d_data
+        self.pre_process = pre_process
+        self.d_data = self.pre_process.transform(d_data)
         self.f_data = f_data
         # d_data: [num, num_station, 2]
         # f_data: [num, {num_station, num_station}]
         self.input_steps = input_steps
         self.output_steps = output_steps
         self.num_station = num_station
-        self.pre_process = pre_process
+        #self.pre_process = pre_process
         self.num_data = len(self.d_data)
-        self.data_index = np.arange(self.num_data)
+        self.data_index = np.arange(self.num_data - self.input_steps)
         #self.reset_data()
 
     def get_flow_map_from_dict(self, f_dict):
@@ -41,7 +42,7 @@ class DataLoader():
     #def get_flow_map_from_list(self, f_list):
 
     def next_batch_for_train(self, start, end):
-        if end > self.num_station:
+        if end > self.num_data-self.input_steps:
             return None, None, None
         else:
             # batch_x: [end-start, input_steps, num_station, 2]
@@ -59,9 +60,9 @@ class DataLoader():
 
     def next_batch_for_test(self, start, end):
         padding_len = 0
-        if end > self.num_station:
-            padding_len = end - self.num_station
-            end = min(self.num_data, end)
+        if end > self.num_data-(self.input_steps+self.output_steps-1):
+            padding_len = end - (self.num_data-(self.input_steps+self.output_steps-1))
+            end = self.num_data - (self.input_steps+self.output_steps-1)
         # batch_x: [end-start, input_steps, num_station, 2]
         # batch_y: [end-start, output_steps, num_station, 2]
         # batch_f: [end-start, input_steps+output_steps, num_station, num_station]

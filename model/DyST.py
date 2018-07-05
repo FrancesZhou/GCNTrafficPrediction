@@ -157,8 +157,7 @@ class DyST():
                 # ------------------- output ---------------------
                 hidden_y = self.fusion((Dy_s, tf.tile(tf.expand_dims(output, axis=1), [1, self.num_station, 1])),
                                        out_dim=self.hidden_dim, reuse=tf.AUTO_REUSE)
-                next_input = tf.layers.dense(tf.reshape(hidden_y, [-1, self.hidden_dim]), 2, activation=tf.nn.relu,
-                                              reuse=tf.AUTO_REUSE)
+                next_input = tf.layers.dense(tf.reshape(hidden_y, [-1, self.hidden_dim]), 2, activation=tf.nn.relu, reuse=tf.AUTO_REUSE)
                 next_input = tf.reshape(next_input, [self.batch_size, self.num_station, -1])
                 y_.append(next_input)
         y_ = tf.stack(y_)
