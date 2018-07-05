@@ -23,10 +23,16 @@ class DyST():
 
         self.weight_initializer = tf.contrib.layers.xavier_initializer()
         self.const_initializer = tf.constant_initializer()
-        if embeddings is not None:
-            self.embeddings = embeddings
-        else:
-            self.embeddings = tf.Variable(tf.constant(0.0, dtype=tf.float32, shape=[self.num_station, self.embedding_dim]), name='embeddings')
+        with tf.variable_scope('embedding'):
+            if embeddings is not None:
+                self.embeddings = embeddings
+            else:
+                self.embeddings = tf.Variable(tf.constant(0.0, dtype=tf.float32, shape=[self.num_station, self.embedding_dim]), name='embeddings')
+        with tf.variable_scope('lstm'):
+            self.lstm = tf.contrib.rnn.BasicLSTMCell(self.embedding_dim)
+        with tf.variable_scope('output'):
+            self.out_hidden_w = tf.get_variable(shape=[self.hidden_dim, 2], initializer=self.weight_initializer, name='out_hidden_w')
+            self.out_hidden_b = tf.get_variable(shape=[2,], initializer=self.const_initializer, name='out_hidden_b')
 
         self.x = tf.placeholder(tf.float32, [batch_size, self.input_steps, self.num_station, 2])
         self.y_train = tf.placeholder_with_default(tf.constant(0, dtype=tf.float32, shape=[batch_size, self.input_steps, self.num_station, 2]), shape=[batch_size, self.input_steps, self.num_station, 2])
@@ -65,7 +71,7 @@ class DyST():
         tile_embeddings = tf.reshape(tile_embeddings,
                                      [self.batch_size, self.num_station, self.num_station, self.embedding_dim])
 
-        self.lstm = tf.contrib.rnn.BasicLSTMCell(self.embedding_dim)
+        #self.lstm = tf.contrib.rnn.BasicLSTMCell(self.embedding_dim)
         # Initial state of the LSTM memory.
         #hidden_state = tf.zeros([self.batch_size, self.lstm.state_size])
         #current_state = tf.zeros([self.batch_size, self.lstm.state_size])
@@ -94,11 +100,13 @@ class DyST():
                 Dy_s = tf.constant(0.0, dtype=tf.float32, shape=[self.batch_size, self.num_station, self.embedding_dim])
             # ------------------- output ---------------------
             # hidden_y = relu(w1*Dy_s + w2*output + b)
+            hidden_out_dim = self.hidden_dim
+            #hidden_out_dim = 2
             hidden_y = self.fusion((tf.tile(tf.expand_dims(output, axis=1), [1, self.num_station, 1]),),
-                                      out_dim=2, reuse=tf.AUTO_REUSE)
-            # next_output = relu(w*hidden_y + b)
-            #next_output = tf.layers.dense(tf.reshape(hidden_y, [-1, self.hidden_dim]), 2, activation=tf.nn.relu, reuse=tf.AUTO_REUSE)
-            next_output = hidden_y
+                                      out_dim=hidden_out_dim, reuse=tf.AUTO_REUSE)
+            next_output = tf.nn.relu(tf.add(tf.matmul(self.out_hidden_w, tf.reshape(hidden_y, [-1, self.hidden_dim])),
+                                            self.out_hidden_b))
+            #next_output = hidden_y
             next_output = tf.reshape(next_output, [self.batch_size, self.num_station, -1])
             y_.append(next_output)
         y_ = tf.stack(y_)
@@ -156,10 +164,14 @@ class DyST():
                 else:
                     Dy_s = tf.constant(0.0, dtype=tf.float32, shape=[self.batch_size, self.num_station, self.embedding_dim])
                 # ------------------- output ---------------------
+                # hidden_y = relu(w1*Dy_s + w2*output + b)
+                hidden_out_dim = self.hidden_dim
+                # hidden_out_dim = 2
                 hidden_y = self.fusion((tf.tile(tf.expand_dims(output, axis=1), [1, self.num_station, 1]),),
-                                       out_dim=2, reuse=tf.AUTO_REUSE)
-                #next_input = tf.layers.dense(tf.reshape(hidden_y, [-1, self.hidden_dim]), 2, activation=tf.nn.relu, reuse=tf.AUTO_REUSE)
-                next_input = hidden_y
+                                       out_dim=hidden_out_dim, reuse=tf.AUTO_REUSE)
+                next_input = tf.nn.relu(tf.add(tf.matmul(self.out_hidden_w, tf.reshape(hidden_y, [-1, self.hidden_dim])),
+                           self.out_hidden_b))
+                #next_input = hidden_y
                 next_input = tf.reshape(next_input, [self.batch_size, self.num_station, -1])
                 y_.append(next_input)
         y_ = tf.stack(y_)
