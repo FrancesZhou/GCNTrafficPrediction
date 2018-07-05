@@ -189,7 +189,7 @@ class ModelSolver(object):
                     # compute counts of all regions
                     # t_count = num_test_batches * self.batch_size * (test_loader.output_steps * test_loader.num_station * 2)
                     # rmse = np.sqrt(t_loss / t_count)
-                    rmse = np.sqrt(val_loss/(np.prod(np.array(y_pre_test).shape) + padding_count))
+                    rmse = np.sqrt(t_loss/(np.prod(np.array(y_pre_test).shape) + padding_count))
                     w_text = "at epoch " + str(e) + ", test loss is " + str(t_loss) + ' , ' + str(rmse) + ' , ' + str(
                         self.preprocessing.real_loss(rmse))
                     print w_text
