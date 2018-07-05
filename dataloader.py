@@ -23,18 +23,8 @@ class DataLoader():
         self.num_data = len(self.d_data)
         self.data_index = np.arange(self.num_data)
         self.reset_data()
-    # def initialize_dataloader(self):
-    #     print 'num of doc:             ' + str(len(self.doc_wordID_data))
-    #     print 'num of y:               ' + str(len(self.label_data))
-    #     print 'num of candidate_label: ' + str(len(self.candidate_label_data))
-    #
-    #     print 'after removing zero-length data'
-    #     print 'num of doc:             ' + str(len(self.doc_wordID_data))
-    #     print 'num of y:               ' + str(len(self.label_data))
-    #     print 'num of candidate_label: ' + str(len(self.candidate_label_data))
-    #     self.reset_data()
 
-    def get_flow_map(self, f_dict):
+    def get_flow_map_from_dict(self, f_dict):
         f_map = np.zeros((self.num_station, self.num_station), dtype=np.float32)
         rows = []
         cols = []
@@ -47,6 +37,8 @@ class DataLoader():
             flows = flows + list(values)
         f_map[rows, cols] = flows
         return f_map
+
+    #def get_flow_map_from_list(self, f_list):
 
     def next_batch_for_train(self, start, end):
         end = min(self.num_data, end)

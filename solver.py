@@ -82,7 +82,6 @@ class ModelSolver(object):
                 print "Start training with pretrained model..."
                 saver.restore(sess, self.pretrained_model)
             #
-            #start_t = time.time()
             for e in range(self.n_epochs):
                 # ========================== train ====================
                 curr_loss = 0
@@ -95,12 +94,17 @@ class ModelSolver(object):
                     #     print 'train batch %d' % i
                     pbar.update(i)
                     print i
+                    t1 = time.time()
                     x, y, f = train_loader.next_batch_for_train(i*self.batch_size, (i+1)*self.batch_size)
+                    t2 = time.time()
+                    print 'load batch time: %d' % (t2-t1)
                     feed_dict = {self.model.x: np.array(x),
                                  self.model.y_train: np.array(y),
                                  #self.model.f_train: np.array(f)
                                  }
                     _, l = sess.run([train_op, train_loss], feed_dict)
+                    t3 = time.time()
+                    print 'train batch time: %d' % (t3-t2)
                     curr_loss += l
                 pbar.finish()
                 train_loader.reset_data()

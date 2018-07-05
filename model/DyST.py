@@ -7,7 +7,11 @@ from utils import *
 
 
 class DyST():
-    def __init__(self, num_station, input_steps, output_steps, embedding_dim=100, embeddings=None, hidden_dim=64, batch_size=32, dynamic_spatial=True):
+    def __init__(self, num_station, input_steps, output_steps,
+                 embedding_dim=100, embeddings=None,
+                 hidden_dim=64,
+                 batch_size=32,
+                 dynamic_spatial=0):
         self.num_station = num_station
         self.input_steps = input_steps
         self.output_steps = output_steps
@@ -52,8 +56,6 @@ class DyST():
         x = tf.transpose(self.x, [1, 0, 2, 3])
         y_train = self.y_train
         f = tf.transpose(self.f_train, [1, 0, 2, 3])
-        # f_input = f[:self.input_steps, :, :, :]
-        # f_output = f[self.input_steps:, :, :, :]
         # x: [input_steps, batch_size, num_station, 2]
         # y: [output_steps, batch_size, num_station, 2]
         # f: [input_steps+output_steps, batch_size, num_station, num_station]
@@ -91,8 +93,10 @@ class DyST():
             else:
                 Dy_s = tf.constant(0.0, dtype=tf.float32, shape=[self.batch_size, self.num_station, self.embedding_dim])
             # ------------------- output ---------------------
+            # hidden_y = relu(w1*Dy_s + w2*output + b)
             hidden_y = self.fusion((Dy_s, tf.tile(tf.expand_dims(output, axis=1), [1, self.num_station, 1])),
                                       out_dim=self.hidden_dim, reuse=tf.AUTO_REUSE)
+            # next_output = relu(w*hidden_y + b)
             next_output = tf.layers.dense(tf.reshape(hidden_y, [-1, self.hidden_dim]), 2, activation=tf.nn.relu, reuse=tf.AUTO_REUSE)
             next_output = tf.reshape(next_output, [self.batch_size, self.num_station, -1])
             y_.append(next_output)

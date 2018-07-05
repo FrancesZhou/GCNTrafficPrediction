@@ -26,9 +26,11 @@ def main():
     parse.add_argument('-embedding_size', '--embedding_size', type=int, default=100,
                        help='dim of embedding')
     # ---------- model ----------
-    parse.add_argument('-model', '--model', type=str, default='NN', help='model: NN, LSTM, biLSTM, CNN')
+    parse.add_argument('-model', '--model', type=str, default='DyST', help='model: NN, LSTM, biLSTM, CNN')
     parse.add_argument('-pretrained_model', '--pretrained_model_path', type=str, default=None,
                        help='path to the pretrained model')
+    parse.add_argument('-dynamic_spatial', '--dynamic_spatial', type=int, default=0,
+                       help='whether to use dynamic spatial component')
     # ---------- params for CNN ------------
     parse.add_argument('-num_filters', '--num_filters', type=int,
                        default=32, help='number of filters in CNN')
@@ -67,22 +69,19 @@ def main():
     # embeddings
     id_map = load_pickle(args.folder_name+'station_map.pkl')
     num_station = len(id_map)
+    print('number of station: %d' % num_station)
     if args.pretrained_embeddings:
+        print('load pretrained embeddings...')
         embeddings = get_embedding_from_file('datasets/citibike-data/embedding_file/embeddings.txt', num_station)
-        #load_pickle(args.pretrained_embeddings)
     else:
-        #trip_data = np.load(args.folder_name+'all_trip_data.npy')
         print('train station embeddings via Word2Vec model...')
         trip_data = load_pickle(args.folder_name+'all_trip_data.pkl')
         word2vec_model = Word2Vec(sentences=trip_data, size=args.embedding_size)
         print('save Word2Vec model and embeddings...')
         word2vec_model.save('datasets/citibike-data/embedding_file/word2vec_model')
-        #embeddings = word2vec_model.wv
         word2vec_model.wv.save_word2vec_format('datasets/citibike-data/embedding_file/embeddings.txt', binary=False)
         del word2vec_model
         embeddings = get_embedding_from_file('datasets/citibike-data/embedding_file/embeddings.txt', num_station)
-    # id_map = load_pickle(args.folder_name+'station_map.pkl')
-    # num_station = len(id_map)
     # self, d_data, f_data, input_steps, output_steps, num_station, pre_process
     train_loader = DataLoader(train_data, train_f_data,
                               args.input_steps, args.output_steps,
@@ -93,7 +92,9 @@ def main():
     test_loader = DataLoader(test_data, test_f_data,
                             args.input_steps, args.output_steps,
                             num_station, pre_process)
-    model = DyST(num_station, args.input_steps, args.output_steps, embedding_dim=args.embedding_size, embeddings=embeddings, batch_size=args.batch_size, dynamic_spatial=True)
+    model = DyST(num_station, args.input_steps, args.output_steps,
+                 embedding_dim=args.embedding_size, embeddings=embeddings,
+                 batch_size=args.batch_size, dynamic_spatial=args.dynamic_spatial)
     solver = ModelSolver(model, train_loader, val_loader, test_loader, pre_process,
                          batch_size=args.batch_size,
                          show_batches=args.show_batches,
