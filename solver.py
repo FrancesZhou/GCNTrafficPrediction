@@ -89,6 +89,7 @@ class ModelSolver(object):
                 widgets = ['Train: ', Percentage(), ' ', Bar('#'), ' ', ETA()]
                 pbar = ProgressBar(widgets=widgets, maxval=num_train_batches).start()
                 print('number of training batches: %d' % num_train_batches)
+                train_loader.reset_data()
                 for i in xrange(num_train_batches):
                     # if i % self.show_batches == 0:
                     #     print 'train batch %d' % i
@@ -96,18 +97,19 @@ class ModelSolver(object):
                     print i
                     t1 = time.time()
                     x, y, f = train_loader.next_batch_for_train(i*self.batch_size, (i+1)*self.batch_size)
+                    if x is None:
+                        continue
                     t2 = time.time()
-                    print 'load batch time: %d' % (t2-t1)
-                    feed_dict = {self.model.x: np.asarray(x),
-                                 self.model.y_train: np.asarray(y),
+                    print 'load batch time: %s' % (t2-t1)
+                    feed_dict = {self.model.x: np.array(x),
+                                 self.model.y_train: np.array(y),
                                  #self.model.f_train: np.array(f)
                                  }
                     _, l = sess.run([train_op, train_loss], feed_dict)
                     t3 = time.time()
-                    print 'train batch time: %d' % (t3-t2)
+                    print 'train batch time: %s' % (t3-t2)
                     curr_loss += l
                 pbar.finish()
-                train_loader.reset_data()
                 # compute counts of all regions
                 t_count = num_train_batches*self.batch_size*(train_loader.input_steps*train_loader.num_station*2)
                 t_rmse = np.sqrt(curr_loss / t_count)
@@ -123,29 +125,32 @@ class ModelSolver(object):
                 widgets = ['Validate: ', Percentage(), ' ', Bar('#'), ' ', ETA()]
                 pbar = ProgressBar(widgets=widgets, maxval=num_val_batches).start()
                 print('number of validation batches: %d' % num_val_batches)
+                padding_count = 0
                 for i in xrange(num_val_batches):
                     # if i % self.show_batches == 0:
                     #     print 'validate batch %d' % i
                     pbar.update(i)
-                    x, y, f = val_loader.next_batch_for_test(i * self.batch_size, (i + 1) * self.batch_size)
+                    x, y, f, padding_len = val_loader.next_batch_for_test(i * self.batch_size, (i + 1) * self.batch_size)
                     feed_dict = {self.model.x: np.array(x),
                                  self.model.y_test: np.array(y),
                                  #self.model.f_test: np.array(f)
                                  }
                     y_out, l = sess.run([y_, test_loss], feed_dict)
-                    y_pre.append(y_out)
+                    if padding_len > 0:
+                        y_out = np.array(y_out[:-padding_len])
+                        padding_count = np.prod(y_out.shape)
+                    else:
+                        y_pre.append(y_out)
                     val_loss += l
                 pbar.finish()
                 # compute counts of all regions
                 # v_count = num_val_batches * self.batch_size * (val_loader.output_steps * val_loader.num_station * 2)
                 # rmse = np.sqrt(val_loss / v_count)
-                rmse = np.sqrt(val_loss/(np.prod(np.array(y_pre).shape)))
+                rmse = np.sqrt(val_loss/(np.prod(np.array(y_pre).shape) + padding_count))
                 w_text = "at epoch " + str(e) + ", validate loss is " + str(val_loss) + ' , ' + str(rmse) + ' , ' + str(
                     self.preprocessing.real_loss(rmse))
                 print w_text
                 o_file.write(w_text)
-                #print "elapsed time: ", time.time() - start_t
-
                 if (e + 1) % self.save_every == 0:
                     save_name = self.model_path + 'model'
                     saver.save(sess, save_name, global_step=e + 1)
@@ -159,23 +164,28 @@ class ModelSolver(object):
                     widgets = ['Test: ', Percentage(), ' ', Bar('#'), ' ', ETA()]
                     pbar = ProgressBar(widgets=widgets, maxval=num_test_batches).start()
                     print('number of testing batches: %d' % num_test_batches)
+                    padding_count = 0
                     for i in xrange(num_test_batches):
                         # if i % self.show_batches == 0:
                         #     print 'validate batch %d' % i
                         pbar.update(i)
-                        x, y, f = test_loader.next_batch_for_test(i * self.batch_size, (i + 1) * self.batch_size)
+                        x, y, f, padding_len = test_loader.next_batch_for_test(i * self.batch_size, (i + 1) * self.batch_size)
                         feed_dict = {self.model.x: np.array(x),
                                      self.model.y_test: np.array(y),
                                      #self.model.f_test: np.array(f)
                                      }
                         y_out, l = sess.run([y_, test_loss], feed_dict)
-                        y_pre_test.append(y_out)
+                        if padding_len > 0:
+                            y_out = np.array(y_out[:-padding_len])
+                            padding_count = np.prod(y_out.shape)
+                        else:
+                            y_pre_test.append(y_out)
                         t_loss += l
                     pbar.finish()
                     # compute counts of all regions
                     # t_count = num_test_batches * self.batch_size * (test_loader.output_steps * test_loader.num_station * 2)
                     # rmse = np.sqrt(t_loss / t_count)
-                    rmse = np.sqrt(val_loss/(np.prod(np.array(y_pre_test).shape)))
+                    rmse = np.sqrt(val_loss/(np.prod(np.array(y_pre_test).shape) + padding_count))
                     w_text = "at epoch " + str(e) + ", test loss is " + str(test_loss) + ' , ' + str(rmse) + ' , ' + str(
                         self.preprocessing.real_loss(rmse))
                     o_file.write(w_text)
