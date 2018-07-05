@@ -98,8 +98,8 @@ class ModelSolver(object):
                     x, y, f = train_loader.next_batch_for_train(i*self.batch_size, (i+1)*self.batch_size)
                     t2 = time.time()
                     print 'load batch time: %d' % (t2-t1)
-                    feed_dict = {self.model.x: np.array(x),
-                                 self.model.y_train: np.array(y),
+                    feed_dict = {self.model.x: np.asarray(x),
+                                 self.model.y_train: np.asarray(y),
                                  #self.model.f_train: np.array(f)
                                  }
                     _, l = sess.run([train_op, train_loss], feed_dict)
