@@ -104,7 +104,7 @@ class DyST():
             #hidden_out_dim = 2
             hidden_y = self.fusion((tf.tile(tf.expand_dims(output, axis=1), [1, self.num_station, 1]),),
                                       out_dim=hidden_out_dim, reuse=tf.AUTO_REUSE)
-            next_output = tf.nn.relu(tf.add(tf.matmul(self.out_hidden_w, tf.reshape(hidden_y, [-1, self.hidden_dim])),
+            next_output = tf.nn.relu(tf.add(tf.matmul(tf.reshape(hidden_y, [-1, self.hidden_dim]), self.out_hidden_w),
                                             self.out_hidden_b))
             #next_output = hidden_y
             next_output = tf.reshape(next_output, [self.batch_size, self.num_station, -1])
@@ -169,7 +169,7 @@ class DyST():
                 # hidden_out_dim = 2
                 hidden_y = self.fusion((tf.tile(tf.expand_dims(output, axis=1), [1, self.num_station, 1]),),
                                        out_dim=hidden_out_dim, reuse=tf.AUTO_REUSE)
-                next_input = tf.nn.relu(tf.add(tf.matmul(self.out_hidden_w, tf.reshape(hidden_y, [-1, self.hidden_dim])),
+                next_input = tf.nn.relu(tf.add(tf.matmul(tf.reshape(hidden_y, [-1, self.hidden_dim]), self.out_hidden_w),
                            self.out_hidden_b))
                 #next_input = hidden_y
                 next_input = tf.reshape(next_input, [self.batch_size, self.num_station, -1])
