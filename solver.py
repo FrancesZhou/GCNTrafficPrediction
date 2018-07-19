@@ -51,13 +51,13 @@ class ModelSolver(object):
         #val_loader = self.val_data
         test_loader = self.test_data
         # build graphs
-        y_, train_loss = self.model.build_model()
+        y_, loss = self.model.build_model()
         #y_, test_loss = self.model.predict()
 
         # train op
         with tf.name_scope('optimizer'):
             optimizer = self.optimizer(learning_rate=self.learning_rate)
-            grads = tf.gradients(train_loss, tf.trainable_variables())
+            grads = tf.gradients(loss, tf.trainable_variables())
             grads_and_vars = list(zip(grads, tf.trainable_variables()))
             train_op = optimizer.apply_gradients(grads_and_vars=grads_and_vars)
 
@@ -110,7 +110,7 @@ class ModelSolver(object):
                                  self.model.e: np.array(e),
                                  self.model.y: np.array(y)
                                  }
-                    _, l, y_out = sess.run([train_op, train_loss, y_], feed_dict)
+                    _, l, y_out = sess.run([train_op, loss, y_], feed_dict)
                     in_loss, out_loss, _, _ = rmlse(y, y_out, self.preprocessing)
                     #t3 = time.time()
                     #print 'train batch time: %s' % (t3-t2)
@@ -189,7 +189,7 @@ class ModelSolver(object):
                                      self.model.e: np.array(e),
                                      self.model.y: np.array(y)
                                      }
-                        y_out, l = sess.run([y_, train_loss], feed_dict)
+                        y_out, l = sess.run([y_, loss], feed_dict)
                         y_pre_test[i] = y_out[-1]
                         t_loss += l
                         in_loss, out_loss, _, _ = rmlse(y, y_out, self.preprocessing)
