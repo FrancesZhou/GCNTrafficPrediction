@@ -11,8 +11,7 @@ class DyST2():
                  embedding_dim=100, embeddings=None,
                  ext_dim=7,
                  hidden_dim=64,
-                 batch_size=32,
-                 dynamic_spatial=0):
+                 batch_size=32):
         self.num_station = num_station
         self.input_steps = input_steps
         self.output_steps = output_steps
@@ -21,7 +20,6 @@ class DyST2():
         self.hidden_dim = hidden_dim
 
         self.batch_size = batch_size
-        self.dynamic_spatial = dynamic_spatial
 
         self.weight_initializer = tf.contrib.layers.xavier_initializer()
         self.const_initializer = tf.constant_initializer()
@@ -38,7 +36,7 @@ class DyST2():
 
         self.x = tf.placeholder(tf.float32, [self.input_steps, self.num_station, 2])
         self.f = tf.placeholder(tf.float32, [self.input_steps, self.num_station, self.num_station])
-        self.e = tf.placeholder(tf.float32, [self.input_steps, self.ext_fea_dim])
+        self.e = tf.placeholder(tf.float32, [self.input_steps, self.ext_dim])
         self.y = tf.placeholder(tf.float32, [self.input_steps, self.num_station, 2])
 
     def fusion(self, data, out_dim, reuse=True):

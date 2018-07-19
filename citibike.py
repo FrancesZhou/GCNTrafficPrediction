@@ -100,8 +100,8 @@ def main():
                             args.input_steps, args.output_steps,
                             num_station)
     model = DyST2(num_station, args.input_steps, args.output_steps,
-                 embedding_dim=args.embedding_size, embeddings=embeddings,
-                 batch_size=args.batch_size, dynamic_spatial=args.dynamic_spatial)
+                 embedding_dim=args.embedding_size, embeddings=embeddings, ext_dim=7,
+                 batch_size=args.batch_size)
     solver = ModelSolver(model, train_loader, test_loader, pre_process,
                          batch_size=args.batch_size,
                          show_batches=args.show_batches,
