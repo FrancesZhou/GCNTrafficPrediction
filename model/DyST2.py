@@ -40,6 +40,7 @@ class DyST2():
         self.y = tf.placeholder(tf.float32, [self.input_steps, self.num_station, 2])
 
     def fusion(self, data, out_dim, reuse=True):
+        out = tf.constant(0.0, dtype=tf.float32, shape=[self.num_station, out_dim], name='fustion_output')
         for i in xrange(len(data)):
             with tf.variable_scope('fusion_{0}'.format(i), reuse=reuse):
                 dim = data[i].get_shape().as_list()[-1]
@@ -63,7 +64,7 @@ class DyST2():
     def build_model(self):
         x = self.x
         y = self.y
-        f = self.f
+        f_all = self.f
         e = self.e
         # x: [input_steps, num_station, 2]
         # f: [input_steps, num_station, num_station]
@@ -73,13 +74,14 @@ class DyST2():
         # Initial state of the LSTM memory.
         #hidden_state = tf.zeros([self.batch_size, self.lstm.state_size])
         #current_state = tf.zeros([self.batch_size, self.lstm.state_size])
-        hidden_state = tf.zeros([self.batch_size, self.embedding_dim])
-        current_state = tf.zeros([self.batch_size, self.embedding_dim])
+        hidden_state = tf.zeros([self.num_station, self.embedding_dim])
+        current_state = tf.zeros([self.num_station, self.embedding_dim])
         state = hidden_state, current_state
         y_ = []
         for i in xrange(self.input_steps):
             # for each step
             # ------------------- transition-in gate & transition-out gate -------------
+            f = f_all[i]
             f_in_gate = tf.divide(f, tf.reduce_sum(f, 0, keepdims=True))
             f_out_gate = tf.transpose(tf.divide(f, tf.reduce_sum(f, 1, keepdims=True)))
             f_in = tf.multiply(tf.tile(tf.expand_dims(x[i, :, 0], axis=0), [self.num_station, 1]),
@@ -94,10 +96,10 @@ class DyST2():
             # ------------------- dynamic context ------------------------
             # compute alpha
             tile_embeddings = tf.tile(tf.expand_dims(self.embeddings, axis=0),
-                                      [self.num_station, 1])  # [num_station, num_station, embedding_dim]
+                                      [self.num_station, 1, 1])  # [num_station, num_station, embedding_dim]
             corr = tf.matmul(output, tf.transpose(self.embeddings)) # [num_station(batch_size), num_station]
-            f_in_one_zero = tf.cast(tf.greater(f, tf.zeros_like(f)), tf.int32) # [num_station, num_station]
-            f_out_one_zero = tf.cast(tf.greater(tf.transpose(f), tf.zeros_like(tf.transpose(f))), tf.int32)
+            f_in_one_zero = tf.cast(tf.greater(f, tf.zeros_like(f)), tf.float32) # [num_station, num_station]
+            f_out_one_zero = tf.cast(tf.greater(tf.transpose(f), tf.zeros_like(tf.transpose(f))), tf.float32)
             cxt_in = self.attention(f_in_one_zero, corr, tile_embeddings)
             cxt_out = self.attention(f_out_one_zero, corr, tile_embeddings)
             cxt = tf.concat((cxt_in, cxt_out), axis=-1)

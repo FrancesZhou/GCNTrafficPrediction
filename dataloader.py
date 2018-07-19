@@ -42,8 +42,10 @@ class DataLoader():
         f_map = np.zeros((self.num_station, self.num_station), dtype=np.float32)
         rows, cols, values = zip(*f_list)
         f_map[rows, cols] = values
+        return f_map
 
-    def next_sample(self, index):
+    def next_sample(self, i):
+        index = self.data_index[i]
         if index > self.num_data-self.input_steps:
             return None, None, None, None
         else:

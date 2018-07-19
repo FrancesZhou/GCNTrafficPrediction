@@ -104,6 +104,7 @@ class ModelSolver(object):
                         continue
                     #t2 = time.time()
                     #print 'load batch time: %s' % (t2-t1)
+                    print np.array(x).shape
                     feed_dict = {self.model.x: np.array(x),
                                  self.model.f: np.array(f),
                                  self.model.e: np.array(e),

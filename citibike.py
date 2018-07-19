@@ -23,7 +23,7 @@ def main():
     parse.add_argument('-output_steps', '--output_steps', type=int, default=1,
                        help='number of output steps')
     # ---------- station embeddings --------
-    parse.add_argument('-pretrained_embeddings', '--pretrained_embeddings', type=int, default=0,
+    parse.add_argument('-pretrained_embeddings', '--pretrained_embeddings', type=int, default=1,
                        help='whether to use pretrained embeddings')
     parse.add_argument('-embedding_size', '--embedding_size', type=int, default=100,
                        help='dim of embedding')
