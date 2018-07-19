@@ -1,5 +1,6 @@
 import cPickle as pickle
 import numpy as np
+import scipy.io as sio
 
 def dump_pickle(data, file):
     try:
@@ -23,14 +24,30 @@ def load_npy_data(filename, split):
         data = np.concatenate((np.expand_dims(d1, axis=-1), np.expand_dims(d2, axis=-1)), axis=-1)
     train = data[0:split[0]]
     validate = data[split[0]:(split[0]+split[1])]
-    test = data[(split[0]+split[1]):(split[0]+split[1]+split[2])]
+    if len(split) > 2:
+        test = data[(split[0]+split[1]):(split[0]+split[1]+split[2])]
+    else:
+        test = []
     return data, train, validate, test
 
 def load_pkl_data(filename, split):
     data = load_pickle(filename)
     train = data[0:split[0]]
     validate = data[split[0]:(split[0]+split[1])]
-    test = data[(split[0]+split[1]):(split[0]+split[1]+split[2])]
+    if len(split) > 2:
+        test = data[(split[0]+split[1]):(split[0]+split[1]+split[2])]
+    else:
+        test = []
+    return data, train, validate, test
+
+def load_mat_data(filename, dataname, split):
+    data = sio.loadmat(filename)[dataname]
+    train = data[0:split[0]]
+    validate = data[split[0]:(split[0]+split[1])]
+    if len(split) > 2:
+        test = data[(split[0]+split[1]):(split[0]+split[1]+split[2])]
+    else:
+        test = []
     return data, train, validate, test
 
 def get_index_for_month(year, month):
@@ -160,3 +177,14 @@ def get_embedding_from_file(file, num):
             v = [float(e) for e in v_str.split()]
             embeddings[int(label)] = v
     return embeddings
+
+def rmlse(y, y_out, preprocess):
+    # y, y_out: [num, num_station, 2]
+    # check-in loss
+    in_log_loss = np.mean(np.square(np.log(preprocess.inverse_transform(y_out[:,:,0]) + 1)-
+                                    np.log(preprocess.inverse_transform(y[:,:,0]) + 1)), axis=1)
+    in_rmlse = np.sqrt(in_log_loss)
+    out_log_loss = np.mean(np.square(np.log(preprocess.inverse_transform(y_out[:,:,1]) + 1)-
+                                     np.log(preprocess.inverse_transform(y[:,:,1]) + 1)), axis=1)
+    out_rmlse = np.sqrt(out_log_loss)
+    return in_rmlse, out_rmlse, np.mean(in_rmlse), np.mean(out_rmlse)
