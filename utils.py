@@ -42,6 +42,10 @@ def load_pkl_data(filename, split):
 
 def load_mat_data(filename, dataname, split):
     data = sio.loadmat(filename)[dataname]
+    #
+    max_d = np.max(data[:, -2:], axis=0)
+    min_d = np.min(data[:, -2:], axis=0)
+    data[:, -2:] = (data[:, -2:] - min_d)/(max_d - min_d)
     train = data[0:split[0]]
     validate = data[split[0]:(split[0]+split[1])]
     if len(split) > 2:

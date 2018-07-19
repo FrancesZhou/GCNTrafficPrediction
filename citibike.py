@@ -63,11 +63,12 @@ def main():
     # data: [num, station_num, 2]
     f_data, train_f_data, test_f_data, _ = load_pkl_data(args.folder_name + 'f_data_list.pkl', split=split)
     print(len(f_data))
+    # e_data: [num, 7]
     e_data, train_e_data, test_e_data, _ = load_mat_data(args.folder_name + 'fea.mat', 'fea', split=split)
-    e_preprocess = MinMaxNormalization01()
-    e_preprocess.fit(train_e_data)
-    train_e_data = e_preprocess.transform(train_e_data)
-    test_e_data = e_preprocess.transform(test_e_data)
+    # e_preprocess = MinMaxNormalization01()
+    # e_preprocess.fit(train_e_data)
+    # train_e_data = e_preprocess.transform(train_e_data)
+    # test_e_data = e_preprocess.transform(test_e_data)
     print('preprocess train/test data...')
     pre_process = MinMaxNormalization01()
     pre_process.fit(train_data)
