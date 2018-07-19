@@ -8,19 +8,18 @@ from sklearn.model_selection import train_test_split
 # import copy
 
 class DataLoader():
-    def __init__(self, d_data, f_data,
+    def __init__(self, d_data, f_data, e_data,
                  input_steps, output_steps,
-                 num_station,
-                 pre_process):
-        self.pre_process = pre_process
-        self.d_data = self.pre_process.transform(d_data)
+                 num_station):
+        self.d_data = d_data
         self.f_data = f_data
+        self.e_data = e_data
         # d_data: [num, num_station, 2]
         # f_data: [num, {num_station, num_station}]
+        # e_data: [num, 7]
         self.input_steps = input_steps
         self.output_steps = output_steps
         self.num_station = num_station
-        #self.pre_process = pre_process
         self.num_data = len(self.d_data)
         self.data_index = np.arange(self.num_data - self.input_steps)
         #self.reset_data()
@@ -39,7 +38,20 @@ class DataLoader():
         f_map[rows, cols] = flows
         return f_map
 
-    #def get_flow_map_from_list(self, f_list):
+    def get_flow_map_from_list(self, f_list):
+        f_map = np.zeros((self.num_station, self.num_station), dtype=np.float32)
+        rows, cols, values = zip(*f_list)
+        f_map[rows, cols] = values
+
+    def next_sample(self, index):
+        if index > self.num_data-self.input_steps:
+            return None, None, None, None
+        else:
+            x = self.d_data[index: index+self.input_steps]
+            f = [self.get_flow_map_from_list(self.f_data[j]) for j in xrange(index+1, index+self.input_steps+1)]
+            e = self.e_data[index+1: index+self.input_steps+1]
+            y = self.d_data[index + 1: index + self.input_steps + 1]
+            return x, f, e, y
 
     def next_batch_for_train(self, start, end):
         if end > self.num_data-self.input_steps:
