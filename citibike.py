@@ -45,7 +45,7 @@ def main():
     parse.add_argument('-batch_size', '--batch_size', type=int, default=1, help='batch size for training')
     parse.add_argument('-show_batches', '--show_batches', type=int,
                        default=100, help='show how many batches have been processed.')
-    parse.add_argument('-lr', '--learning_rate', type=float, default=0.0002, help='learning rate')
+    parse.add_argument('-lr', '--learning_rate', type=float, default=0.2, help='learning rate')
     parse.add_argument('-update_rule', '--update_rule', type=str, default='adam', help='update rule')
     # ------ train or predict -------
     parse.add_argument('-train', '--train', type=int, default=1, help='whether to train')

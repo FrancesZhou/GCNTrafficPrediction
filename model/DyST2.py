@@ -49,7 +49,7 @@ class DyST2():
         with tf.variable_scope('bias', reuse=reuse):
             b = tf.get_variable('b', [out_dim])
             out = tf.add(out, b)
-        #out = tf.nn.relu(out)
+        out = tf.nn.relu(out)
         return out
 
     def attention(self, f_one_zero, corr, tile_embeddings):
@@ -107,13 +107,14 @@ class DyST2():
             # ------------------- output ---------------------
             ext = e[i] # [ext_dim]
             # hidden_y = relu(w1*Dy_s + w2*output + b)
-            hidden_out_dim = self.hidden_dim
-            #hidden_out_dim = 2
+            #hidden_out_dim = self.hidden_dim
+            hidden_out_dim = 2
             hidden_y = self.fusion((output, cxt, tf.tile(tf.expand_dims(ext, axis=0), [self.num_station, 1])),
                                       out_dim=hidden_out_dim, reuse=tf.AUTO_REUSE)
             #hidden_y: [num_station, hidden_out_dim]
-            next_output = tf.nn.sigmoid(tf.add(tf.matmul(hidden_y, self.out_hidden_w),
-                                            self.out_hidden_b))
+            next_output = hidden_y
+            #next_output = tf.nn.relu(tf.add(tf.matmul(hidden_y, self.out_hidden_w),
+            #                                self.out_hidden_b))
             y_.append(next_output)
         y_ = tf.stack(y_)
         #y_ = tf.transpose(y_, [1, 0, 2, 3])
