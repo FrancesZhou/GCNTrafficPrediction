@@ -93,7 +93,8 @@ class DyST2():
             f_out = tf.multiply(tf.tile(tf.expand_dims(x[i, :, 1], axis=0), [self.num_station, 1]),
                                 f_in_gate)
             # f_in, f_out: [num_station, num_station]
-            current_step_batch = tf.concat((f_in, f_out), axis=-1)
+            #current_step_batch = tf.concat((f_in, f_out), axis=-1)
+            current_step_batch = f
             # current_step_batch: [num_station, 2*num_station]
             output, state = self.lstm(current_step_batch, state)
             # output: [num_station, state_size]
