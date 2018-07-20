@@ -104,6 +104,7 @@ class ModelSolver(object):
                     #x, y, f = train_loader.next_batch_for_train(i*self.batch_size, (i+1)*self.batch_size)
                     x, f, ee, y = train_loader.next_sample(i)
                     if x is None:
+                        print 'invalid batch'
                         continue
                     #t2 = time.time()
                     #print 'load batch time: %s' % (t2-t1)
@@ -126,7 +127,7 @@ class ModelSolver(object):
                 t_rmse = np.sqrt(train_loss / t_count)
                 t_in_rmlse = train_in_log_loss/(num_train_batches*train_loader.input_steps)
                 t_out_rmlse = train_out_log_loss/(num_train_batches*train_loader.input_steps)
-                w_text = 'at epoch %d, train l2 loss is %.3f, all in/out log loss is %.3f/%.3f' % (e, t_rmse, t_in_rmlse, t_out_rmlse)
+                w_text = 'at epoch %d, train l2 loss is %.6f, all in/out log loss is %.6f/%.6f' % (e, self.preprocessing.real_loss(t_rmse), t_in_rmlse, t_out_rmlse)
                 print w_text
                 o_file.write(w_text)
                 # ========================== validate ===========================
@@ -170,7 +171,7 @@ class ModelSolver(object):
                     saver.save(sess, save_name, global_step=e + 1)
                     print "model-%s saved." % (e + 1)
                 # ============================ for test data ===============================
-                if e == self.n_epochs-1:
+                if e % 2 == 0:
                     print('test for test data...')
                     t_loss = 0
                     all_in_log_loss = 0
@@ -205,8 +206,8 @@ class ModelSolver(object):
                     all_in_rmlse = all_in_log_loss / (num_test_batches * test_loader.input_steps)
                     all_out_rmlse = all_out_log_loss / (num_test_batches * test_loader.input_steps)
                     _, _, test_in_rmlse, test_out_rmlse = rmlse(test_loader.d_data[test_loader.input_steps:], y_pre_test, self.preprocessing)
-                    w_text = 'at epoch %d, test l2 loss is %.3f, all in/out log loss is %.3f/%.3f.\ntest in/out rmlse is %.3f/%.3f' % \
-                             (e, t_rmse, all_in_rmlse, all_out_rmlse, test_in_rmlse, test_out_rmlse)
+                    w_text = 'at epoch %d, test l2 loss is %.6f, all in/out log loss is %.6f/%.6f.\ntest in/out rmlse is %.6f/%.6f' % \
+                             (e, self.preprocessing.real_loss(t_rmse), all_in_rmlse, all_out_rmlse, test_in_rmlse, test_out_rmlse)
                     print w_text
                     o_file.write(w_text)
 
