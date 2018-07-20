@@ -113,9 +113,9 @@ def main():
                          )
     if args.train:
         print '==================== begin training ======================'
-        solver.train('datasets/citibike-data/out')
-    # np.save('citybike-results/results/' + args.model + '/test_target.npy', test_target)
-    # np.save('citybike-results/results/' + args.model + '/test_prediction.npy', test_prediction)
+        test_target, test_prediction = solver.train('datasets/citibike-data/out')
+    np.save('datasets/citybike-data/results/test_target.npy', test_target)
+    np.save('datasets/citybike-data/results/test_prediction.npy', test_prediction)
 
 
 if __name__ == "__main__":

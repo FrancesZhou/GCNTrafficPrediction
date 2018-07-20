@@ -2,7 +2,12 @@
 
 datasets
 1. citibikenyc-data
-station analysis (station ID, name, lon/lat)
+num_station: 331
 
-201710
-date format: 2017-10-01 00:00:00
+HA: l2-loss: 3.2127
+in/out rmlse: 0.4540/0.4340
+
+VAR: l2-loss: 3.1769
+in/out rmlse: 0.6004/0.5904
+
+

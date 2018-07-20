@@ -205,11 +205,20 @@ class ModelSolver(object):
                     t_rmse = np.sqrt(t_loss / t_count)
                     all_in_rmlse = all_in_log_loss / (num_test_batches * test_loader.input_steps)
                     all_out_rmlse = all_out_log_loss / (num_test_batches * test_loader.input_steps)
-                    _, _, test_in_rmlse, test_out_rmlse = rmlse(test_loader.d_data[test_loader.input_steps:], y_pre_test, self.preprocessing)
+                    test_target = self.preprocessing.inverse_transform(test_loader.d_data[test_loader.input_steps:])
+                    test_prediction = self.preprocessing.inverse_transform(y_pre_test)
+                    test_in_rmlse = np.mean(np.sqrt(
+                        np.mean(np.square(np.log(test_target[:, :, 0] + 1) - np.log(test_prediction[:, :, 0] + 1)),
+                                axis=1)))
+                    test_out_rmlse = np.mean(np.sqrt(
+                        np.mean(np.square(np.log(test_target[:, :, 1] + 1) - np.log(test_prediction[:, :, 1] + 1)),
+                                axis=1)))
+                    #_, _, test_in_rmlse, test_out_rmlse = rmlse(test_loader.d_data[test_loader.input_steps:], y_pre_test, self.preprocessing)
                     w_text = 'at epoch %d, test l2 loss is %.6f, all in/out log loss is %.6f/%.6f.\ntest in/out rmlse is %.6f/%.6f' % \
                              (e, self.preprocessing.real_loss(t_rmse), all_in_rmlse, all_out_rmlse, test_in_rmlse, test_out_rmlse)
                     print w_text
                     o_file.write(w_text)
+                    return np.array(test_target), np.array(test_prediction)
 
 
 
