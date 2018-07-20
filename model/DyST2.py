@@ -28,8 +28,9 @@ class DyST2():
                 self.embeddings = embeddings
             else:
                 self.embeddings = tf.Variable(tf.constant(0.0, dtype=tf.float32, shape=[self.num_station, self.embedding_dim]), name='embeddings')
-        with tf.variable_scope('lstm'):
-            self.lstm = tf.contrib.rnn.BasicLSTMCell(self.embedding_dim)
+        with tf.variable_scope('rnn'):
+            #self.rnn = tf.contrib.rnn.BasicLSTMCell(self.embedding_dim)
+            self.rnn = tf.contrib.rnn.GRUCell(self.embedding_dim)
         with tf.variable_scope('output'):
             self.out_hidden_w = tf.get_variable(shape=[self.hidden_dim, 2], initializer=self.weight_initializer, name='out_hidden_w')
             self.out_hidden_b = tf.get_variable(shape=[2,], initializer=self.const_initializer, name='out_hidden_b')
@@ -75,9 +76,12 @@ class DyST2():
         # Initial state of the LSTM memory.
         #hidden_state = tf.zeros([self.batch_size, self.lstm.state_size])
         #current_state = tf.zeros([self.batch_size, self.lstm.state_size])
+        '''
         hidden_state = tf.zeros([self.num_station, self.embedding_dim])
         current_state = tf.zeros([self.num_station, self.embedding_dim])
         state = hidden_state, current_state
+        '''
+        state = tf.zeros([self.num_station, self.embedding_dim])
         y_ = []
         for i in xrange(self.input_steps):
             # for each step
@@ -97,7 +101,7 @@ class DyST2():
             current_step_batch = tf.concat((f_in, f_out), axis=-1)
             #current_step_batch = f
             # current_step_batch: [num_station, 2*num_station]
-            output, state = self.lstm(current_step_batch, state)
+            output, state = self.rnn(current_step_batch, state)
             # output: [num_station, state_size]
             # ------------------- dynamic context ------------------------
             # compute alpha
@@ -158,7 +162,7 @@ class DyST2():
                 current_step_batch = next_input
             else:
                 current_step_batch = x[i]
-            output, state = self.lstm(tf.reshape(current_step_batch, [self.batch_size, -1]), state)
+            output, state = self.rnn(tf.reshape(current_step_batch, [self.batch_size, -1]), state)
             # output: [batch_size, state_size]
             if i > self.input_steps-2:
                 # ------------------- dynamic spatial dependency ------------------------

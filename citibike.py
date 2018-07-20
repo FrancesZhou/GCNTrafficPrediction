@@ -59,7 +59,7 @@ def main():
     # test: 20140911 - 20140930
     split = [3912, 480]
     data, train_data, test_data, _ = load_npy_data(
-        filename=[args.folder_name+'p_station.npy', args.folder_name+'d_station.npy'], split=split)
+        filename=[args.folder_name+'d_station.npy', args.folder_name+'p_station.npy'], split=split)
     # data: [num, station_num, 2]
     f_data, train_f_data, test_f_data, _ = load_pkl_data(args.folder_name + 'f_data_list.pkl', split=split)
     print(len(f_data))
