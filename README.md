@@ -25,8 +25,10 @@ check-out rmlse: 0.5611
 check-out er: 0.6771
 
 ----- check-in inference algorithm 1 (same as check-out prediction) ------
-check-in l2-loss:
-check-out rmlse: 
+check-in l2-loss: 3.2073
+check-out rmse: 2.7482
+check-out rmlse: 0.5613
+check-out er: 0.6835
 
 ----- check-in inference algorithm 2 -----
 check-in l2-loss: 5.8643
