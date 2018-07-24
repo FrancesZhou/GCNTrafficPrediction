@@ -218,7 +218,7 @@ class ModelSolver(object):
                              (e, self.preprocessing.real_loss(t_rmse), all_in_rmlse, all_out_rmlse, test_in_rmlse, test_out_rmlse)
                     print w_text
                     o_file.write(w_text)
-                    return np.array(test_target), np.array(test_prediction)
+            return np.array(test_target), np.array(test_prediction)
 
 
 
