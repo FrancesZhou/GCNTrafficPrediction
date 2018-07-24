@@ -196,4 +196,6 @@ def get_loss(y, y_out):
     #print in_sum.shape
     in_er = np.sum(np.abs(y_out[0]-y[0]))/in_sum
     out_er = np.sum(np.abs(y_out[1]-y[1]))/out_sum
+    #print in_sum
+    #print in_er
     return [in_rmse, out_rmse, in_rmlse, out_rmlse, in_er, out_er]

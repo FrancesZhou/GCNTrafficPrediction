@@ -86,7 +86,7 @@ class ModelSolver(object):
 			for e in range(self.n_epochs):
 				# ========================== train ====================
 				train_l2_loss = 0
-				train_metric_loss = np.zeros(6)
+				train_metric_loss = np.zeros(6, dtype=np.float32)
 				#in_rmse, out_rmse, in_rmlse, out_rmlse, in_er, out_er
 				#num_train_batches = int(math.ceil((train_loader.num_data-train_loader.input_steps) / self.batch_size))
 				num_train_batches = train_loader.num_data - train_loader.input_steps
@@ -126,6 +126,7 @@ class ModelSolver(object):
 				t_count = num_train_batches*(train_loader.input_steps*train_loader.num_station*2)
 				t_rmse = np.sqrt(train_l2_loss / t_count)
 				train_metric_loss = train_metric_loss/num_train_batches
+                                print train_metric_loss
 				w_text = 'at epoch %d, train l2 loss is %.6f\n' \
 						 'all in/out rmse is %.6f/%.6f\n' \
 						 'all in/out rmlse is %.6f/%.6f\n' \
