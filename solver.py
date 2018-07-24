@@ -126,7 +126,10 @@ class ModelSolver(object):
 				t_count = num_train_batches*(train_loader.input_steps*train_loader.num_station*2)
 				t_rmse = np.sqrt(train_l2_loss / t_count)
 				train_metric_loss = train_metric_loss/num_train_batches
-                                print train_metric_loss
+				w_text = 'at epoch %d, train l2 loss is %.6f\n' % (e, self.preprocessing.inverse_transform(t_rmse))
+				w_text += 'in/out rmse, rmlse, er is ' + str(train_metric_loss)
+				#print train_metric_loss
+				'''
 				w_text = 'at epoch %d, train l2 loss is %.6f\n' \
 						 'all in/out rmse is %.6f/%.6f\n' \
 						 'all in/out rmlse is %.6f/%.6f\n' \
@@ -135,6 +138,7 @@ class ModelSolver(object):
 						  train_metric_loss[0], train_metric_loss[1],
 						  train_metric_loss[2], train_metric_loss[3],
 						  train_metric_loss[4], train_metric_loss[5])
+				'''
 				print w_text
 				o_file.write(w_text)
 				# ========================== validate ===========================
@@ -213,6 +217,9 @@ class ModelSolver(object):
 					t_count = num_test_batches * (test_loader.input_steps * test_loader.num_station * 2)
 					t_rmse = np.sqrt(test_l2_loss / t_count)
 					test_metric_loss = test_metric_loss / num_test_batches
+					w_text = 'at epoch %d, train l2 loss is %.6f\n' % (e, self.preprocessing.inverse_transform(t_rmse))
+					w_text += 'in/out rmse, rmlse, er is ' + str(test_metric_loss)
+					'''
 					w_text = 'at epoch %d, test l2 loss is %.6f\n' \
 							 'all in/out rmse is %.6f/%.6f\n' \
 							 'all in/out rmlse is %.6f/%.6f\n' \
@@ -221,6 +228,7 @@ class ModelSolver(object):
 							  test_metric_loss[0], test_metric_loss[1],
 							  test_metric_loss[2], test_metric_loss[3],
 							  test_metric_loss[4], test_metric_loss[5])
+					'''
 					print w_text
 					o_file.write(w_text)
 			return np.array(test_target), np.array(test_prediction)
