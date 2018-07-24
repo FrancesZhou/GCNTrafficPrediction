@@ -26,7 +26,22 @@ class MinMaxNormalization01(object):
 		return loss*(self._max - self._min)
 		#return real_loss
 
-
+class MinMaxNormalization01_by_axis(object):
+	def __init__(self):
+		pass
+	def fit(self, data):
+		self._min = np.amin(data, axis=0)
+		self._max = np.amax(data, axis=0)
+	def transform(self, data):
+		norm_data = 1. * (data - self._min) / (self._max - self._min)
+		return norm_data
+	def fit_transform(self, data):
+		self.fit(data)
+		return self.transform(data)
+	def inverse_transform(self, data):
+		inverse_norm_data = 1. * data * (self._min - self._min) + self._min
+		return inverse_norm_data
+	#def real_loss(self, loss):
 
 class MinMaxNormalization_neg_1_pos_1(object):
 	def __init__(self):
