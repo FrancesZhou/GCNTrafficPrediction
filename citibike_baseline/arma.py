@@ -2,6 +2,7 @@ from __future__ import print_function
 import numpy as np
 import pandas as pd
 import time
+import warnings
 from time import mktime
 from datetime import datetime
 from progressbar import *
@@ -16,6 +17,7 @@ from preprocessing import *
 
 
 def predict_by_samples(data, test_data, num_sample):
+	warnings.filterwarnings("ignore")
 	index_all = np.zeros([test_data.shape[0] - output_steps, num_sample])
 	valid_num = np.zeros(test_data.shape[0] - output_steps)
 	error_all = []

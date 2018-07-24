@@ -39,7 +39,7 @@ class MinMaxNormalization01_by_axis(object):
 		self.fit(data)
 		return self.transform(data)
 	def inverse_transform(self, data):
-		inverse_norm_data = 1. * data * (self._min - self._min) + self._min
+		inverse_norm_data = 1. * data * (self._max - self._min) + self._min
 		return inverse_norm_data
 	#def real_loss(self, loss):
 

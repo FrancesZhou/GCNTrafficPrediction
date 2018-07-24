@@ -126,11 +126,11 @@ class ModelSolver(object):
 				t_count = num_train_batches*(train_loader.input_steps*train_loader.num_station*2)
 				t_rmse = np.sqrt(train_l2_loss / t_count)
 				train_metric_loss = train_metric_loss/num_train_batches
-				w_text = 'at epoch %d, train l2 loss is %s\n' % (e, t_rmse)
-				w_text += 'in/out rmse, rmlse, er is ' + str(train_metric_loss)
+				#w_text = 'at epoch %d, train l2 loss is %s\n' % (e, t_rmse)
+				#w_text += 'in/out rmse, rmlse, er is ' + str(train_metric_loss)
 				#print train_metric_loss
 				#'''
-				w_text += 'at epoch %d, train l2 loss is %.6f\n' \
+				w_text = 'at epoch %d, train l2 loss is %.6f\n' \
 						 'all in/out rmse is %.6f/%.6f\n' \
 						 'all in/out rmlse is %.6f/%.6f\n' \
 						 'all in/out er is %.6f/%.6f' % \
@@ -182,7 +182,7 @@ class ModelSolver(object):
 					saver.save(sess, save_name, global_step=e + 1)
 					print "model-%s saved." % (e + 1)
 				# ============================ for test data ===============================
-				if e % 2 == 0:
+				if e % 1 == 0:
 					print('test for test data...')
 					test_l2_loss = 0
 					test_metric_loss = np.zeros(6)
@@ -217,10 +217,10 @@ class ModelSolver(object):
 					t_count = num_test_batches * (test_loader.input_steps * test_loader.num_station * 2)
 					t_rmse = np.sqrt(test_l2_loss / t_count)
 					test_metric_loss = test_metric_loss / num_test_batches
-					w_text = 'at epoch %d, train l2 loss is %s\n' % (e, t_rmse)
-					w_text += 'in/out rmse, rmlse, er is ' + str(test_metric_loss)
+					#w_text = 'at epoch %d, train l2 loss is %s\n' % (e, t_rmse)
+					#w_text += 'in/out rmse, rmlse, er is ' + str(test_metric_loss)
 					#'''
-					w_text += 'at epoch %d, test l2 loss is %.6f\n' \
+					w_text = 'at epoch %d, test l2 loss is %.6f\n' \
 							 'all in/out rmse is %.6f/%.6f\n' \
 							 'all in/out rmlse is %.6f/%.6f\n' \
 							 'all in/out er is %.6f/%.6f' % \
