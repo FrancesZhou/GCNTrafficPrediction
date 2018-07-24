@@ -87,10 +87,13 @@ class DyST2():
             # for each step
             # ------------------- transition-in gate & transition-out gate -------------
             f = f_all[i]
+            #'''
             f_in_sum = tf.tile(tf.expand_dims(tf.reduce_sum(f, 0), 0), [self.num_station, 1])
-            f_in_gate = tf.where(f_in_sum>0, tf.divide(f, f_in_sum), tf.ones_like(f))
+            #f_in_gate = tf.where(f_in_sum>0, tf.divide(f, f_in_sum), tf.ones_like(f))
+            f_in_gate = tf.where(f_in_sum > 0, tf.divide(f, f_in_sum), f)
             f_out_sum = tf.tile(tf.expand_dims(tf.reduce_sum(f, 1), -1), [1, self.num_station])
-            f_out_gate = tf.transpose(tf.where(f_out_sum>0, tf.divide(f, f_out_sum), tf.ones_like(f)))
+            #f_out_gate = tf.transpose(tf.where(f_out_sum>0, tf.divide(f, f_out_sum), tf.ones_like(f)))
+            f_out_gate = tf.transpose(tf.where(f_out_sum > 0, tf.divide(f, f_out_sum), f))
             #f_in_gate = tf.divide(f, tf.reduce_sum(f, 0, keepdims=True))
             #f_out_gate = tf.transpose(tf.divide(f, tf.reduce_sum(f, 1, keepdims=True)))
             f_in = tf.multiply(tf.tile(tf.expand_dims(x[i, :, 0], axis=0), [self.num_station, 1]),
@@ -99,6 +102,8 @@ class DyST2():
                                 f_in_gate)
             # f_in, f_out: [num_station, num_station]
             current_step_batch = tf.concat((f_in, f_out), axis=-1)
+            #'''
+            #current_step_batch = tf.tile(tf.expand_dims(tf.reshape(x[i], [-1,]), axis=0), [self.num_station, 1])
             #current_step_batch = f
             # current_step_batch: [num_station, 2*num_station]
             output, state = self.rnn(current_step_batch, state)
