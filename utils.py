@@ -185,10 +185,16 @@ def get_embedding_from_file(file, num):
 def get_loss(y, y_out):
     # y, y_out: [num_station, 2]
     # check-in loss
+    #print y.shape
+    #print y_out.shape
     in_rmse = np.sqrt(np.sum(np.square(y_out[:,0]-y[:,0])))
     out_rmse = np.sqrt(np.sum(np.square(y_out[:,1]-y[:,1])))
     in_rmlse = np.sqrt(np.mean(np.square(np.log(y_out[:,0] + 1)-np.log(y[:,0] + 1))))
     out_rmlse = np.sqrt(np.mean(np.square(np.log(y_out[:,1] + 1)-np.log(y[:,1] + 1))))
-    in_er = np.sum(np.abs(y_out[:,0]-y[:,0]))*1.0/np.sum(y[:,0])
-    out_er = np.sum(np.abs(y_out[:,1]-y[:,1]))*1.0/np.sum(y[:,1])
+    in_sum = np.clip(np.sum(y[:,0]), 1, None)
+    out_sum = np.clip(np.sum(y[:,1]), 1, None)
+    #print in_sum.shape
+    in_er = np.sum(np.abs(y_out[:,0]-y[:,0]))/in_sum
+    out_er = np.sum(np.abs(y_out[:,1]-y[:,1]))/out_sum
+    #print in_er.shape
     return [in_rmse, out_rmse, in_rmlse, out_rmlse, in_er, out_er]
