@@ -206,7 +206,7 @@ def get_loss_by_batch(y, y_out):
     in_rmse = np.sum(np.sqrt(np.mean(np.square(y_out[:,:,0]-y[:,:,0]), -1)))
     out_rmse = np.sum(np.sqrt(np.mean(np.square(y_out[:,:,1]-y[:,:,1]), -1)))
     in_rmlse = np.sum(np.sqrt(np.mean(np.square(np.log(y_out[:,:,0] + 1)-np.log(y[:,:,0] + 1)), -1)))
-    out_rmlse = np.sqrt(np.mean(np.square(np.log(y_out[:,:,1] + 1)-np.log(y[:,:1] + 1)), -1))
+    out_rmlse = np.sum(np.sqrt(np.mean(np.square(np.log(y_out[:,:,1] + 1)-np.log(y[:,:,1] + 1)), -1)))
     in_sum = np.clip(np.sum(y[:,:,0], -1), 1, None)
     out_sum = np.clip(np.sum(y[:,:,1], -1), 1, None)
     #print in_sum.shape

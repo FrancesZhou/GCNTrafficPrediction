@@ -103,7 +103,7 @@ class DyST3():
             # embeddings: [num_station, embedding_dim]
             corr = tf.matmul(output, tf.transpose(self.embeddings))  # [batch_size, num_station]
             f_in_one_zero = tf.cast(tf.greater(f, tf.zeros_like(f)), tf.float32)  # [batch_size, num_station, num_station]
-            f_out_one_zero = tf.cast(tf.greater(tf.transpose(f), tf.zeros_like(tf.transpose(f))), tf.float32)
+            f_out_one_zero = tf.cast(tf.greater(tf.transpose(f, (0, 2, 1)), tf.zeros_like(tf.transpose(f, (0,2,1)))), tf.float32)
             cxt_in = self.attention(f_in_one_zero, corr, self.embeddings)
             cxt_out = self.attention(f_out_one_zero, corr, self.embeddings)
             # cxt_in: [batch_size, num_station, embedding_dim]
@@ -113,7 +113,7 @@ class DyST3():
             f_in_sum = tf.tile(tf.reduce_sum(f, 1, keepdims=True), [1, self.num_station, 1])
             f_in_gate = tf.where(f_in_sum > 0, tf.divide(f, f_in_sum), f)
             f_out_sum = tf.tile(tf.reduce_sum(f, 2, keepdims=True), [1, 1, self.num_station])
-            f_out_gate = tf.transpose(tf.where(f_out_sum > 0, tf.divide(f, f_out_sum), f))
+            f_out_gate = tf.transpose(tf.where(f_out_sum > 0, tf.divide(f, f_out_sum), f), (0, 2, 1))
             # check-out
             x_in = x[i, :, :, 0]
             x_out = x[i, :, :, 1]
@@ -122,20 +122,20 @@ class DyST3():
             out_2 = tf.reduce_sum(tf.multiply(cxt_out, self.w_h_out), axis=-1)
             #
             e = e_all[i]
-            out_3 = tf.matmul(e, self.x_e_out)
+            out_3 = tf.matmul(e, self.w_e_out)
             next_out = out_1 + out_2 + out_3
             # check-in
             in_1 = tf.squeeze(tf.matmul(tf.multiply(f_out_gate, self.w_3), tf.expand_dims(x_out, -1))) + tf.matmul(x_in, self.w_4)
             in_2 = tf.reduce_sum(tf.multiply(cxt_in, self.w_h_in), axis=-1)
             #
-            in_3 = tf.matmul(e, self.x_e_in)
+            in_3 = tf.matmul(e, self.w_e_in)
             next_in = in_1 + in_2 + in_3
             next_output = tf.concat((tf.expand_dims(next_in, -1), tf.expand_dims(next_out, -1)), -1)
             y_.append(next_output)
         y_ = tf.stack(y_)
         y_ = tf.transpose(y_, [1, 0, 2, 3])
         loss = 2*tf.nn.l2_loss(y-y_)
-        return loss
+        return y_, loss
 
     def predict(self):
         x = tf.transpose(self.x, [1, 0, 2, 3])
