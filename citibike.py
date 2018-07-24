@@ -5,7 +5,9 @@ import tensorflow as tf
 from gensim.models import Word2Vec
 from model.DyST import DyST
 from model.DyST2 import DyST2
+from model.DyST3 import DyST3
 from solver import ModelSolver
+from solver2 import ModelSolver2
 from preprocessing import *
 from utils import *
 from dataloader import *
@@ -42,7 +44,7 @@ def main():
                        default=0.5, help='keep probability in dropout layer')
     # ---------- training parameters --------
     parse.add_argument('-n_epochs', '--n_epochs', type=int, default=10, help='number of epochs')
-    parse.add_argument('-batch_size', '--batch_size', type=int, default=1, help='batch size for training')
+    parse.add_argument('-batch_size', '--batch_size', type=int, default=2, help='batch size for training')
     parse.add_argument('-show_batches', '--show_batches', type=int,
                        default=100, help='show how many batches have been processed.')
     parse.add_argument('-lr', '--learning_rate', type=float, default=0.2, help='learning rate')
@@ -100,10 +102,10 @@ def main():
     test_loader = DataLoader(test_data, test_f_data, test_e_data,
                             args.input_steps, args.output_steps,
                             num_station)
-    model = DyST2(num_station, args.input_steps, args.output_steps,
+    model = DyST3(num_station, args.input_steps, args.output_steps,
                  embedding_dim=args.embedding_size, embeddings=embeddings, ext_dim=7,
                  batch_size=args.batch_size)
-    solver = ModelSolver(model, train_loader, test_loader, pre_process,
+    solver = ModelSolver2(model, train_loader, test_loader, pre_process,
                          batch_size=args.batch_size,
                          show_batches=args.show_batches,
                          n_epochs=args.n_epochs,
@@ -114,8 +116,8 @@ def main():
     if args.train:
         print '==================== begin training ======================'
         test_target, test_prediction = solver.train('datasets/citibike-data/out')
-    np.save('datasets/citibike-data/results/test_target.npy', test_target)
-    np.save('datasets/citibike-data/results/test_prediction.npy', test_prediction)
+        np.save('datasets/citibike-data/results/test_target.npy', test_target)
+        np.save('datasets/citibike-data/results/test_prediction.npy', test_prediction)
 
 
 if __name__ == "__main__":
