@@ -182,13 +182,13 @@ def get_embedding_from_file(file, num):
             embeddings[int(label)] = v
     return embeddings
 
-def rmlse(y, y_out, preprocess):
-    # y, y_out: [num, num_station, 2]
+def get_loss(y, y_out):
+    # y, y_out: [num_station, 2]
     # check-in loss
-    in_log_loss = np.mean(np.square(np.log(preprocess.inverse_transform(y_out[:,:,0]) + 1)-
-                                    np.log(preprocess.inverse_transform(y[:,:,0]) + 1)), axis=1)
-    in_rmlse = np.sqrt(in_log_loss)
-    out_log_loss = np.mean(np.square(np.log(preprocess.inverse_transform(y_out[:,:,1]) + 1)-
-                                     np.log(preprocess.inverse_transform(y[:,:,1]) + 1)), axis=1)
-    out_rmlse = np.sqrt(out_log_loss)
-    return in_rmlse, out_rmlse, np.mean(in_rmlse), np.mean(out_rmlse)
+    in_rmse = np.sqrt(np.sum(np.square(y_out[:,0]-y[:,0])))
+    out_rmse = np.sqrt(np.sum(np.square(y_out[:,1]-y[:,1])))
+    in_rmlse = np.sqrt(np.mean(np.square(np.log(y_out[:,0] + 1)-np.log(y[:,0] + 1))))
+    out_rmlse = np.sqrt(np.mean(np.square(np.log(y_out[:,1] + 1)-np.log(y[:,1] + 1))))
+    in_er = np.sum(np.abs(y_out[:,0]-y[:,0]))*1.0/np.sum(y[:,0])
+    out_er = np.sum(np.abs(y_out[:,1]-y[:,1]))*1.0/np.sum(y[:,1])
+    return [in_rmse, out_rmse, in_rmlse, out_rmlse, in_er, out_er]
