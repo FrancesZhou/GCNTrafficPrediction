@@ -17,10 +17,10 @@ in/out rmlse: 0.6004/0.5904
 in/out er: 0.9238/0.8629
 
 ##ARMA:
-in/out l2-loss:
-in/out rmse:
-in/out rmlse:
-in/out er:
+in/out l2-loss: 4.1018/
+in/out rmse: 3.4408/
+in/out rmlse: 0.6595/
+in/out er: 2.0901/
 
 ##HP-MSI:
 check-out l2-loss: 3.4588

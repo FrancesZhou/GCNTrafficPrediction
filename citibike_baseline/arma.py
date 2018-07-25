@@ -16,16 +16,16 @@ from utils import *
 from preprocessing import *
 
 
-def predict_by_samples(data, test_data, num_sample):
+def predict_by_samples(data, test_data, num_sample, split, output_steps):
 	warnings.filterwarnings("ignore")
-	index_all = np.zeros([test_data.shape[0] - output_steps, num_sample])
-	valid_num = np.zeros(test_data.shape[0] - output_steps)
+	index_all = np.zeros([test_data.shape[1] - output_steps, num_sample])
+	valid_num = np.zeros(test_data.shape[1] - output_steps)
 	error_all = []
-	real = np.zeros([test_data.shape[0] - output_steps, num_sample])
-	predict = np.zeros([test_data.shape[0] - output_steps, num_sample])
+	real = np.zeros([test_data.shape[1] - output_steps, num_sample])
+	predict = np.zeros([test_data.shape[1] - output_steps, num_sample])
 	#widgets = ['Train: ', Percentage(), ' ', Bar('-'), ' ', ETA()]
 	#pbar = ProgressBar(widgets=widgets, maxval=test_data.shape[0]-output_steps).start()
-	for t in xrange(test_data.shape[0] - output_steps):
+	for t in xrange(test_data.shape[1] - output_steps):
 		#pbar.update(t)
 		if t%10 == 0:
 			print(t)
@@ -56,6 +56,9 @@ def predict_by_samples(data, test_data, num_sample):
 input_steps = 6
 output_steps = 1
 num_sample = 50
+
+in_save_results = False
+out_save_results = False
 
 pre_process = MinMaxNormalization01()
 split = [3912, 480]
@@ -111,11 +114,10 @@ data = pre_process.transform(data)
 #         test_real[i][j] = test_data[i][j:j+output_steps]
 #         test_predict[i][j] = pre
 print('======================= ARMA for check-in test ===============================')
-in_save_results = False
 in_data = data[:, :, 0]
 in_test_data = in_data[split[0]:]
-data = np.transpose(in_data)
-test_data = np.transpose(in_test_data)
+in_data = np.transpose(in_data)
+in_test_data = np.transpose(in_test_data)
 #
 if in_save_results:
 	in_predict = np.load('arma_in_predict.npy')
@@ -126,7 +128,7 @@ if in_save_results:
 	# in_real = pre_process.inverse_transform(in_real)
 	valid_num = np.array([num_sample-len(e) for e in in_error_all])
 else:
-	in_real, in_predict, in_index_all, in_error_all, valid_num = predict_by_samples(data, test_data, num_sample)
+	in_real, in_predict, in_index_all, in_error_all, valid_num = predict_by_samples(in_data, in_test_data, num_sample, split, output_steps)
 	in_predict = pre_process.inverse_transform(in_predict)
 	in_real = pre_process.inverse_transform(in_real)
 #
@@ -146,11 +148,10 @@ np.save('arma_in_index.npy', in_index_all)
 dump_pickle(in_error_all, 'arma_in_error.pkl')
 
 print('======================= ARMA for check-out test ===============================')
-out_save_results = False
 out_data = data[:, :, 1]
 out_test_data = out_data[split[0]:]
-data = np.transpose(out_data)
-test_data = np.transpose(out_test_data)
+out_data = np.transpose(out_data)
+out_test_data = np.transpose(out_test_data)
 #
 if out_save_results:
 	out_predict = np.load('arma_in_predict.npy')
@@ -161,7 +162,7 @@ if out_save_results:
 	# out_real = pre_process.inverse_transform(out_real)
 	valid_num = np.array([num_sample-len(e) for e in out_error_all])
 else:
-	out_real, out_predict, out_index_all, out_error_all, valid_num = predict_by_samples(data, test_data, num_sample)
+	out_real, out_predict, out_index_all, out_error_all, valid_num = predict_by_samples(out_data, out_test_data, num_sample, split, output_steps)
 	out_predict = pre_process.inverse_transform(out_predict)
 	out_real = pre_process.inverse_transform(out_real)
 #
