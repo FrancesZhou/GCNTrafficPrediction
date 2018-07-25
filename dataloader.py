@@ -72,7 +72,7 @@ class DataLoader():
                 f_map = [self.get_flow_map_from_list(self.f_data[j]) for j in xrange(i, i + self.input_steps)]
                 batch_f.append(f_map)
                 batch_e.append(self.e_data[i+1: i+self.input_steps+1])
-            return batch_x, batch_f, batch_e, batch_y
+            return np.array(batch_x), np.array(batch_f), np.array(batch_e), np.array(batch_y)
 
     def next_batch_for_test(self, start, end):
         padding_len = 0
