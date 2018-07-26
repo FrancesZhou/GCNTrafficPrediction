@@ -13,7 +13,7 @@ sys.path.append('./util/')
 from utils import *
 
 
-class ModelSolver2(object):
+class ModelSolver(object):
 	def __init__(self, model, train_data, test_data, preprocessing, **kwargs):
 		self.model = model
 		self.train_data = train_data
@@ -114,8 +114,8 @@ class ModelSolver2(object):
 								 self.model.y: np.array(y)
 								 }
 					_, l, y_out = sess.run([train_op, loss, y_], feed_dict)
-					y_out = np.round(self.preprocessing.inverse_transform(np.clip(y_out[:, -1, :, :], 0, 1), index[:, -1, :]))
-					y = self.preprocessing.inverse_transform(np.clip(y[:, -1, :, :], 0, 1), index[:, -1, :])
+					y_out = np.round(self.preprocessing.inverse_transform(np.clip(y_out[:, -1, :, :], 0, 1), index[:, -1]))
+					y = self.preprocessing.inverse_transform(np.clip(y[:, -1, :, :], 0, 1), index[:, -1])
 					metric_loss = get_loss_by_batch(y, y_out)
 					#t3 = time.time()
 					#print 'train batch time: %s' % (t3-t2)
@@ -170,8 +170,8 @@ class ModelSolver2(object):
 									 self.model.y: np.array(y)
 									 }
 						y_out, l = sess.run([y_, loss], feed_dict)
-						y_out = np.round(self.preprocessing.inverse_transform(np.clip(y_out[:,-1,:,:], 0, 1), index[:, -1, :]))
-						y = self.preprocessing.inverse_transform(np.clip(y[:,-1,:,:], 0, 1), index[:, -1, :])
+						y_out = np.round(self.preprocessing.inverse_transform(np.clip(y_out[:,-1,:,:], 0, 1), index[:, -1]))
+						y = self.preprocessing.inverse_transform(np.clip(y[:,-1,:,:], 0, 1), index[:, -1])
 						test_prediction.append(y_out)
 						test_target.append(y)
 						metric_loss = get_loss_by_batch(y, y_out)

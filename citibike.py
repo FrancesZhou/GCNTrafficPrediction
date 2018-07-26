@@ -4,10 +4,7 @@ import numpy as np
 import tensorflow as tf
 from gensim.models import Word2Vec
 from model.DyST import DyST
-from model.DyST2 import DyST2
-from model.DyST3 import DyST3
 from solver import ModelSolver
-from solver2 import ModelSolver2
 from preprocessing import *
 from utils import *
 from dataloader import *
@@ -107,10 +104,10 @@ def main():
     test_loader = DataLoader(test_data, test_f_data, test_e_data,
                             args.input_steps, args.output_steps,
                             num_station)
-    model = DyST3(num_station, args.input_steps, args.output_steps,
+    model = DyST(num_station, args.input_steps, args.output_steps,
                  embedding_dim=args.embedding_size, embeddings=embeddings, ext_dim=7,
                  batch_size=args.batch_size)
-    solver = ModelSolver2(model, train_loader, test_loader, pre_process,
+    solver = ModelSolver(model, train_loader, test_loader, pre_process,
                          batch_size=args.batch_size,
                          show_batches=args.show_batches,
                          n_epochs=args.n_epochs,

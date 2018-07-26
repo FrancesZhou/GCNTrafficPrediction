@@ -6,7 +6,7 @@ sys.path.append('./util/')
 from utils import *
 
 
-class DyST3():
+class DyST():
     def __init__(self, num_station, input_steps, output_steps,
                  embedding_dim=100, embeddings=None,
                  ext_dim=7,
@@ -49,7 +49,6 @@ class DyST3():
         self.f = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, self.num_station])
         self.e = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.ext_dim])
         self.y = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, 2])
-	    self.
 
     def fusion(self, data, out_dim, reuse=True):
         out_shape = data[0].get_shape().as_list()

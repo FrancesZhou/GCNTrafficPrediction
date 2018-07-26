@@ -55,7 +55,8 @@ class MinMaxNormalization01_minus_mean(object):
 
 	def inverse_transform(self, data, mean_index=0, if_add_mean=True):
 		if if_add_mean:
-			inverse_norm_data = 1. * (data+self._mean[mean_index]) * (self._max - self._min) + self._min
+			index = mean_index%self.period
+			inverse_norm_data = 1. * (data+self._mean[index]) * (self._max - self._min) + self._min
 		else:
 			inverse_norm_data = 1. * data * (self._max - self._min) + self._min
 		return inverse_norm_data
