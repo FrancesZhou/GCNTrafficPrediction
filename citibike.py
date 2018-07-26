@@ -74,10 +74,13 @@ def main():
     # test_e_data = e_preprocess.transform(test_e_data)
     print('preprocess train/test data...')
     #pre_process = MinMaxNormalization01_by_axis()
-    pre_process = MinMaxNormalization01()
+    pre_process = MinMaxNormalization01_minus_mean()
     pre_process.fit(train_data)
-    train_data = pre_process.transform(train_data)
-    test_data = pre_process.transform(test_data)
+    _, norm_mean_data = pre_process.transform(data)
+    train_data = norm_mean_data[:split[0]]
+    test_data = norm_mean_data[split[0]:]
+    # train_data = pre_process.transform(train_data)
+    # test_data = pre_process.transform(test_data)
     # embeddings
     id_map = load_pickle(args.folder_name+'station_map.pkl')
     num_station = len(id_map)
