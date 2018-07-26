@@ -31,6 +31,7 @@ def main():
                        help='dim of embedding')
     # ---------- model ----------
     parse.add_argument('-model', '--model', type=str, default='DyST2', help='model: NN, LSTM, biLSTM, CNN')
+    parse.add_argument('-model_save', '--model_save', type=str, default='', help='folder name to save model')
     parse.add_argument('-pretrained_model', '--pretrained_model_path', type=str, default=None,
                        help='path to the pretrained model')
     parse.add_argument('-dynamic_spatial', '--dynamic_spatial', type=int, default=1,
@@ -112,13 +113,13 @@ def main():
                          n_epochs=args.n_epochs,
                          update_rule=args.update_rule,
                          learning_rate=args.learning_rate,
-                         model_path='datasets/citibike-data/model_save/'
+                         model_path='datasets/citibike-data/model_save/'+args.model_save
                          )
     if args.train:
         print '==================== begin training ======================'
         test_target, test_prediction = solver.train('datasets/citibike-data/out')
-        np.save('datasets/citibike-data/results/test_target.npy', test_target)
-        np.save('datasets/citibike-data/results/test_prediction.npy', test_prediction)
+        #np.save('datasets/citibike-data/results/test_target.npy', test_target)
+        #np.save('datasets/citibike-data/results/test_prediction.npy', test_prediction)
 
 
 if __name__ == "__main__":

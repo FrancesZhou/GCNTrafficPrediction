@@ -25,14 +25,14 @@ class DyST3():
 
         self.weight_initializer = tf.contrib.layers.xavier_initializer()
         self.const_initializer = tf.constant_initializer()
-        with tf.variable_scope('embedding'):
+        with tf.variable_scope('embedding', reuse=tf.AUTO_REUSE):
             if embeddings is not None:
                 self.embeddings = embeddings
             else:
                 self.embeddings = tf.Variable(tf.constant(0.0, dtype=tf.float32, shape=[self.num_station, self.embedding_dim]), name='embeddings')
-        with tf.variable_scope('lstm'):
+        with tf.variable_scope('lstm', reuse=tf.AUTO_REUSE):
             self.lstm = tf.contrib.rnn.BasicLSTMCell(self.embedding_dim)
-        with tf.variable_scope('output'):
+        with tf.variable_scope('output', reuse=tf.AUTO_REUSE):
             self.w_1 = tf.get_variable(shape=[self.num_station, self.num_station], initializer=self.weight_initializer, name='w_1')
             self.w_2 = tf.get_variable(shape=[self.num_station, self.num_station], initializer=self.weight_initializer, name='w_2')
             self.w_3 = tf.get_variable(shape=[self.num_station, self.num_station], initializer=self.weight_initializer,
@@ -70,7 +70,8 @@ class DyST3():
     def attention(self, f_one_zero, corr, embeddings):
         alpha = tf.multiply(tf.expand_dims(corr, axis=1), f_one_zero)  # [batch_size, num_station, num_station]
         alpha = tf.reshape(alpha, (-1, self.num_station))
-        alpha = tf.nn.softmax(alpha, axis=-1)
+        #alpha = tf.nn.softmax(alpha, axis=-1)
+        alpha = tf.contrib.sparsemax.sparsemax(alpha)
         # alpha: [batch_size*num_station, num_station]
         # embeddings: [num_station, embedding_dim]
         context = tf.reduce_sum(tf.multiply(tf.expand_dims(alpha, -1), embeddings), axis=-2)

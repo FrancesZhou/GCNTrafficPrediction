@@ -1,6 +1,7 @@
 import cPickle as pickle
 import numpy as np
 import scipy.io as sio
+from sklearn import preprocessing
 
 def dump_pickle(data, file):
     try:
@@ -45,7 +46,8 @@ def load_mat_data(filename, dataname, split):
     #
     max_d = np.max(data[:, -2:], axis=0)
     min_d = np.min(data[:, -2:], axis=0)
-    data[:, -2:] = (data[:, -2:] - min_d)/(max_d - min_d)
+    #data[:, -2:] = (data[:, -2:] - min_d)/(max_d - min_d)
+    data[:, -2:] = preprocessing.scale(data[:, -2:])
     train = data[0:split[0]]
     validate = data[split[0]:(split[0]+split[1])]
     if len(split) > 2:

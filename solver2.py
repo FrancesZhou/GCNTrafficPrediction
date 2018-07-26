@@ -170,7 +170,7 @@ class ModelSolver2(object):
 									 self.model.y: np.array(y)
 									 }
 						y_out, l = sess.run([y_, loss], feed_dict)
-						y_out = self.preprocessing.inverse_transform(np.clip(y_out[:,-1,:,:], 0, 1))
+						y_out = np.round(self.preprocessing.inverse_transform(np.clip(y_out[:,-1,:,:], 0, 1)))
 						y = self.preprocessing.inverse_transform(np.clip(y[:,-1,:,:], 0, 1))
 						test_prediction.append(y_out)
 						test_target.append(y)
