@@ -47,7 +47,7 @@ def main():
     parse.add_argument('-batch_size', '--batch_size', type=int, default=2, help='batch size for training')
     parse.add_argument('-show_batches', '--show_batches', type=int,
                        default=100, help='show how many batches have been processed.')
-    parse.add_argument('-lr', '--learning_rate', type=float, default=0.2, help='learning rate')
+    parse.add_argument('-lr', '--learning_rate', type=float, default=0.002, help='learning rate')
     parse.add_argument('-update_rule', '--update_rule', type=str, default='adam', help='update rule')
     # ------ train or predict -------
     parse.add_argument('-train', '--train', type=int, default=1, help='whether to train')
@@ -72,7 +72,8 @@ def main():
     # train_e_data = e_preprocess.transform(train_e_data)
     # test_e_data = e_preprocess.transform(test_e_data)
     print('preprocess train/test data...')
-    pre_process = MinMaxNormalization01_by_axis()
+    #pre_process = MinMaxNormalization01_by_axis()
+    pre_process = MinMaxNormalization01()
     pre_process.fit(train_data)
     train_data = pre_process.transform(train_data)
     test_data = pre_process.transform(test_data)
