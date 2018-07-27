@@ -79,21 +79,22 @@ def main():
     # train_data = pre_process.transform(train_data)
     # test_data = pre_process.transform(test_data)
     # embeddings
-    id_map = load_pickle(args.folder_name+'station_map.pkl')
-    num_station = len(id_map)
+    #id_map = load_pickle(args.folder_name+'station_map.pkl')
+    #num_station = len(id_map)
+    num_station = data.shape[1]
     print('number of station: %d' % num_station)
     if args.pretrained_embeddings:
         print('load pretrained embeddings...')
-        embeddings = get_embedding_from_file('datasets/citibike-data/embedding_file/embeddings.txt', num_station)
+        embeddings = get_embedding_from_file(args.folder_name+'embeddings.txt', num_station)
     else:
         print('train station embeddings via Word2Vec model...')
         trip_data = load_pickle(args.folder_name+'all_trip_data.pkl')
         word2vec_model = Word2Vec(sentences=trip_data, size=args.embedding_size)
         print('save Word2Vec model and embeddings...')
-        word2vec_model.save('datasets/citibike-data/embedding_file/word2vec_model')
-        word2vec_model.wv.save_word2vec_format('datasets/citibike-data/embedding_file/embeddings.txt', binary=False)
+        word2vec_model.save(args.folder_name+'word2vec_model')
+        word2vec_model.wv.save_word2vec_format(args.folder_name+'embeddings.txt', binary=False)
         del word2vec_model
-        embeddings = get_embedding_from_file('datasets/citibike-data/embedding_file/embeddings.txt', num_station)
+        embeddings = get_embedding_from_file(args.folder_name+'embeddings.txt', num_station)
     # self, d_data, f_data, input_steps, output_steps, num_station, pre_process
     train_loader = DataLoader(train_data, train_f_data, train_e_data,
                               args.input_steps, args.output_steps,
@@ -113,11 +114,11 @@ def main():
                          n_epochs=args.n_epochs,
                          update_rule=args.update_rule,
                          learning_rate=args.learning_rate,
-                         model_path='datasets/citibike-data/model_save/'+args.model_save
+                         model_path=args.folder_name+'model_save/'+args.model_save
                          )
     if args.train:
         print '==================== begin training ======================'
-        test_target, test_prediction = solver.train('datasets/citibike-data/out')
+        test_target, test_prediction = solver.train(args.folder_name+'out')
         #np.save('datasets/citibike-data/results/test_target.npy', test_target)
         #np.save('datasets/citibike-data/results/test_prediction.npy', test_prediction)
 
