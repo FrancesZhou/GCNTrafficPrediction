@@ -54,7 +54,7 @@ class DataLoader():
             f = [self.get_flow_map_from_list(self.f_data[j]) for j in xrange(index, index+self.input_steps)]
             e = self.e_data[index+1: index+self.input_steps+1]
             y = self.d_data[index + 1: index + self.input_steps + 1]
-            return x, f, e, y
+            return x, f, e, y, np.arange(index+1, index+self.input_steps+1)
 
     def next_batch_for_train(self, start, end):
         if end > self.num_data-self.input_steps:
