@@ -126,13 +126,13 @@ class DyST():
             #
             e = e_all[i]
             out_3 = tf.matmul(e, self.w_e_out)
-            next_out = out_1 + out_2 + out_3
+            next_out = tf.nn.relu(out_1 + out_2 + out_3)
             # check-in
             in_1 = tf.squeeze(tf.matmul(tf.multiply(f_out_gate, self.w_3), tf.expand_dims(x_out, -1))) + tf.matmul(x_in, self.w_4)
             in_2 = tf.reduce_sum(tf.multiply(cxt_in, self.w_h_in), axis=-1)
             #
             in_3 = tf.matmul(e, self.w_e_in)
-            next_in = in_1 + in_2 + in_3
+            next_in = tf.nn.relu(in_1 + in_2 + in_3)
             next_output = tf.concat((tf.expand_dims(next_in, -1), tf.expand_dims(next_out, -1)), -1)
             y_.append(next_output)
         y_ = tf.stack(y_)
