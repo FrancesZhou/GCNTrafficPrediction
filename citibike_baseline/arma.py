@@ -19,7 +19,7 @@ from preprocessing import *
 
 
 
-def predict_by_samples(data, test_data, num_sample, split, output_steps):
+def predict_by_samples(timestamps, data, test_data, num_sample, split, output_steps):
     warnings.filterwarnings("ignore")
     index_all = np.zeros([test_data.shape[1] - output_steps, num_sample])
     valid_num = np.zeros(test_data.shape[1] - output_steps)
@@ -55,7 +55,7 @@ def predict_by_samples(data, test_data, num_sample, split, output_steps):
     #pbar.finish()
     return real, predict, index_all, error_all, valid_num
 
-def predict_by_all(data, test_data, num_sample, split, output_steps):
+def predict_by_all(timestamps, data, test_data, num_sample, split, output_steps):
     warnings.filterwarnings("ignore")
     index_all = np.zeros([test_data.shape[1] - output_steps, num_sample])
     valid_num = np.zeros(test_data.shape[1] - output_steps)
@@ -113,7 +113,7 @@ def main():
     split = [3912, 480]
     print('load train, test data...')
     #data, train_data, _, _ = load_npy_data(filename=['../datasets/citibike-data/data/p_station.npy', '../datasets/citibike-data/data/d_station.npy'], split=split)
-    data, train_data, _, _ = load_npy_data(filename=['../datasets/'+parse.dataset+'p_station.npy', '../datasets/'+parse.dataset+'d_station.npy'], split=split)
+    data, train_data, _, _ = load_npy_data(filename=['../datasets/'+args.dataset+'p_station.npy', '../datasets/'+args.dataset+'d_station.npy'], split=split)
     # data: [num, num_station, 2]
     num_station = data.shape[1]
     if 'cluster' in args.dataset:
@@ -142,18 +142,18 @@ def main():
     in_test_data = np.transpose(in_test_data)
     #
     if in_save_results:
-        in_predict = np.load('arma_in_predict.npy')
-        in_real = np.load('arma_in_real.npy')
-        in_index_all = np.load('arma_in_index.npy')
-        in_error_all = load_pickle('arma_in_error.pkl')
+        in_predict = np.load(args.dataset+'arma_in_predict.npy')
+        in_real = np.load(args.dataset+'arma_in_real.npy')
+        in_index_all = np.load(args.dataset+'arma_in_index.npy')
+        in_error_all = load_pickle(args.dataset+'arma_in_error.pkl')
         # in_predict = pre_process.inverse_transform(in_predict)
         # in_real = pre_process.inverse_transform(in_real)
         valid_num = np.array([num_sample-len(e) for e in in_error_all])
     else:
         if 'cluster' in args.dataset:
-            in_real, in_predict, in_index_all, in_error_all, valid_num = predict_by_all(in_data, in_test_data, num_sample, split,output_steps)
+            in_real, in_predict, in_index_all, in_error_all, valid_num = predict_by_all(timestamps, in_data, in_test_data, num_sample, split,output_steps)
         else:
-            in_real, in_predict, in_index_all, in_error_all, valid_num = predict_by_samples(in_data, in_test_data, num_sample, split, output_steps)
+            in_real, in_predict, in_index_all, in_error_all, valid_num = predict_by_samples(timestamps, in_data, in_test_data, num_sample, split, output_steps)
         in_predict = pre_process.inverse_transform(in_predict)
         in_real = pre_process.inverse_transform(in_real)
     #
@@ -179,18 +179,18 @@ def main():
     out_test_data = np.transpose(out_test_data)
     #
     if out_save_results:
-        out_predict = np.load('arma_in_predict.npy')
-        out_real = np.load('arma_in_real.npy')
-        out_index_all = np.load('arma_in_index.npy')
-        out_error_all = load_pickle('arma_in_error.pkl')
+        out_predict = np.load(args.dataset+'arma_in_predict.npy')
+        out_real = np.load(args.dataset+'arma_in_real.npy')
+        out_index_all = np.load(args.dataset+'arma_in_index.npy')
+        out_error_all = load_pickle(args.dataset+'arma_in_error.pkl')
         # out_predict = pre_process.inverse_transform(out_predict)
         # out_real = pre_process.inverse_transform(out_real)
         valid_num = np.array([num_sample-len(e) for e in out_error_all])
     else:
         if 'cluster' in args.dataset:
-            out_real, out_predict, out_index_all, out_error_all, valid_num = predict_by_all(out_data, out_test_data, num_sample, split, output_steps)
+            out_real, out_predict, out_index_all, out_error_all, valid_num = predict_by_all(timestamps, out_data, out_test_data, num_sample, split, output_steps)
         else:
-            out_real, out_predict, out_index_all, out_error_all, valid_num = predict_by_samples(out_data, out_test_data, num_sample, split, output_steps)
+            out_real, out_predict, out_index_all, out_error_all, valid_num = predict_by_samples(timestamps, out_data, out_test_data, num_sample, split, output_steps)
         out_predict = pre_process.inverse_transform(out_predict)
         out_real = pre_process.inverse_transform(out_real)
     #

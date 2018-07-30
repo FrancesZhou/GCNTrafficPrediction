@@ -73,13 +73,14 @@ def main():
     # test_e_data = e_preprocess.transform(test_e_data)
     print('preprocess train/test data...')
     #pre_process = MinMaxNormalization01_by_axis()
-    pre_process = MinMaxNormalization01_minus_mean()
+    #pre_process = MinMaxNormalization01_minus_mean()
+    pre_process = MinMaxNormalization01()
     pre_process.fit(train_data)
-    _, norm_mean_data = pre_process.transform(data)
-    train_data = norm_mean_data[:split[0]]
-    test_data = norm_mean_data[split[0]:]
-    # train_data = pre_process.transform(train_data)
-    # test_data = pre_process.transform(test_data)
+    #_, norm_mean_data = pre_process.transform(data)
+    #train_data = norm_mean_data[:split[0]]
+    #test_data = norm_mean_data[split[0]:]
+    train_data = pre_process.transform(train_data)
+    test_data = pre_process.transform(test_data)
     # embeddings
     #id_map = load_pickle(args.folder_name+'station_map.pkl')
     #num_station = len(id_map)
@@ -107,10 +108,10 @@ def main():
     test_loader = DataLoader(test_data, test_f_data, test_e_data,
                             args.input_steps, args.output_steps,
                             num_station)
-    model = DyST2(num_station, args.input_steps, args.output_steps,
+    model = DyST(num_station, args.input_steps, args.output_steps,
                  embedding_dim=args.embedding_size, embeddings=embeddings, ext_dim=7,
                  batch_size=args.batch_size)
-    solver = ModelSolver2(model, train_loader, test_loader, pre_process,
+    solver = ModelSolver(model, train_loader, test_loader, pre_process,
                          batch_size=args.batch_size,
                          show_batches=args.show_batches,
                          n_epochs=args.n_epochs,
