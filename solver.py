@@ -114,8 +114,8 @@ class ModelSolver(object):
 								 self.model.y: np.array(y)
 								 }
 					_, l, y_out = sess.run([train_op, loss, y_], feed_dict)
-					y_out = np.round(self.preprocessing.inverse_transform(np.clip(y_out[:, -1, :, :], 0, 1), index[:, -1]))
-					y = np.round(self.preprocessing.inverse_transform(np.clip(y[:, -1, :, :], 0, 1), index[:, -1]))
+					y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, :, :], index[:, -1]))
+					y = np.round(self.preprocessing.inverse_transform(y[:, -1, :, :], index[:, -1]))
 					metric_loss = get_loss_by_batch(y, y_out)
 					#t3 = time.time()
 					#print 'train batch time: %s' % (t3-t2)
@@ -170,8 +170,8 @@ class ModelSolver(object):
 									 self.model.y: np.array(y)
 									 }
 						y_out, l = sess.run([y_, loss], feed_dict)
-						y_out = np.round(self.preprocessing.inverse_transform(np.clip(y_out[:,-1,:,:], 0, 1), index[:, -1]))
-						y = np.round(self.preprocessing.inverse_transform(np.clip(y[:,-1,:,:], 0, 1), index[:, -1]))
+						y_out = np.round(self.preprocessing.inverse_transform(y_out[:,-1,:,:], index[:, -1]))
+						y = np.round(self.preprocessing.inverse_transform(y[:,-1,:,:], index[:, -1]))
 						test_prediction.append(y_out)
 						test_target.append(y)
 						metric_loss = get_loss_by_batch(y, y_out)
@@ -188,10 +188,10 @@ class ModelSolver(object):
 					#w_text = 'at epoch %d, train l2 loss is %s\n' % (e, t_rmse)
 					#w_text += 'in/out rmse, rmlse, er is ' + str(test_metric_loss)
 					#'''
-					w_text = 'at epoch %d, test l2 loss is %.6f\n' \
-							 'all in/out rmse is %.6f/%.6f\n' \
-							 'all in/out rmlse is %.6f/%.6f\n' \
-							 'all in/out er is %.6f/%.6f' % \
+					w_text = '\t at epoch %d, test l2 loss is %.6f\n' \
+							 '\t all in/out rmse is %.6f/%.6f\n' \
+							 '\t all in/out rmlse is %.6f/%.6f\n' \
+							 '\t all in/out er is %.6f/%.6f' % \
 							 (e, t_rmse,
 							  test_metric_loss[0], test_metric_loss[1],
 							  test_metric_loss[2], test_metric_loss[3],

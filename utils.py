@@ -189,6 +189,8 @@ def get_loss(y, y_out):
     # check-in loss
     # y = np.transpose(y)
     # y_out = np.transpose(y_out)
+    y = np.clip(y, 0, None)
+    y_out = np.clip(y_out, 0, None)
     in_rmse = np.sqrt(np.mean(np.square(y_out[:,0]-y[:,0])))
     out_rmse = np.sqrt(np.mean(np.square(y_out[:,1]-y[:,1])))
     in_rmlse = np.sqrt(np.mean(np.square(np.log(y_out[:,0] + 1)-np.log(y[:,0] + 1))))
@@ -205,6 +207,8 @@ def get_loss(y, y_out):
 def get_loss_by_batch(y, y_out):
     # y, y_out: [batch_size, num_station, 2]
     # check-in loss
+    y = np.clip(y, 0, None)
+    y_out = np.clip(y_out, 0, None)
     in_rmse = np.sum(np.sqrt(np.mean(np.square(y_out[:,:,0]-y[:,:,0]), -1)))
     out_rmse = np.sum(np.sqrt(np.mean(np.square(y_out[:,:,1]-y[:,:,1]), -1)))
     in_rmlse = np.sum(np.sqrt(np.mean(np.square(np.log(y_out[:,:,0] + 1)-np.log(y[:,:,0] + 1)), -1)))
