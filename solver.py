@@ -185,10 +185,10 @@ class ModelSolver(object):
                     #w_text = 'at epoch %d, train l2 loss is %s\n' % (e, t_rmse)
                     #w_text += 'in/out rmse, rmlse, er is ' + str(test_metric_loss)
                     #'''
-                    w_text = 'at epoch %d, train l2 loss is %.6f \t test all l2 loss is %.6f \n' \
+                    w_text = 'at epoch %d, train l2 loss is %.6f \t\t test all l2 loss is %.6f \n' \
                              'train in/out rmse is %.6f/%.6f \t test in/out rmse is %.6f/%.6f \n' \
                              'train in/out rmlse is %.6f/%.6f \t test in/out rmlse is %.6f/%.6f\n' \
-                             'train in/out er is %.6f/%.6f \t test in/out rmlse is %.6f/%.6f' % \
+                             'train in/out er is %.6f/%.6f \t\t test in/out er is %.6f/%.6f' % \
                              (e, train_rmse, test_rmse,
                               train_metric_loss[0], train_metric_loss[1], test_metric_loss[0], test_metric_loss[1],
                               train_metric_loss[2], train_metric_loss[3], test_metric_loss[2], test_metric_loss[3],
