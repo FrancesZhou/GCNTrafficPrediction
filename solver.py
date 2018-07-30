@@ -114,10 +114,10 @@ class ModelSolver(object):
                                  self.model.y: np.array(y)
                                  }
                     _, l, y_out = sess.run([train_op, loss, y_], feed_dict)
-                    #y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, :, :], index[:, -1]))
-                    #y = np.round(self.preprocessing.inverse_transform(y[:, -1, :, :], index[:, -1]))
-                    y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, :, :]))
-                    y = np.round(self.preprocessing.inverse_transform(y[:, -1, :, :]))
+                    y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, :, :], index[:, -1]))
+                    y = np.round(self.preprocessing.inverse_transform(y[:, -1, :, :], index[:, -1]))
+                    # y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, :, :]))
+                    # y = np.round(self.preprocessing.inverse_transform(y[:, -1, :, :]))
                     metric_loss = get_loss_by_batch(y, y_out)
                     #t3 = time.time()
                     #print 'train batch time: %s' % (t3-t2)
@@ -169,10 +169,10 @@ class ModelSolver(object):
                                      self.model.y: np.array(y)
                                      }
                         y_out, l = sess.run([y_, loss], feed_dict)
-                        #y_out = np.round(self.preprocessing.inverse_transform(y_out[:,-1,:,:], index[:, -1]))
-                        #y = np.round(self.preprocessing.inverse_transform(y[:,-1,:,:], index[:, -1]))
-                        y_out = np.round(self.preprocessing.inverse_transform(y_out[:,-1,:,:]))
-                        y = np.round(self.preprocessing.inverse_transform(y[:,-1,:,:]))
+                        y_out = np.round(self.preprocessing.inverse_transform(y_out[:,-1,:,:], index[:, -1]))
+                        y = np.round(self.preprocessing.inverse_transform(y[:,-1,:,:], index[:, -1]))
+                        # y_out = np.round(self.preprocessing.inverse_transform(y_out[:,-1,:,:]))
+                        # y = np.round(self.preprocessing.inverse_transform(y[:,-1,:,:]))
                         test_prediction.append(y_out)
                         test_target.append(y)
                         metric_loss = get_loss_by_batch(y, y_out)
@@ -201,6 +201,69 @@ class ModelSolver(object):
                     print w_text
                     o_file.write(w_text)
             return np.array(test_target), np.array(test_prediction)
+
+
+    def test(self):
+        test_loader = self.test_data
+        # build graphs
+        y_, loss = self.model.build_model()
+        gpu_options = tf.GPUOptions(allow_growth=True)
+        tf.get_variable_scope().reuse_variables()
+        with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
+            tf.global_variables_initializer().run()
+            saver = tf.train.Saver(tf.global_variables())
+            if self.pretrained_model is not None:
+                print "Start training with pretrained model..."
+                saver.restore(sess, self.model_path + self.pretrained_model)
+                test_l2_loss = 0
+                test_metric_loss = np.zeros(6)
+                # num_test_batches = (test_loader.num_data - test_loader.input_steps - test_loader.output_steps + 1) / self.batch_size
+                num_test_batches = (test_loader.num_data - test_loader.input_steps - self.batch_size + 1) / self.batch_size
+                print('number of testing batches: %d' % num_test_batches)
+                widgets = ['Test: ', Percentage(), ' ', Bar('*'), ' ', ETA()]
+                pbar = ProgressBar(widgets=widgets, maxval=num_test_batches).start()
+                test_prediction = []
+                test_target = []
+                for i in xrange(num_test_batches):
+                    pbar.update(i)
+                    # x, y, f, padding_len = test_loader.next_batch_for_test(i * self.batch_size, (i + 1) * self.batch_size)
+                    x, f, ee, y, index = test_loader.next_batch_for_train(i * self.batch_size, (i + 1) * self.batch_size)
+                    # x, f, ee, y = test_loader.next_sample(i)
+                    feed_dict = {self.model.x: np.array(x),
+                                 self.model.f: np.array(f),
+                                 self.model.e: np.array(ee),
+                                 self.model.y: np.array(y)
+                                 }
+                    y_out, l = sess.run([y_, loss], feed_dict)
+                    y_out = np.round(self.preprocessing.inverse_transform(y_out[:,-1,:,:], index[:, -1]))
+                    y = np.round(self.preprocessing.inverse_transform(y[:,-1,:,:], index[:, -1]))
+                    # y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, :, :]))
+                    # y = np.round(self.preprocessing.inverse_transform(y[:, -1, :, :]))
+                    test_prediction.append(y_out)
+                    test_target.append(y)
+                    metric_loss = get_loss_by_batch(y, y_out)
+                    test_l2_loss += l
+                    test_metric_loss += metric_loss
+                pbar.finish()
+                test_target = np.concatenate(np.array(test_target), axis=0)
+                test_prediction = np.concatenate(np.array(test_prediction), axis=0)
+                print test_target.shape
+                # compute counts of all regions
+                t_count = num_test_batches * self.batch_size * (test_loader.input_steps * test_loader.num_station * 2)
+                test_rmse = np.sqrt(test_l2_loss / t_count)
+                test_metric_loss = test_metric_loss / (num_test_batches * self.batch_size)
+                # '''
+                w_text = 'test l2 loss is %.6f\n' \
+                         'test in/out rmse is %.6f/%.6f \n' \
+                         'test in/out rmlse is %.6f/%.6f\n' \
+                         'test in/out er is %.6f/%.6f' % \
+                         (test_rmse,
+                          test_metric_loss[0], test_metric_loss[1],
+                          test_metric_loss[2], test_metric_loss[3],
+                          test_metric_loss[4], test_metric_loss[5])
+                # '''
+                print w_text
+                return np.array(test_target), np.array(test_prediction)
 
 
 

@@ -17,7 +17,7 @@ class MinMaxNormalization01(object):
 		self.fit(data)
 		return self.transform(data)
 
-	def inverse_transform(self, data):
+	def inverse_transform(self, data, mean_index=0, if_add_mean=False):
 		inverse_norm_data = 1. * data * (self._max - self._min) + self._min
 		return inverse_norm_data
 
@@ -47,7 +47,7 @@ class MinMaxNormalization01_minus_mean(object):
 		norm_data = 1. * (data - self._min) / (self._max - self._min)
 		mean_index = (np.arange(len(norm_data)) + pre_index)%self.period
 		norm_minus_mean_data = norm_data - self._mean[mean_index]
-		return norm_data, norm_minus_mean_data
+		return norm_minus_mean_data
 
 	def fit_transform(self, data):
 		self.fit(data)
