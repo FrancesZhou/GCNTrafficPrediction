@@ -68,7 +68,7 @@ class DyST2():
     def get_top_k(self, f, topk, x):
         _, indices = tf.nn.top_k(f, topk)
         my_range = tf.expand_dims(tf.range(0, tf.shape(indices)[0]), 1)
-        my_range_repeated = tf.tile(my_range, [1, topk / 2])
+        my_range_repeated = tf.tile(my_range, [1, topk])
         full_indices = tf.stack([my_range_repeated, indices], axis=2)
         full_indices = tf.reshape(full_indices, [-1, 2])
         x_values = tf.gather_nd(x, full_indices)
@@ -113,8 +113,8 @@ class DyST2():
             f_out = tf.multiply(tf.tile(tf.expand_dims(x[i, :, 1], axis=0), [self.num_station, 1]),
                                 f_in_gate)
             # ---- top k -----
-            f_in = self.get_top_k(f, self.topk, f_in)
-            f_out = self.get_top_k(tf.transpose(f), self.topk, f_out)
+            f_in = self.get_top_k(tf.transpose(f), self.topk, f_in)
+            f_out = self.get_top_k(f, self.topk, f_out)
             # ----
             # f_in, f_out: [num_station, num_station]
             current_step_batch = tf.concat((f_in, f_out), axis=-1)

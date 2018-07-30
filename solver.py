@@ -81,7 +81,7 @@ class ModelSolver(object):
             saver = tf.train.Saver(tf.global_variables())
             if self.pretrained_model is not None:
                 print "Start training with pretrained model..."
-                saver.restore(sess, self.pretrained_model)
+                saver.restore(sess, self.model_path + self.pretrained_model)
             #
             for e in range(self.n_epochs):
                 # ========================== train ====================
