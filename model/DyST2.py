@@ -11,7 +11,8 @@ class DyST2():
                  embedding_dim=100, embeddings=None,
                  ext_dim=7,
                  hidden_dim=64,
-                 batch_size=32):
+                 batch_size=32,
+                 topk=10):
         self.num_station = num_station
         self.input_steps = input_steps
         self.output_steps = output_steps
@@ -20,6 +21,7 @@ class DyST2():
         self.hidden_dim = hidden_dim
 
         self.batch_size = batch_size
+        self.topk = topk
 
         self.weight_initializer = tf.contrib.layers.xavier_initializer()
         self.const_initializer = tf.constant_initializer()
@@ -63,6 +65,16 @@ class DyST2():
         context = tf.reduce_sum(tf.multiply(tf.expand_dims(alpha, axis=-1), tile_embeddings), axis=-2)
         return context
 
+    def get_top_k(self, f, topk, x):
+        _, indices = tf.nn.top_k(f, topk)
+        my_range = tf.expand_dims(tf.range(0, tf.shape(indices)[0]), 1)
+        my_range_repeated = tf.tile(my_range, [1, topk / 2])
+        full_indices = tf.stack([my_range_repeated, indices], axis=2)
+        full_indices = tf.reshape(full_indices, [-1, 2])
+        x_values = tf.gather_nd(x, full_indices)
+        f_topk = tf.sparse_to_dense(full_indices, tf.shape(f), tf.reshape(x_values, [-1]), default_value=0., validate_indices=False)
+        return f_topk
+
     def build_model(self):
         x = self.x
         y = self.y
@@ -89,15 +101,21 @@ class DyST2():
             f = f_all[i]
             #'''
             f_in_sum = tf.tile(tf.expand_dims(tf.reduce_sum(f, 0), 0), [self.num_station, 1])
-            f_in_gate = tf.where(f_in_sum > 0, tf.divide(f, f_in_sum), f)
+            #f_in_gate = tf.where(f_in_sum > 0, tf.divide(f, f_in_sum), f)
+            f_in_gate = tf.where(f_in_sum > 0, tf.ones_like(f), f)
             f_out_sum = tf.tile(tf.expand_dims(tf.reduce_sum(f, 1), -1), [1, self.num_station])
-            f_out_gate = tf.transpose(tf.where(f_out_sum > 0, tf.divide(f, f_out_sum), f))
+            #f_out_gate = tf.transpose(tf.where(f_out_sum > 0, tf.divide(f, f_out_sum), f))
+            f_out_gate = tf.transpose(tf.where(f_out_sum > 0, tf.ones_like(f), f))
             #f_in_gate = tf.divide(f, tf.reduce_sum(f, 0, keepdims=True))
             #f_out_gate = tf.transpose(tf.divide(f, tf.reduce_sum(f, 1, keepdims=True)))
             f_in = tf.multiply(tf.tile(tf.expand_dims(x[i, :, 0], axis=0), [self.num_station, 1]),
                                f_out_gate)
             f_out = tf.multiply(tf.tile(tf.expand_dims(x[i, :, 1], axis=0), [self.num_station, 1]),
                                 f_in_gate)
+            # ---- top k -----
+            f_in = self.get_top_k(f, self.topk, f_in)
+            f_out = self.get_top_k(tf.transpose(f), self.topk, f_out)
+            # ----
             # f_in, f_out: [num_station, num_station]
             current_step_batch = tf.concat((f_in, f_out), axis=-1)
             #'''

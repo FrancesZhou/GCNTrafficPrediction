@@ -112,9 +112,11 @@ class DyST():
             # ------------------ dynamic spatial dependency -----------------
             # f: [batch_size, num_station, num_station]
             f_in_sum = tf.tile(tf.reduce_sum(f, 1, keepdims=True), [1, self.num_station, 1])
-            f_in_gate = tf.where(f_in_sum > 0, tf.divide(f, f_in_sum), f)
+            #f_in_gate = tf.where(f_in_sum > 0, tf.divide(f, f_in_sum), f)
+            f_in_gate = tf.where(f_in_sum > 0, tf.ones_like(f), f)
             f_out_sum = tf.tile(tf.reduce_sum(f, 2, keepdims=True), [1, 1, self.num_station])
-            f_out_gate = tf.transpose(tf.where(f_out_sum > 0, tf.divide(f, f_out_sum), f), (0, 2, 1))
+            #f_out_gate = tf.transpose(tf.where(f_out_sum > 0, tf.divide(f, f_out_sum), f), (0, 2, 1))
+            f_out_gate = tf.transpose(tf.where(f_out_sum > 0, tf.ones_like(f), f), (0, 2, 1))
             # check-out
             x_in = x[i, :, :, 0]
             x_out = x[i, :, :, 1]

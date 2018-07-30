@@ -52,6 +52,43 @@ def predict_by_samples(data, test_data, num_sample, split, output_steps):
 	#pbar.finish()
 	return real, predict, index_all, error_all, valid_num
 
+def predict_by_all(data, test_data, num_sample, split, output_steps):
+	warnings.filterwarnings("ignore")
+	index_all = np.zeros([test_data.shape[1] - output_steps, num_sample])
+	valid_num = np.zeros(test_data.shape[1] - output_steps)
+	error_all = []
+	real = np.zeros([test_data.shape[1] - output_steps, num_sample])
+	predict = np.zeros([test_data.shape[1] - output_steps, num_sample])
+	#station_sample = np.random.randint(data.shape[0], size=num_sample)
+	station_sample = np.arange(data.shape[0])
+	#widgets = ['Train: ', Percentage(), ' ', Bar('-'), ' ', ETA()]
+	#pbar = ProgressBar(widgets=widgets, maxval=test_data.shape[0]-output_steps).start()
+	for t in xrange(test_data.shape[1] - output_steps):
+		#pbar.update(t)
+		if t%10 == 0:
+			print(t)
+		error_index = []
+		for r in xrange(num_sample):
+			# t: which time slot
+			# i: which station
+			i = station_sample[r]
+			train_df = pd.DataFrame(data[i][t:split[0] + t])
+			train_df.index = pd.DatetimeIndex(timestamps[t:split[0] + t])
+			try:
+				results = ARMA(train_df, order=(2, 2)).fit(trend='c', disp=-1)
+			except:
+				error_index.append(r)
+				continue
+			pre, _, _ = results.forecast(output_steps)
+			test_real = test_data[i][t:t + output_steps]
+			real[t, r] = test_real
+			predict[t, r] = pre
+		index_all[t] = station_sample
+		error_all.append(error_index)
+		valid_num[t] = num_sample - len(error_index)
+	#pbar.finish()
+	return real, predict, index_all, error_all, valid_num
+
 #lg_set = 1
 input_steps = 6
 output_steps = 1
