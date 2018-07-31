@@ -143,7 +143,7 @@ class ModelSolver(object):
                 o_file.write(w_text)
                 #'''
                 if (e + 1) % self.save_every == 0:
-                    save_name = self.model_path + 'model'
+                    save_name = os.path.join(self.model_path, 'model')
                     saver.save(sess, save_name, global_step=e + 1)
                     print "model-%s saved." % (e + 1)
                 # ============================ for test data ===============================

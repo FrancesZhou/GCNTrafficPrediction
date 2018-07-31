@@ -12,7 +12,9 @@ class DyST():
                  ext_dim=7,
                  hidden_dim=64,
                  batch_size=32,
-                 dynamic_spatial=0):
+                 dynamic_context=1,
+                 dynamic_spatial=1, 
+                 add_ext=1):
         self.num_station = num_station
         self.input_steps = input_steps
         self.output_steps = output_steps
@@ -21,7 +23,9 @@ class DyST():
         self.hidden_dim = hidden_dim
 
         self.batch_size = batch_size
+        self.dynamic_context = dynamic_context
         self.dynamic_spatial = dynamic_spatial
+        self.add_ext = add_ext
 
         self.weight_initializer = tf.contrib.layers.xavier_initializer()
         self.const_initializer = tf.constant_initializer()
@@ -100,25 +104,33 @@ class DyST():
             output, state = self.lstm(tf.reshape(current_step_batch, [self.batch_size, -1]), state)
             # output: [batch_size, state_size]
             # ------------------ dynamic context ----------------
-            # compute alpha
-            # embeddings: [num_station, embedding_dim]
-            corr = tf.matmul(output, tf.transpose(self.embeddings))  # [batch_size, num_station]
-            f_in_one_zero = tf.cast(tf.greater(f, tf.zeros_like(f)), tf.float32)  # [batch_size, num_station, num_station]
-            f_out_one_zero = tf.cast(tf.greater(tf.transpose(f, (0, 2, 1)), tf.zeros_like(tf.transpose(f, (0,2,1)))), tf.float32)
-            cxt_in = self.attention(f_in_one_zero, corr, self.embeddings)
-            cxt_out = self.attention(f_out_one_zero, corr, self.embeddings)
-            # cxt_in: [batch_size, num_station, embedding_dim]
-            #cxt = tf.concat((cxt_in, cxt_out), axis=-1)
+            if self.dynamic_context:
+                # compute alpha
+                # embeddings: [num_station, embedding_dim]
+                corr = tf.matmul(output, tf.transpose(self.embeddings))  # [batch_size, num_station]
+                f_in_one_zero = tf.cast(tf.greater(f, tf.zeros_like(f)), tf.float32)  # [batch_size, num_station, num_station]
+                f_out_one_zero = tf.cast(tf.greater(tf.transpose(f, (0, 2, 1)), tf.zeros_like(tf.transpose(f, (0,2,1)))), tf.float32)
+                cxt_in = self.attention(f_in_one_zero, corr, self.embeddings)
+                cxt_out = self.attention(f_out_one_zero, corr, self.embeddings)
+                # cxt_in: [batch_size, num_station, embedding_dim]
+                #cxt = tf.concat((cxt_in, cxt_out), axis=-1)
+            else:
+                cxt_in = tf.constant(0.0, dtype=tf.float32, shape=[self.batch_size, self.num_station, self.embedding_dim])
+                cxt_out = tf.constant(0.0, dtype=tf.float32, shape=[self.batch_size, self.num_station, self.embedding_dim])
             # ------------------ dynamic spatial dependency -----------------
-            # f: [batch_size, num_station, num_station]
-            f_in_sum = tf.tile(tf.reduce_sum(f, 1, keepdims=True), [1, self.num_station, 1])
-            f_in_gate = tf.where(f_in_sum > 0, tf.divide(f, f_in_sum), f)
-            #f_in_gate = tf.where(f_in_sum > 0, tf.ones_like(f), f)
-            #f_in_gate = tf.transpose(tf.reshape(tf.contrib.sparsemax.sparsemax(tf.reshape(tf.transpose(f, (0,2,1)), (-1, self.num_station))), (-1, self.num_station, self.num_station)), (0, 2, 1))
-            f_out_sum = tf.tile(tf.reduce_sum(f, 2, keepdims=True), [1, 1, self.num_station])
-            f_out_gate = tf.transpose(tf.where(f_out_sum > 0, tf.divide(f, f_out_sum), f), (0, 2, 1))
-            #f_out_gate = tf.transpose(tf.where(f_out_sum > 0, tf.ones_like(f), f), (0, 2, 1))
-            #f_out_gate = tf.transpose(tf.reshape(tf.contrib.sparsemax.sparsemax(tf.reshape(f, (-1, self.num_station))), (-1, self.num_station, self.num_station)), (0, 2, 1))
+            if self.dynamic_spatial:
+                # f: [batch_size, num_station, num_station]
+                f_in_sum = tf.tile(tf.reduce_sum(f, 1, keepdims=True), [1, self.num_station, 1])
+                f_in_gate = tf.where(f_in_sum > 0, tf.divide(f, f_in_sum), f)
+                #f_in_gate = tf.where(f_in_sum > 0, tf.ones_like(f), f)
+                #f_in_gate = tf.transpose(tf.reshape(tf.contrib.sparsemax.sparsemax(tf.reshape(tf.transpose(f, (0,2,1)), (-1, self.num_station))), (-1, self.num_station, self.num_station)), (0, 2, 1))
+                f_out_sum = tf.tile(tf.reduce_sum(f, 2, keepdims=True), [1, 1, self.num_station])
+                f_out_gate = tf.transpose(tf.where(f_out_sum > 0, tf.divide(f, f_out_sum), f), (0, 2, 1))
+                #f_out_gate = tf.transpose(tf.where(f_out_sum > 0, tf.ones_like(f), f), (0, 2, 1))
+                #f_out_gate = tf.transpose(tf.reshape(tf.contrib.sparsemax.sparsemax(tf.reshape(f, (-1, self.num_station))), (-1, self.num_station, self.num_station)), (0, 2, 1))
+            else:
+                f_in_gate = tf.constant(1.0, dtype=tf.float32, shape=[self.batch_size, self.num_station, self.num_station])
+                f_out_gate = tf.constant(1.0, dtype=tf.float32, shape=[self.batch_size, self.num_station, self.num_station])
             # check-out
             x_in = x[i, :, :, 0]
             x_out = x[i, :, :, 1]
@@ -126,14 +138,17 @@ class DyST():
             out_1 = tf.squeeze(tf.matmul(tf.multiply(f_in_gate, self.w_1), tf.expand_dims(x_in, -1))) + tf.matmul(x_out, self.w_2)
             out_2 = tf.reduce_sum(tf.multiply(cxt_out, self.w_h_out), axis=-1)
             #
-            e = e_all[i]
-            out_3 = tf.matmul(e, self.w_e_out)
+            if self.add_ext:
+                e = e_all[i]
+                out_3 = tf.matmul(e, self.w_e_out)
+                in_3 = tf.matmul(e, self.w_e_in)
+            else:
+                out_3 = tf.constant(0.0, dtype=tf.float32, shape=[self.batch_size, self.num_station])
+                in_3 = tf.constant(0.0, dtype=tf.float32, shape=[self.batch_size, self.num_station])
             next_out = out_1 + out_2 + out_3
             # check-in
             in_1 = tf.squeeze(tf.matmul(tf.multiply(f_out_gate, self.w_3), tf.expand_dims(x_out, -1))) + tf.matmul(x_in, self.w_4)
             in_2 = tf.reduce_sum(tf.multiply(cxt_in, self.w_h_in), axis=-1)
-            #
-            in_3 = tf.matmul(e, self.w_e_in)
             next_in = in_1 + in_2 + in_3
             next_output = tf.concat((tf.expand_dims(next_in, -1), tf.expand_dims(next_out, -1)), -1)
             y_.append(next_output)

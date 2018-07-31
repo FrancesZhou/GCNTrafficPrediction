@@ -29,7 +29,10 @@ def main():
     parse.add_argument('-embedding_size', '--embedding_size', type=int, default=100,
                        help='dim of embedding')
     # ---------- model ----------
-    parse.add_argument('-model', '--model', type=str, default='DyST2', help='model: NN, LSTM, biLSTM, CNN')
+    #parse.add_argument('-model', '--model', type=str, default='DyST', help='model: NN, LSTM, biLSTM, CNN')
+    parse.add_argument('-dynamic_context', '-dynamic_context', type=int, default=1, help='whether to add dynamic_context part')
+    parse.add_argument('-dynamic_spatial', '-dynamic_spatial', type=int, default=1, help='whether to add dynamic_spatial part')
+    parse.add_argument('-add_ext', '-add_ext', type=int, default=1, help='whether to add external factors')
     parse.add_argument('-model_save', '--model_save', type=str, default='', help='folder name to save model')
     parse.add_argument('-pretrained_model', '--pretrained_model_path', type=str, default=None,
                        help='path to the pretrained model')
@@ -111,7 +114,9 @@ def main():
                             num_station)
     model = DyST(num_station, args.input_steps, args.output_steps,
                  embedding_dim=args.embedding_size, embeddings=embeddings, ext_dim=e_data.shape[-1],
-                 batch_size=args.batch_size)
+                 batch_size=args.batch_size, 
+                 dynamic_context=args.dynamic_context, dynamic_spatial=args.dynamic_spatial, add_ext=args.add_ext)
+    model_path = os.path.join(args.folder_name, 'model_save', args.model_save)
     solver = ModelSolver(model, train_loader, test_loader, pre_process,
                          batch_size=args.batch_size,
                          show_batches=args.show_batches,
@@ -119,18 +124,20 @@ def main():
                          pretrained_model=args.pretrained_model_path,
                          update_rule=args.update_rule,
                          learning_rate=args.learning_rate,
-                         model_path=args.folder_name+'model_save/'+args.model_save
+                         model_path=model_path
                          )
+    if not os.path.exists(os.path.join(model_path, 'results')):
+        os.makedirs(os.path.join(model_path, 'results'))
     if args.train:
         print '==================== begin training ======================'
-        test_target, test_prediction = solver.train(args.folder_name+'out')
-        np.save(args.folder_name+'results/test_target.npy', test_target)
-        np.save(args.folder_name+'results/test_prediction.npy', test_prediction)
+        test_target, test_prediction = solver.train(model_path+'out')
+        np.save(model_path+'results/test_target.npy', test_target)
+        np.save(model_path+'results/test_prediction.npy', test_prediction)
     if args.test:
         print '==================== begin test =========================='
         test_target, test_prediction = solver.test()
-        np.save(args.folder_name + 'results/test_target.npy', test_target)
-        np.save(args.folder_name + 'results/test_prediction.npy', test_prediction)
+        np.save(model_path + 'results/test_target.npy', test_target)
+        np.save(model_path + 'results/test_prediction.npy', test_prediction)
 
 
 if __name__ == "__main__":
