@@ -94,7 +94,7 @@ def predict_by_all(timestamps, data, test_data, num_sample, split, output_steps)
 
 def main():
     parse = argparse.ArgumentParser()
-    parse.add_argument('-dataset', '-dataset', type=str, default='citibike-data/data/',
+    parse.add_argument('-dataset', '-dataset', type=str, default='capitalbike-data/data/',
                        help='which dataset to run')
     args = parse.parse_args()
 
@@ -112,7 +112,6 @@ def main():
     pre_process = MinMaxNormalization01()
     split = [3912, 480]
     print('load train, test data...')
-    #data, train_data, _, _ = load_npy_data(filename=['../datasets/citibike-data/data/p_station.npy', '../datasets/citibike-data/data/d_station.npy'], split=split)
     data, train_data, _, _ = load_npy_data(filename=['../datasets/'+args.dataset+'p_station.npy', '../datasets/'+args.dataset+'d_station.npy'], split=split)
     # data: [num, num_station, 2]
     num_station = data.shape[1]
