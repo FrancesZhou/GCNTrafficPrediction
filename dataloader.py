@@ -40,8 +40,9 @@ class DataLoader():
 
     def get_flow_map_from_list(self, f_list):
         f_map = np.zeros((self.num_station, self.num_station), dtype=np.float32)
-        rows, cols, values = zip(*f_list)
-        f_map[rows, cols] = values
+        if len(f_list):
+            rows, cols, values = zip(*f_list)
+            f_map[rows, cols] = values
         return f_map
 
     def next_sample(self, i):
