@@ -158,10 +158,10 @@ def main():
     #
     in_predict = np.clip(in_predict, 0, None)
     in_rmse_test = np.sqrt(np.sum(np.square(in_predict-in_real))*1.0/(np.sum(valid_num)))
-    in_rmse_2_test = np.mean(np.sqrt(np.sum(np.square(in_predict-in_real), axis=-1)*1.0/valid_num))
+    in_rmse_2_test = np.mean(np.sqrt(np.sum(np.square(in_predict-in_real), axis=-1)*1.0/np.maximum(valid_num, 1)))
     in_rmlse_test = np.mean(np.sqrt(np.sum(np.square(np.log(in_predict+1)-
-                                                     np.log(in_real+1)), axis=-1)*1.0/valid_num))
-    in_er_test = np.mean(np.sum(np.abs(in_predict-in_real), axis=-1)/np.sum(in_real, axis=-1))
+                                                     np.log(in_real+1)), axis=-1)*1.0/np.maximum(valid_num, 1)))
+    in_er_test = np.mean(np.sum(np.abs(in_predict-in_real), axis=-1)/np.maximum(np.sum(in_real, axis=-1), 1))
     print('test in l2-loss is %.4f' % in_rmse_test)
     print('test in rmse is %.4f' % in_rmse_2_test)
     print('test in rmlse is %.4f' % in_rmlse_test)
@@ -195,10 +195,10 @@ def main():
     #
     out_predict = np.clip(out_predict, 0, None)
     out_rmse_test = np.sqrt(np.sum(np.square(out_predict-out_real))*1.0/(np.sum(valid_num)))
-    out_rmse_2_test = np.mean(np.sqrt(np.sum(np.square(out_predict-out_real), axis=-1)*1.0/valid_num))
+    out_rmse_2_test = np.mean(np.sqrt(np.sum(np.square(out_predict-out_real), axis=-1)*1.0/np.maximum(valid_num, 1)))
     out_rmlse_test = np.mean(np.sqrt(np.sum(np.square(np.log(out_predict+1)-
-                                                      np.log(out_real+1)), axis=-1)*1.0/valid_num))
-    out_er_test = np.mean(np.sum(np.abs(out_predict-out_real), axis=-1)/np.sum(out_real, axis=-1))
+                                                      np.log(out_real+1)), axis=-1)*1.0/np.maximum(valid_num, 1)))
+    out_er_test = np.mean(np.sum(np.abs(out_predict-out_real), axis=-1)/np.maximum(np.sum(out_real, axis=-1), 1))
     print('test out l2-loss is %.4f' % out_rmse_test)
     print('test out rmse is %.4f' % out_rmse_2_test)
     print('test out rmlse is %.4f' % out_rmlse_test)
