@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 from gensim.models import Word2Vec
 from model.DyST import DyST
+from model.DyST2 import DyST2
 from solver import ModelSolver
 from preprocessing import *
 from utils import *
@@ -30,14 +31,12 @@ def main():
                        help='dim of embedding')
     # ---------- model ----------
     #parse.add_argument('-model', '--model', type=str, default='DyST', help='model: NN, LSTM, biLSTM, CNN')
-    parse.add_argument('-dynamic_context', '-dynamic_context', type=int, default=1, help='whether to add dynamic_context part')
-    parse.add_argument('-dynamic_spatial', '-dynamic_spatial', type=int, default=1, help='whether to add dynamic_spatial part')
-    parse.add_argument('-add_ext', '-add_ext', type=int, default=1, help='whether to add external factors')
+    parse.add_argument('-dynamic_context', '--dynamic_context', type=int, default=1, help='whether to add dynamic_context part')
+    parse.add_argument('-dynamic_spatial', '--dynamic_spatial', type=int, default=1, help='whether to add dynamic_spatial part')
+    parse.add_argument('-add_ext', '--add_ext', type=int, default=1, help='whether to add external factors')
     parse.add_argument('-model_save', '--model_save', type=str, default='', help='folder name to save model')
     parse.add_argument('-pretrained_model', '--pretrained_model_path', type=str, default=None,
                        help='path to the pretrained model')
-    parse.add_argument('-dynamic_spatial', '--dynamic_spatial', type=int, default=1,
-                       help='whether to use dynamic spatial component')
     # ---------- params for CNN ------------
     parse.add_argument('-num_filters', '--num_filters', type=int,
                        default=32, help='number of filters in CNN')
@@ -55,6 +54,9 @@ def main():
     # ------ train or predict -------
     parse.add_argument('-train', '--train', type=int, default=1, help='whether to train')
     parse.add_argument('-test', '--test', type=int, default=0, help='if test')
+    #
+    parse.add_argument('-pretrain', '--pretrain', type=int, default=0, help='whether to pretrain')
+    parse.add_argument('-partial_pretrain', '--partial_pretrain', type=int, default=0, help='whether to load pretrained vars')
     args = parse.parse_args()
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
@@ -112,7 +114,7 @@ def main():
     test_loader = DataLoader(test_data, test_f_data, test_e_data,
                             args.input_steps, args.output_steps,
                             num_station)
-    model = DyST(num_station, args.input_steps, args.output_steps,
+    model = DyST2(num_station, args.input_steps, args.output_steps,
                  embedding_dim=args.embedding_size, embeddings=embeddings, ext_dim=e_data.shape[-1],
                  batch_size=args.batch_size, 
                  dynamic_context=args.dynamic_context, dynamic_spatial=args.dynamic_spatial, add_ext=args.add_ext)
@@ -124,20 +126,29 @@ def main():
                          pretrained_model=args.pretrained_model_path,
                          update_rule=args.update_rule,
                          learning_rate=args.learning_rate,
-                         model_path=model_path
+                         model_path=model_path,
+                         partial_pretrain=args.partial_pretrain
                          )
-    if not os.path.exists(os.path.join(model_path, 'results')):
-        os.makedirs(os.path.join(model_path, 'results'))
+    results_path = os.path.join(model_path, 'results')
+    if not os.path.exists(results_path):
+        os.makedirs(results_path)
+    if args.pretrain:
+        print '==================== begin pretrain ======================'
+        w_att_1, w_att_2, w_h_in, w_h_out = solver.pretrain(os.path.join(model_path, 'pretrain_out'))
+        np.save(os.path.join(model_path, 'w_att_1.npy'), w_att_1)
+        np.save(os.path.join(model_path, 'w_att_2.npy'), w_att_2)
+        np.save(os.path.join(model_path, 'w_h_in.npy'), w_h_in)
+        np.save(os.path.join(model_path, 'w_h_out.npy'), w_h_out)
     if args.train:
         print '==================== begin training ======================'
-        test_target, test_prediction = solver.train(model_path+'out')
-        np.save(model_path+'results/test_target.npy', test_target)
-        np.save(model_path+'results/test_prediction.npy', test_prediction)
+        test_target, test_prediction = solver.train(os.path.join(model_path, 'out'))
+        np.save(os.path.join(results_path, 'test_target.npy'), test_target)
+        np.save(os.path.join(results_path, 'test_prediction.npy'), test_prediction)
     if args.test:
         print '==================== begin test =========================='
         test_target, test_prediction = solver.test()
-        np.save(model_path + 'results/test_target.npy', test_target)
-        np.save(model_path + 'results/test_prediction.npy', test_prediction)
+        np.save(os.path.join(results_path, 'test_target.npy'), test_target)
+        np.save(os.path.join(results_path, 'test_prediction.npy'), test_prediction)
 
 
 if __name__ == "__main__":

@@ -32,6 +32,7 @@ class ModelSolver(object):
         self.log_path = kwargs.pop('log_path', './log/')
         self.pretrained_model = kwargs.pop('pretrained_model', None)
         self.test_model = kwargs.pop('test_model', './model/lstm/model-1')
+        self.partial_pretrain = kwargs.pop('partial_pretrain', 0)
 
         if self.update_rule == 'adam':
             self.optimizer = tf.train.AdamOptimizer
@@ -44,16 +45,86 @@ class ModelSolver(object):
             os.makedirs(self.model_path)
         if not os.path.exists(self.log_path):
             os.makedirs(self.log_path)
+    
+    def pretrain(self, output_file_path=None):
+        o_file = open(output_file_path, 'w')
+        train_loader = self.train_data
+        y_, loss = self.model.build_model_for_temporal()
+        with tf.name_scope('optimizer'):
+            optimizer = self.optimizer(learning_rate=self.learning_rate)
+            gvs = optimizer.compute_gradients(loss)
+            capped_gvs = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gvs if grad is not None]
+            train_op = optimizer.apply_gradients(capped_gvs)
+        gpu_options = tf.GPUOptions(allow_growth=True)
+        tf.get_variable_scope().reuse_variables()
+        with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
+            tf.global_variables_initializer().run()
+            saver = tf.train.Saver(tf.global_variables())
+            if self.pretrained_model is not None:
+                print 'Start training with pretrained model...'
+                saver.restore(sess, os.path.join(self.model_path, self.pretrained_model))
+                #
+            for e in range(self.n_epochs):
+                # ========================== train ====================
+                train_l2_loss = 0
+                train_metric_loss = np.zeros(6, dtype=np.float32)
+                #in_rmse, out_rmse, in_rmlse, out_rmlse, in_er, out_er
+                train_loader.data_index = np.arange(train_loader.num_data-train_loader.input_steps-self.batch_size+1)
+                num_train_batches = (train_loader.num_data - train_loader.input_steps - self.batch_size + 1)/self.batch_size
+                print('number of training batches: %d' % num_train_batches)
+                widgets = ['Train: ', Percentage(), ' ', Bar('-'), ' ', ETA()]
+                pbar = ProgressBar(widgets=widgets, maxval=num_train_batches).start()
+                train_loader.reset_data()
+                for i in xrange(num_train_batches):
+                    pbar.update(i)
+                    x, f, ee, y, index = train_loader.next_batch_for_train(i*self.batch_size, (i+1)*self.batch_size)
+                    if x is None:
+                        print 'invalid batch'
+                        continue
+                    feed_dict = {self.model.x: np.array(x),
+                                 self.model.f: np.array(f),
+                                 self.model.e: np.array(ee),
+                                 self.model.y: np.array(y)
+                                 }
+                    _, l, y_out = sess.run([train_op, loss, y_], feed_dict)
+                    y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, :, :], index[:, -1]))
+                    y = np.round(self.preprocessing.inverse_transform(y[:, -1, :, :], index[:, -1]))
+                    y = np.clip(y, 0, None)
+                    y_out = np.clip(y_out, 0, None)
+                    metric_loss = get_loss_by_batch(y, y_out)
+                    #t3 = time.time()
+                    #print 'train batch time: %s' % (t3-t2)
+                    train_l2_loss += l
+                    train_metric_loss += metric_loss
+                pbar.finish()
+                # compute counts of all regions
+                t_count = num_train_batches*self.batch_size*(train_loader.input_steps*train_loader.num_station*2)
+                train_rmse = np.sqrt(train_l2_loss / t_count)
+                train_metric_loss = train_metric_loss/(num_train_batches*self.batch_size)
+                w_text = 'at epoch %d, train l2 loss is %.6f \n' \
+                             'train in/out rmse is %.6f/%.6f \n' \
+                             'train in/out rmlse is %.6f/%.6f \n' \
+                             'train in/out er is %.6f/%.6f' % \
+                             (e, train_rmse,
+                              train_metric_loss[0], train_metric_loss[1],
+                              train_metric_loss[2], train_metric_loss[3],
+                              train_metric_loss[4], train_metric_loss[5])
+                    #'''
+                print w_text
+                o_file.write(w_text)
+                if (e + 1) % self.save_every == 0:
+                    save_name = os.path.join(self.model_path, 'model')
+                    saver.save(sess, save_name, global_step=e + 1)
+                    print "model-%s saved." % (e + 1)
+            w_att_1, w_att_2, w_h_in, w_h_out = sess.run([self.model.w_att_1, self.model.w_att_2, self.model.w_h_in, self.model.w_h_out])
+            return w_att_1, w_att_2, w_h_in, w_h_out
 
     def train(self, output_file_path=None):
         o_file = open(output_file_path, 'w')
         train_loader = self.train_data
-        #val_loader = self.val_data
         test_loader = self.test_data
         # build graphs
         y_, loss = self.model.build_model()
-        #y_, test_loss = self.model.predict()
-
         # train op
         with tf.name_scope('optimizer'):
             optimizer = self.optimizer(learning_rate=self.learning_rate)
@@ -66,22 +137,27 @@ class ModelSolver(object):
 
         gpu_options = tf.GPUOptions(allow_growth=True)
         tf.get_variable_scope().reuse_variables()
-        # y_ = self.model.build_sampler()
         # summary op
         # tf.summary.scalar('batch_loss', train_loss)
         # for var in tf.trainable_variables():
         #     tf.summary.histogram(var.op.name, var)
         # for grad, var in grads_and_vars:
         #     tf.summary.histogram(var.op.name + '/gradient', grad)
-
         # summary_op = tf.summary.merge_all()
         with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
             tf.global_variables_initializer().run()
             #summary_writer = tf.summary.FileWriter(self.log_path, graph=sess.graph)
             saver = tf.train.Saver(tf.global_variables())
+            #
+            if self.partial_pretrain:
+                self.model.w_att_1 = tf.assign(self.model.w_att_1, np.load(os.path.join(self.model_path,'pretrain/w_att_1.npy')))
+                self.model.w_att_2 = tf.assign(self.model.w_att_2, np.load(os.path.join(self.model_path,'pretrain/w_att_2.npy')))
+                self.model.w_h_in = tf.assign(self.model.w_h_in, np.load(os.path.join(self.model_path,'pretrain/w_h_in.npy')))
+                self.model.w_h_out = tf.assign(self.model.w_h_out, np.load(os.path.join(self.model_path,'pretrain/w_h_out.npy')))
+            #
             if self.pretrained_model is not None:
                 print "Start training with pretrained model..."
-                saver.restore(sess, self.model_path + self.pretrained_model)
+                saver.restore(sess, os.path.join(self.model_path, self.pretrained_model))
             #
             for e in range(self.n_epochs):
                 # ========================== train ====================
@@ -218,7 +294,7 @@ class ModelSolver(object):
             saver = tf.train.Saver(tf.global_variables())
             if self.pretrained_model is not None:
                 print "Start training with pretrained model..."
-                saver.restore(sess, self.model_path + self.pretrained_model)
+                saver.restore(sess, os.path.join(self.model_path, self.pretrained_model))
                 test_l2_loss = 0
                 test_metric_loss = np.zeros(6)
                 # num_test_batches = (test_loader.num_data - test_loader.input_steps - test_loader.output_steps + 1) / self.batch_size
