@@ -139,7 +139,8 @@ class DyST2():
             x_out = x[i, :, :, 1]
             # [batch_size, num_station]
             #out_1 = tf.squeeze(tf.matmul(tf.multiply(f_in_gate, self.w_1), tf.expand_dims(x_in, -1))) + tf.matmul(x_out, self.w_2)
-            out_1 = tf.squeeze(tf.matmul(tf.multiply(f_in_gate, self.w_1), tf.expand_dims(x_in, -1)))
+            #out_1 = tf.squeeze(tf.matmul(tf.multiply(f_in_gate, self.w_1), tf.expand_dims(x_in, -1)))
+            out_1 = tf.squeeze(tf.matmul(tf.multiply(f_out_gate, self.w_1), tf.expand_dims(x_in, -1)))
             out_2 = tf.reduce_sum(tf.multiply(cxt_out, self.w_h_out), axis=-1) + tf.matmul(output, self.w_t_out)
             #
             if self.add_ext:
@@ -151,7 +152,8 @@ class DyST2():
                 in_3 = tf.constant(0.0, dtype=tf.float32, shape=[self.batch_size, self.num_station])
             next_out = out_1 + out_2 + out_3
             # check-in
-            in_1 = tf.squeeze(tf.matmul(tf.multiply(f_out_gate, self.w_2), tf.expand_dims(x_out, -1)))
+            #in_1 = tf.squeeze(tf.matmul(tf.multiply(f_out_gate, self.w_2), tf.expand_dims(x_out, -1)))
+            in_1 = tf.squeeze(tf.matmul(tf.multiply(f_in_gate, self.w_2), tf.expand_dims(x_out, -1)))
             in_2 = tf.reduce_sum(tf.multiply(cxt_in, self.w_h_in), axis=-1) + tf.matmul(output, self.w_t_in)
             next_in = in_1 + in_2 + in_3
             next_output = tf.concat((tf.expand_dims(next_in, -1), tf.expand_dims(next_out, -1)), -1)

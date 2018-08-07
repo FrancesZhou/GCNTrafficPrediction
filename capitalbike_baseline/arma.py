@@ -106,7 +106,7 @@ def main():
     output_steps = 1
     num_sample = 50
 
-    in_save_results = False
+    in_save_results = True
     out_save_results = False
 
     pre_process = MinMaxNormalization01()
