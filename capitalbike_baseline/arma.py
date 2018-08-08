@@ -134,6 +134,7 @@ def main():
     print('preprocess and get test data...')
     data = pre_process.transform(data)
 
+    '''
     print('======================= ARMA for check-in test ===============================')
     in_data = data[:, :, 0]
     in_test_data = in_data[split[0]:]
@@ -171,6 +172,7 @@ def main():
     np.save(args.dataset+'arma_in_index.npy', in_index_all)
     dump_pickle(in_error_all, args.dataset+'arma_in_error.pkl')
 
+    '''
     print('======================= ARMA for check-out test ===============================')
     out_data = data[:, :, 1]
     out_test_data = out_data[split[0]:]
