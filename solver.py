@@ -61,7 +61,7 @@ class ModelSolver(object):
             tf.global_variables_initializer().run()
             saver = tf.train.Saver(tf.global_variables())
             if self.pretrained_model is not None:
-                print 'Start training with pretrained model...'
+                print('Start training with pretrained model...')
                 saver.restore(sess, os.path.join(self.model_path, self.pretrained_model))
                 #
             for e in range(self.n_epochs):
@@ -75,11 +75,11 @@ class ModelSolver(object):
                 widgets = ['Train: ', Percentage(), ' ', Bar('-'), ' ', ETA()]
                 pbar = ProgressBar(widgets=widgets, maxval=num_train_batches).start()
                 train_loader.reset_data()
-                for i in xrange(num_train_batches):
+                for i in range(num_train_batches):
                     pbar.update(i)
                     x, f, ee, y, index = train_loader.next_batch_for_train(i*self.batch_size, (i+1)*self.batch_size)
                     if x is None:
-                        print 'invalid batch'
+                        print('invalid batch')
                         continue
                     feed_dict = {self.model.x: np.array(x),
                                  self.model.f: np.array(f),
@@ -110,12 +110,12 @@ class ModelSolver(object):
                               train_metric_loss[2], train_metric_loss[3],
                               train_metric_loss[4], train_metric_loss[5])
                     #'''
-                print w_text
+                print(w_text)
                 o_file.write(w_text)
                 if (e + 1) % self.save_every == 0:
                     save_name = os.path.join(self.model_path, 'model')
                     saver.save(sess, save_name, global_step=e + 1)
-                    print "model-%s saved." % (e + 1)
+                    print("model-%s saved." % (e + 1))
             w_att_1, w_att_2, w_h_in, w_h_out = sess.run([self.model.w_att_1, self.model.w_att_2, self.model.w_h_in, self.model.w_h_out])
             return w_att_1, w_att_2, w_h_in, w_h_out
 
@@ -156,7 +156,7 @@ class ModelSolver(object):
                 self.model.w_h_out = tf.assign(self.model.w_h_out, np.load(os.path.join(self.model_path,'pretrain/w_h_out.npy')))
             #
             if self.pretrained_model is not None:
-                print "Start training with pretrained model..."
+                print("Start training with pretrained model...")
                 saver.restore(sess, os.path.join(self.model_path, self.pretrained_model))
             #
             for e in range(self.n_epochs):
@@ -170,16 +170,15 @@ class ModelSolver(object):
                 widgets = ['Train: ', Percentage(), ' ', Bar('-'), ' ', ETA()]
                 pbar = ProgressBar(widgets=widgets, maxval=num_train_batches).start()
                 train_loader.reset_data()
-                for i in xrange(num_train_batches):
+                for i in range(num_train_batches):
                     # if i % self.show_batches == 0:
                     #     print 'train batch %d' % i
                     pbar.update(i)
                     #print i
                     #t1 = time.time()
                     x, f, ee, y, index = train_loader.next_batch_for_train(i*self.batch_size, (i+1)*self.batch_size)
-                    #x, f, ee, y = train_loader.next_sample(i)
                     if x is None:
-                        print 'invalid batch'
+                        print('invalid batch')
                         continue
                     #t2 = time.time()
                     #print 'load batch time: %s' % (t2-t1)
@@ -221,7 +220,7 @@ class ModelSolver(object):
                 if (e + 1) % self.save_every == 0:
                     save_name = os.path.join(self.model_path, 'model')
                     saver.save(sess, save_name, global_step=e + 1)
-                    print "model-%s saved." % (e + 1)
+                    print("model-%s saved." % (e + 1))
                 # ============================ for test data ===============================
                 if e % 1 == 0:
                     print('test for test data...')
@@ -234,7 +233,7 @@ class ModelSolver(object):
                     pbar = ProgressBar(widgets=widgets, maxval=num_test_batches).start()
                     test_prediction = []
                     test_target = []
-                    for i in xrange(num_test_batches):
+                    for i in range(num_test_batches):
                         # if i % self.show_batches == 0:
                         #     print 'test batch %d' % i
                         pbar.update(i)
@@ -261,7 +260,7 @@ class ModelSolver(object):
                     pbar.finish()
                     test_target = np.concatenate(np.array(test_target), axis=0)
                     test_prediction = np.concatenate(np.array(test_prediction), axis=0)
-                    print test_target.shape
+                    print(test_target.shape)
                     # compute counts of all regions
                     t_count = num_test_batches * self.batch_size * (test_loader.input_steps * test_loader.num_station * 2)
                     test_rmse = np.sqrt(test_l2_loss / t_count)
@@ -278,7 +277,7 @@ class ModelSolver(object):
                               train_metric_loss[2], train_metric_loss[3], test_metric_loss[2], test_metric_loss[3],
                               train_metric_loss[4], train_metric_loss[5], test_metric_loss[4], test_metric_loss[5])
                     #'''
-                    print w_text
+                    print(w_text)
                     o_file.write(w_text)
             return np.array(test_target), np.array(test_prediction)
 
@@ -293,7 +292,7 @@ class ModelSolver(object):
             tf.global_variables_initializer().run()
             saver = tf.train.Saver(tf.global_variables())
             if self.pretrained_model is not None:
-                print "Start training with pretrained model..."
+                print("Start training with pretrained model...")
                 saver.restore(sess, os.path.join(self.model_path, self.pretrained_model))
                 test_l2_loss = 0
                 test_metric_loss = np.zeros(6)
@@ -304,7 +303,7 @@ class ModelSolver(object):
                 pbar = ProgressBar(widgets=widgets, maxval=num_test_batches).start()
                 test_prediction = []
                 test_target = []
-                for i in xrange(num_test_batches):
+                for i in range(num_test_batches):
                     pbar.update(i)
                     # x, y, f, padding_len = test_loader.next_batch_for_test(i * self.batch_size, (i + 1) * self.batch_size)
                     x, f, ee, y, index = test_loader.next_batch_for_train(i * self.batch_size, (i + 1) * self.batch_size)
@@ -329,7 +328,7 @@ class ModelSolver(object):
                 pbar.finish()
                 test_target = np.concatenate(np.array(test_target), axis=0)
                 test_prediction = np.concatenate(np.array(test_prediction), axis=0)
-                print test_target.shape
+                print(test_target.shape)
                 # compute counts of all regions
                 t_count = num_test_batches * self.batch_size * (test_loader.input_steps * test_loader.num_station * 2)
                 test_rmse = np.sqrt(test_l2_loss / t_count)
@@ -344,7 +343,7 @@ class ModelSolver(object):
                           test_metric_loss[2], test_metric_loss[3],
                           test_metric_loss[4], test_metric_loss[5])
                 # '''
-                print w_text
+                print(w_text)
                 return np.array(test_target), np.array(test_prediction)
 
 

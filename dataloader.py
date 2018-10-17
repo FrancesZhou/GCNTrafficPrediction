@@ -45,6 +45,14 @@ class DataLoader():
             f_map[rows, cols] = values
         return f_map
 
+    def get_flow_indices_values_from_list(self, f_list):
+        if len(f_list):
+            rows, cols, values = tuple(zip(*f_list))
+            return rows, cols, values
+            #return np.column_stack((rows, cols)), np.array(values, dtype=np.float32)
+        else:
+            return None
+
     def next_sample(self, i):
         index = self.data_index[i]
         if index > self.num_data-self.input_steps:
@@ -72,11 +80,16 @@ class DataLoader():
             for i in self.data_index[start:end]:
                 batch_x.append(self.d_data[i: i + self.input_steps])
                 batch_y.append(self.d_data[i + 1: i + self.input_steps + 1])
-                f_map = [self.get_flow_map_from_list(self.f_data[j]) for j in xrange(i, i + self.input_steps)]
+                f_map = [self.get_flow_map_from_list(self.f_data[j]) for j in range(i, i + self.input_steps)]
+                '''
+                for j in range(i, i+self.input_steps):
+                    rows, cols, values = self.get_flow_indices_values_from_list(self.f_data[j])
+                #f_map = [self.get_flow_indices_values_from_list(self.f_data[j]) for j in range(i, i+self.input_steps)]
+                '''
                 batch_f.append(f_map)
                 batch_e.append(self.e_data[i+1: i+self.input_steps+1])
                 batch_index.append(np.arange(i+1, i+self.input_steps+1))
-            return np.array(batch_x), np.array(batch_f), np.array(batch_e), np.array(batch_y), np.array(batch_index)
+            return np.array(batch_x), np.array(batch_f, dtype=np.float32), np.array(batch_e), np.array(batch_y), np.array(batch_index)
 
     def next_batch_for_test(self, start, end):
         padding_len = 0

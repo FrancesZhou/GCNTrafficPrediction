@@ -3,8 +3,8 @@ import argparse
 import numpy as np
 import tensorflow as tf
 from gensim.models import Word2Vec
+from model.GCN import GCN
 from model.DyST import DyST
-from model.DyST2 import DyST2
 from solver import ModelSolver
 from preprocessing import *
 from utils import *
@@ -30,7 +30,7 @@ def main():
     parse.add_argument('-embedding_size', '--embedding_size', type=int, default=100,
                        help='dim of embedding')
     # ---------- model ----------
-    #parse.add_argument('-model', '--model', type=str, default='DyST', help='model: NN, LSTM, biLSTM, CNN')
+    parse.add_argument('-model', '--model', type=str, default='DyST', help='model: NN, LSTM, biLSTM, CNN')
     parse.add_argument('-dynamic_context', '--dynamic_context', type=int, default=1, help='whether to add dynamic_context part')
     parse.add_argument('-dynamic_spatial', '--dynamic_spatial', type=int, default=1, help='whether to add dynamic_spatial part')
     parse.add_argument('-add_ext', '--add_ext', type=int, default=1, help='whether to add external factors')
@@ -93,18 +93,7 @@ def main():
     #num_station = len(id_map)
     num_station = data.shape[1]
     print('number of station: %d' % num_station)
-    if args.pretrained_embeddings:
-        print('load pretrained embeddings...')
-        embeddings = get_embedding_from_file(args.folder_name+'embeddings.txt', num_station)
-    else:
-        print('train station embeddings via Word2Vec model...')
-        trip_data = load_pickle(args.folder_name+'all_trip_data.pkl')
-        word2vec_model = Word2Vec(sentences=trip_data, size=args.embedding_size)
-        print('save Word2Vec model and embeddings...')
-        word2vec_model.save(args.folder_name+'word2vec_model')
-        word2vec_model.wv.save_word2vec_format(args.folder_name+'embeddings.txt', binary=False)
-        del word2vec_model
-        embeddings = get_embedding_from_file(args.folder_name+'embeddings.txt', num_station)
+
     train_loader = DataLoader(train_data, train_f_data, train_e_data,
                               args.input_steps, args.output_steps,
                               num_station)
@@ -114,10 +103,28 @@ def main():
     test_loader = DataLoader(test_data, test_f_data, test_e_data,
                             args.input_steps, args.output_steps,
                             num_station)
-    model = DyST2(num_station, args.input_steps, args.output_steps,
-                 embedding_dim=args.embedding_size, embeddings=embeddings, ext_dim=e_data.shape[-1],
-                 batch_size=args.batch_size, 
-                 dynamic_context=args.dynamic_context, dynamic_spatial=args.dynamic_spatial, add_ext=args.add_ext)
+    if args.model == 'DyST':
+        if args.pretrained_embeddings:
+            print('load pretrained embeddings...')
+            embeddings = get_embedding_from_file(args.folder_name + 'embeddings.txt', num_station)
+        else:
+            print('train station embeddings via Word2Vec model...')
+            trip_data = load_pickle(args.folder_name + 'all_trip_data.pkl')
+            word2vec_model = Word2Vec(sentences=trip_data, size=args.embedding_size)
+            print('save Word2Vec model and embeddings...')
+            word2vec_model.save(args.folder_name + 'word2vec_model')
+            word2vec_model.wv.save_word2vec_format(args.folder_name + 'embeddings.txt', binary=False)
+            del word2vec_model
+            embeddings = get_embedding_from_file(args.folder_name + 'embeddings.txt', num_station)
+        model = DyST(num_station, args.input_steps, args.output_steps,
+                     embedding_dim=args.embedding_size, embeddings=embeddings, ext_dim=e_data.shape[-1],
+                     batch_size=args.batch_size,
+                     dynamic_context=args.dynamic_context, dynamic_spatial=args.dynamic_spatial, add_ext=args.add_ext)
+    if args.model == 'GCN':
+        model = GCN(num_station, args.input_steps, args.output_steps,
+                    ext_dim=e_data.shape[-1],
+                    batch_size=args.batch_size,
+                    add_ext=args.add_ext)
     model_path = os.path.join(args.folder_name, 'model_save', args.model_save)
     solver = ModelSolver(model, train_loader, test_loader, pre_process,
                          batch_size=args.batch_size,
@@ -133,19 +140,19 @@ def main():
     if not os.path.exists(results_path):
         os.makedirs(results_path)
     if args.pretrain:
-        print '==================== begin pretrain ======================'
+        print('==================== begin pretrain ======================')
         w_att_1, w_att_2, w_h_in, w_h_out = solver.pretrain(os.path.join(model_path, 'pretrain_out'))
         np.save(os.path.join(model_path, 'w_att_1.npy'), w_att_1)
         np.save(os.path.join(model_path, 'w_att_2.npy'), w_att_2)
         np.save(os.path.join(model_path, 'w_h_in.npy'), w_h_in)
         np.save(os.path.join(model_path, 'w_h_out.npy'), w_h_out)
     if args.train:
-        print '==================== begin training ======================'
+        print('==================== begin training ======================')
         test_target, test_prediction = solver.train(os.path.join(model_path, 'out'))
         np.save(os.path.join(results_path, 'test_target.npy'), test_target)
         np.save(os.path.join(results_path, 'test_prediction.npy'), test_prediction)
     if args.test:
-        print '==================== begin test =========================='
+        print('==================== begin test ==========================')
         test_target, test_prediction = solver.test()
         np.save(os.path.join(results_path, 'test_target.npy'), test_target)
         np.save(os.path.join(results_path, 'test_prediction.npy'), test_prediction)
