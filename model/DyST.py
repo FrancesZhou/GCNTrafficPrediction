@@ -1,6 +1,6 @@
 import sys
 import numpy as np
-import cPickle as pickle
+import pickle
 import tensorflow as tf
 sys.path.append('./util/')
 from utils import *

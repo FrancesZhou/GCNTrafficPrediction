@@ -9,7 +9,7 @@ from solver import ModelSolver
 from preprocessing import *
 from utils import *
 from dataloader import *
-import scipy.io as sio
+# import scipy.io as sio
 
 
 def main():
@@ -17,7 +17,7 @@ def main():
     # ---------- environment setting: which gpu -------
     parse.add_argument('-gpu', '--gpu', type=str, default='0', help='which gpu to use: 0 or 1')
     parse.add_argument('-folder_name', '--folder_name', type=str, default='datasets/citibike-data/data/')
-    parse.add_argument('-if_minus_mean', '--if_minus_mean', type=int, default=0,
+    parse.add_argument('-if_minus_mean', '--if_minus_mean', type=int, default=1,
                        help='use MinMaxNormalize01 or MinMaxNormalize01_minus_mean')
     # ---------- input/output settings -------
     parse.add_argument('-input_steps', '--input_steps', type=int, default=6,
@@ -30,11 +30,11 @@ def main():
     parse.add_argument('-embedding_size', '--embedding_size', type=int, default=100,
                        help='dim of embedding')
     # ---------- model ----------
-    parse.add_argument('-model', '--model', type=str, default='DyST', help='model: NN, LSTM, biLSTM, CNN')
+    parse.add_argument('-model', '--model', type=str, default='GCN', help='model: LSTM, DyST, GCN')
     parse.add_argument('-dynamic_context', '--dynamic_context', type=int, default=1, help='whether to add dynamic_context part')
     parse.add_argument('-dynamic_spatial', '--dynamic_spatial', type=int, default=1, help='whether to add dynamic_spatial part')
     parse.add_argument('-add_ext', '--add_ext', type=int, default=1, help='whether to add external factors')
-    parse.add_argument('-model_save', '--model_save', type=str, default='', help='folder name to save model')
+    parse.add_argument('-model_save', '--model_save', type=str, default='gcn', help='folder name to save model')
     parse.add_argument('-pretrained_model', '--pretrained_model_path', type=str, default=None,
                        help='path to the pretrained model')
     # ---------- params for CNN ------------
@@ -45,11 +45,11 @@ def main():
     parse.add_argument('-dropout_keep_prob', '--dropout_keep_prob', type=float,
                        default=0.5, help='keep probability in dropout layer')
     # ---------- training parameters --------
-    parse.add_argument('-n_epochs', '--n_epochs', type=int, default=50, help='number of epochs')
+    parse.add_argument('-n_epochs', '--n_epochs', type=int, default=20, help='number of epochs')
     parse.add_argument('-batch_size', '--batch_size', type=int, default=8, help='batch size for training')
     parse.add_argument('-show_batches', '--show_batches', type=int,
                        default=100, help='show how many batches have been processed.')
-    parse.add_argument('-lr', '--learning_rate', type=float, default=0.002, help='learning rate')
+    parse.add_argument('-lr', '--learning_rate', type=float, default=0.0002, help='learning rate')
     parse.add_argument('-update_rule', '--update_rule', type=str, default='adam', help='update rule')
     # ------ train or predict -------
     parse.add_argument('-train', '--train', type=int, default=1, help='whether to train')
@@ -59,7 +59,7 @@ def main():
     parse.add_argument('-partial_pretrain', '--partial_pretrain', type=int, default=0, help='whether to load pretrained vars')
     args = parse.parse_args()
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+    #os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     print('load train, test data...')
     # train: 20140401 - 20140910
     # test: 20140911 - 20140930

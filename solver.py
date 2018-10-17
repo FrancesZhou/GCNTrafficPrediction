@@ -5,7 +5,7 @@ import time
 import os
 import math
 from progressbar import *
-from sklearn.model_selection import train_test_split
+#from sklearn.model_selection import train_test_split
 import tensorflow as tf
 import sys
 

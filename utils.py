@@ -5,6 +5,14 @@ import scipy.sparse as sp
 from scipy.sparse import linalg
 from sklearn import preprocessing
 
+class StrToBytes:
+    def __init__(self, fileobj):
+        self.fileobj = fileobj
+    def read(self, size):
+        return self.fileobj.read(size).encode()
+    def readline(self, size=-1):
+        return self.fileobj.readline(size).encode()
+
 def dump_pickle(data, file):
     try:
         with open(file, 'w') as datafile:
@@ -15,7 +23,7 @@ def dump_pickle(data, file):
 def load_pickle(file):
     try:
         with open(file, 'r') as datafile:
-            data = pickle.load(datafile)
+            data = pickle.load(StrToBytes(datafile))
     except Exception as e:
         raise e
     return data
