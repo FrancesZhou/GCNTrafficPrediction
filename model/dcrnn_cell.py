@@ -162,10 +162,10 @@ class DCGRUCell(RNNCell):
         supports = []
         # TODO: why does it need a transpose for the generated random_walk_matrix?
         if self.filter_type == "random_walk":
-            supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
+            supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx), (0, 2, 1)))
         elif self.filter_type == "dual_random_walk":
-            supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
-            supports.append(tf.transpose(self.calculate_random_walk_matrix(tf.transpose(adj_mx))))
+            supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx), (0, 2, 1)))
+            supports.append(tf.transpose(self.calculate_random_walk_matrix(tf.transpose(adj_mx, (0, 2, 1))), (0, 2, 1)))
         else:
             return None
         '''
