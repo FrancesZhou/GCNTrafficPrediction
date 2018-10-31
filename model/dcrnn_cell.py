@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+import scipy.sparse as sp
 import tensorflow as tf
 
 from tensorflow.contrib.rnn import RNNCell
@@ -47,11 +48,10 @@ class DCGRUCell(RNNCell):
         #
         if adj_mx is not None:
             if self.filter_type == "random_walk":
-                self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx), (0, 2, 1)))
+                self._supports.append(tf.convert_to_tensor((self.calculate_random_walk_matrix(adj_mx)).T, dtype=tf.float32))
             elif self.filter_type == "dual_random_walk":
-                self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx), (0, 2, 1)))
-                self._supports.append(
-                    tf.transpose(self.calculate_random_walk_matrix(tf.transpose(adj_mx, (0, 2, 1))), (0, 2, 1)))
+                self._supports.append(tf.convert_to_tensor((self.calculate_random_walk_matrix(adj_mx)).T, dtype=tf.float32))
+                self._supports.append(tf.convert_to_tensor((self.calculate_random_walk_matrix((adj_mx).T)).T, dtype=tf.float32))
 
 
     @staticmethod
@@ -146,6 +146,17 @@ class DCGRUCell(RNNCell):
         #d_mat_inv = sp.diags(d_inv)
         #random_walk_mx = d_mat_inv.dot(adj_mx).tocoo()
         return random_walk_mx
+
+    def calculate_random_walk_matrix_2d(self, adj_mx):
+        # adj_mx: [num_nodes, num_nodes]
+        adj_mx = sp.coo_matrix(adj_mx)
+        d = np.array(adj_mx.sum(1))
+        d_inv = np.power(d, -1).flatten()
+        d_inv[np.isinf(d_inv)] = 0.
+        d_mat_inv = sp.diags(d_inv)
+        random_walk_mx = d_mat_inv.dot(adj_mx).tocoo()
+        return random_walk_mx
+
 
     def get_supports(self, adj_mx):
         supports = []

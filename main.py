@@ -98,6 +98,13 @@ def main():
     train_loader = DataLoader(train_data, train_f_data, train_e_data,
                               args.input_steps, args.output_steps,
                               num_station)
+    f_adj_mx = None
+    if args.dynamic_adj_matrix == 0:
+        if os.path.isfile(args.folder_name+'f_adj_mx.npy'):
+            f_adj_mx = np.load(args.folder_name+'f_adj_mx.npy')
+        else:
+            f_adj_mx = train_loader.get_flow_adj_mx()
+            np.save(args.folder_name+'f_adj_mx.npy', f_adj_mx)
     # val_loader = DataLoader(val_data, val_f_data,
     #                           args.input_steps, args.output_steps,
     #                           num_station, pre_process)
@@ -124,7 +131,7 @@ def main():
     if args.model == 'GCN':
         model = GCN(num_station, args.input_steps, args.output_steps,
                     ext_dim=e_data.shape[-1],
-                    dy_adj=args.dynamic_adj_matrix,
+                    dy_adj=f_adj_mx,
                     batch_size=args.batch_size,
                     add_ext=args.add_ext)
     model_path = os.path.join(args.folder_name, 'model_save', args.model_save)

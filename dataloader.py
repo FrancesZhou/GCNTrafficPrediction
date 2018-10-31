@@ -24,6 +24,17 @@ class DataLoader():
         self.data_index = np.arange(self.num_data - self.input_steps)
         #self.reset_data()
 
+    def get_flow_adj_mx(self):
+        f_adj_mx = np.zeros((self.num_station, self.num_station), dtype=np.float32)
+        for i in range(len(self.f_data)):
+            f_list = self.f_data[i]
+            f_map = np.zeros((self.num_station, self.num_station), dtype=np.float32)
+            if len(f_list):
+                rows, cols, values = zip(*f_list)
+                f_map[rows, cols] = values
+            f_adj_mx = f_adj_mx + f_map
+        return f_adj_mx
+
     def get_flow_map_from_dict(self, f_dict):
         f_map = np.zeros((self.num_station, self.num_station), dtype=np.float32)
         rows = []
