@@ -33,7 +33,7 @@ class GCN():
 
         
         self.cell = DCGRUCell(self.num_units, self.max_diffusion_step, self.num_station, adj_mx=self.f_adj_mx, reuse=tf.AUTO_REUSE, filter_type=self.filter_type)
-        self.cell_with_projection = DCGRUCell(self.num_units, max_diffusion_step=max_diffusion_step, num_nodes=self.num_station, num_proj=2, filter_type=self.filter_type)
+        self.cell_with_projection = DCGRUCell(self.num_units, max_diffusion_step=max_diffusion_step, num_nodes=self.num_station,  adj_mx=self.f_adj_mx, num_proj=2, filter_type=self.filter_type)
 
 
         self.x = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, 2])

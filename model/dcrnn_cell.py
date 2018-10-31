@@ -48,10 +48,10 @@ class DCGRUCell(RNNCell):
         #
         if adj_mx is not None:
             if self.filter_type == "random_walk":
-                self._supports.append(tf.convert_to_tensor((self.calculate_random_walk_matrix(adj_mx)).T, dtype=tf.float32))
+                self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
             elif self.filter_type == "dual_random_walk":
-                self._supports.append(tf.convert_to_tensor((self.calculate_random_walk_matrix(adj_mx)).T, dtype=tf.float32))
-                self._supports.append(tf.convert_to_tensor((self.calculate_random_walk_matrix((adj_mx).T)).T, dtype=tf.float32))
+                self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
+                self._supports.append(tf.transpose(self.calculate_random_walk_matrix(tf.transpose(adj_mx))))
 
 
     @staticmethod

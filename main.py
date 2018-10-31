@@ -132,7 +132,7 @@ def main():
     if args.model == 'GCN':
         model = GCN(num_station, args.input_steps, args.output_steps,
                     ext_dim=e_data.shape[-1],
-                    dy_adj=f_adj_mx,
+                    f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size,
                     add_ext=args.add_ext)
     #
