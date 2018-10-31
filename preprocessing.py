@@ -38,8 +38,8 @@ class MinMaxNormalization01_minus_mean(object):
 		#
 		d_shape = np.array(data).shape
 		self._mean = np.zeros((self.period, d_shape[1], d_shape[2]))
-		index = np.arange(d_shape[0]/self.period)
-		for i in xrange(self.period):
+		index = np.arange(d_shape[0]//self.period)
+		for i in range(self.period):
 			self._mean[i] = np.mean(data[self.period*index+i], axis=0)
 		self._mean = 1. * (self._mean - self._min) / (self._max - self._min)
 

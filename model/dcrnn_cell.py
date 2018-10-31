@@ -63,11 +63,11 @@ class DCGRUCell(RNNCell):
             output_size = self._num_nodes * self._num_proj
         return output_size
 
-    def __call__(self, inputs, state, scope=None):
+    def __call__(self, inputs, adj_mx, state, scope=None):
         """Gated recurrent unit (GRU) with Graph Convolution.
         :param
-        - inputs: (input, adj_mx)
-        input: (B, num_nodes * input_dim)
+        - #inputs: (input, adj_mx)
+        inputs: (B, num_nodes * input_dim)
         adj_mx: (B, num_nodes * num_nodes)
 
         :return
@@ -75,29 +75,29 @@ class DCGRUCell(RNNCell):
         - New state: Either a single `2-D` tensor, or a tuple of tensors matching
             the arity and shapes of `state`
         """
-        input, adj_mx = inputs
-        with tf.variable_scope(scope or "dcgru_cell"):
-            with tf.variable_scope("gates"):  # Reset gate and update gate.
+        #input, adj_mx = inputs
+        with tf.variable_scope(scope or "dcgru_cell", reuse=tf.AUTO_REUSE):
+            with tf.variable_scope("gates", reuse=tf.AUTO_REUSE):  # Reset gate and update gate.
                 output_size = 2 * self._num_units
                 # We start with bias of 1.0 to not reset and not update.
                 if self._use_gc_for_ru:
                     fn = self._gconv
                 else:
                     fn = self._fc
-                value = tf.nn.sigmoid(fn(input, state, adj_mx, output_size, bias_start=1.0))
+                value = tf.nn.sigmoid(fn(inputs, state, adj_mx, output_size, bias_start=1.0))
                 value = tf.reshape(value, (-1, self._num_nodes, output_size))
                 r, u = tf.split(value=value, num_or_size_splits=2, axis=-1)
                 r = tf.reshape(r, (-1, self._num_nodes * self._num_units))
                 u = tf.reshape(u, (-1, self._num_nodes * self._num_units))
-            with tf.variable_scope("candidate"):
-                c = self._gconv(input, r * state, adj_mx, self._num_units)
+            with tf.variable_scope("candidate", reuse=tf.AUTO_REUSE):
+                c = self._gconv(inputs, r * state, adj_mx, self._num_units)
                 if self._activation is not None:
                     c = self._activation(c)
             output = new_state = u * state + (1 - u) * c
             if self._num_proj is not None:
-                with tf.variable_scope("projection"):
+                with tf.variable_scope("projection", reuse=tf.AUTO_REUSE):
                     w = tf.get_variable('w', shape=(self._num_units, self._num_proj))
-                    batch_size = input.get_shape()[0].value
+                    batch_size = inputs.get_shape()[0].value
                     output = tf.reshape(new_state, shape=(-1, self._num_units))
                     output = tf.reshape(tf.matmul(output, w), shape=(batch_size, self.output_size))
         return output, new_state
@@ -123,11 +123,11 @@ class DCGRUCell(RNNCell):
         value = tf.nn.bias_add(value, biases)
         return value
 
-    def calculate_random_walk_matrix(adj_mx):
+    def calculate_random_walk_matrix(self, adj_mx):
         # adj_mx: [batch_size, num_nodes, num_nodes]
         # d = tf.sparse_tensor_to_dense(tf.sparse_reduce_sum(adj_mx, 1))
         d = tf.reduce_sum(adj_mx, -1)
-        d_inv = tf.cond(tf.math.greater(d, tf.zeros_like(d)) , lambda: tf.math.reciprocal(d), lambda: tf.zeros_like(d))
+        d_inv = tf.where(tf.math.greater(d, tf.zeros_like(d)) , tf.math.reciprocal(d), tf.zeros_like(d))
         d_mat_inv = tf.matrix_diag(d_inv)
         random_walk_mx = tf.matmul(d_mat_inv, adj_mx)
         #adj_mx = sp.coo_matrix(adj_mx)
@@ -142,10 +142,10 @@ class DCGRUCell(RNNCell):
         supports = []
         # TODO: why does it need a transpose for the generated random_walk_matrix?
         if self.filter_type == "random_walk":
-            supports.append(utils.calculate_random_walk_matrix(adj_mx).T)
+            supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx), (0, 2, 1)))
         elif self.filter_type == "dual_random_walk":
-            supports.append(utils.calculate_random_walk_matrix(adj_mx).T)
-            supports.append(utils.calculate_random_walk_matrix(adj_mx.T).T)
+            supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx), (0, 2, 1)))
+            supports.append(tf.transpose(self.calculate_random_walk_matrix(tf.transpose(adj_mx, (0, 2, 1))), (0, 2, 1)))
         else:
             return None
         '''
@@ -170,6 +170,9 @@ class DCGRUCell(RNNCell):
         batch_size = inputs.get_shape()[0].value
         inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
         state = tf.reshape(state, (batch_size, self._num_nodes, -1))
+        
+        adj_mx = tf.reshape(adj_mx, (batch_size, self._num_nodes, -1))
+        
         inputs_and_state = tf.concat([inputs, state], axis=2)
         input_size = inputs_and_state.get_shape()[2].value
         dtype = inputs.dtype
@@ -182,7 +185,7 @@ class DCGRUCell(RNNCell):
 
         scope = tf.get_variable_scope()
         #dy_supports = []
-        with tf.variable_scope(scope):
+        with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
             if self._max_diffusion_step == 0:
                 pass
             else:
@@ -222,3 +225,10 @@ class DCGRUCell(RNNCell):
             x = tf.nn.bias_add(x, biases)
         # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
         return tf.reshape(x, [batch_size, self._num_nodes * output_size])
+
+    
+    
+    
+    
+    
+    

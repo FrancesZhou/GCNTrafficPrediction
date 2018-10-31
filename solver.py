@@ -165,7 +165,7 @@ class ModelSolver(object):
                 train_metric_loss = np.zeros(6, dtype=np.float32)
                 #in_rmse, out_rmse, in_rmlse, out_rmlse, in_er, out_er
                 train_loader.data_index = np.arange(train_loader.num_data-train_loader.input_steps-self.batch_size+1)
-                num_train_batches = (train_loader.num_data - train_loader.input_steps - self.batch_size + 1)/self.batch_size
+                num_train_batches = (train_loader.num_data - train_loader.input_steps - self.batch_size + 1)//self.batch_size
                 print('number of training batches: %d' % num_train_batches)
                 widgets = ['Train: ', Percentage(), ' ', Bar('-'), ' ', ETA()]
                 pbar = ProgressBar(widgets=widgets, maxval=num_train_batches).start()
@@ -227,7 +227,7 @@ class ModelSolver(object):
                     test_l2_loss = 0
                     test_metric_loss = np.zeros(6)
                     #num_test_batches = (test_loader.num_data - test_loader.input_steps - test_loader.output_steps + 1) / self.batch_size
-                    num_test_batches = (test_loader.num_data - test_loader.input_steps - self.batch_size + 1) / self.batch_size
+                    num_test_batches = (test_loader.num_data - test_loader.input_steps - self.batch_size + 1) // self.batch_size
                     print('number of testing batches: %d' % num_test_batches)
                     widgets = ['Test: ', Percentage(), ' ', Bar('*'), ' ', ETA()]
                     pbar = ProgressBar(widgets=widgets, maxval=num_test_batches).start()

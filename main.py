@@ -59,7 +59,7 @@ def main():
     parse.add_argument('-partial_pretrain', '--partial_pretrain', type=int, default=0, help='whether to load pretrained vars')
     args = parse.parse_args()
 
-    #os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     print('load train, test data...')
     # train: 20140401 - 20140910
     # test: 20140911 - 20140930
