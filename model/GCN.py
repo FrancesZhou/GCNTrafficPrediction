@@ -12,6 +12,7 @@ class GCN():
                  ext_dim=7,
                  num_units=64,
                  max_diffusion_step=2,
+                 dy_adj=0,
                  filter_type='dual_random_walk',
                  batch_size=32,
                  add_ext=0):
@@ -21,6 +22,7 @@ class GCN():
         self.ext_dim = ext_dim
         self.num_units = num_units
         self.max_diffusion_step = max_diffusion_step
+        self.dy_adj = dy_adj
         self.filter_type = filter_type
 
         self.batch_size = batch_size

@@ -20,7 +20,7 @@ class DCGRUCell(RNNCell):
     def compute_output_shape(self, input_shape):
         pass
 
-    def __init__(self, num_units, max_diffusion_step, num_nodes, num_proj=None,
+    def __init__(self, num_units, max_diffusion_step, num_nodes, adj_mx=None, num_proj=None,
                  activation=tf.nn.tanh, reuse=None, filter_type="laplacian", use_gc_for_ru=True):
         """
 
@@ -43,6 +43,15 @@ class DCGRUCell(RNNCell):
         self._num_units = num_units
         self._max_diffusion_step = max_diffusion_step
         self._use_gc_for_ru = use_gc_for_ru
+        self._supports = []
+        #
+        if adj_mx is not None:
+            if self.filter_type == "random_walk":
+                self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx), (0, 2, 1)))
+            elif self.filter_type == "dual_random_walk":
+                self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx), (0, 2, 1)))
+                self._supports.append(
+                    tf.transpose(self.calculate_random_walk_matrix(tf.transpose(adj_mx, (0, 2, 1))), (0, 2, 1)))
 
 
     @staticmethod
@@ -142,10 +151,10 @@ class DCGRUCell(RNNCell):
         supports = []
         # TODO: why does it need a transpose for the generated random_walk_matrix?
         if self.filter_type == "random_walk":
-            supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx), (0, 2, 1)))
+            supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
         elif self.filter_type == "dual_random_walk":
-            supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx), (0, 2, 1)))
-            supports.append(tf.transpose(self.calculate_random_walk_matrix(tf.transpose(adj_mx, (0, 2, 1))), (0, 2, 1)))
+            supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
+            supports.append(tf.transpose(self.calculate_random_walk_matrix(tf.transpose(adj_mx))))
         else:
             return None
         '''
@@ -178,10 +187,10 @@ class DCGRUCell(RNNCell):
         dtype = inputs.dtype
 
         x = inputs_and_state
-        x0 = x
+        #x0 = x
         #x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)
         #x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
-        x = tf.expand_dims(x0, axis=0)
+        #x = tf.expand_dims(x0, axis=0)
 
         scope = tf.get_variable_scope()
         #dy_supports = []
@@ -190,7 +199,15 @@ class DCGRUCell(RNNCell):
                 pass
             else:
                 # get dynamic adj_mx
-                dy_supports = self.get_supports(adj_mx)
+                if len(self._supports):
+                    dy_supports = self._supports
+                    x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)
+                    x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
+                    x = tf.expand_dims(x0, axis=0)
+                else:
+                    dy_supports = self.get_supports(adj_mx)
+                    x0 = x
+                    x = tf.expand_dims(x0, axis=0)
                 #
                 for support in dy_supports:
                     # x0: [batch_size, num_nodes, total_arg_size]
@@ -211,8 +228,12 @@ class DCGRUCell(RNNCell):
             x = tf.transpose(x, perm=[3, 1, 2, 0])  # (batch_size, num_nodes, input_size, order)
             x = tf.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])
             '''
-            x = tf.reshape(x, shape=[num_matrices, batch_size, self._num_nodes, input_size])
-            x = tf.transpose(x, perm=[1, 2, 3, 0])
+            if len(self._supports):
+                x = tf.reshape(x, shape=[num_matrices, self._num_nodes, input_size, batch_size])
+                x = tf.transpose(x, perm=[3, 1, 2, 0])  # (batch_size, num_nodes, input_size, order)
+            else:
+                x = tf.reshape(x, shape=[num_matrices, batch_size, self._num_nodes, input_size])
+                x = tf.transpose(x, perm=[1, 2, 3, 0])  # (batch_size, num_nodes, input_size, order)
             x = tf.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])
 
             weights = tf.get_variable(

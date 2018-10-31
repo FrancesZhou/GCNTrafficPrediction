@@ -33,6 +33,7 @@ def main():
     parse.add_argument('-model', '--model', type=str, default='GCN', help='model: LSTM, DyST, GCN')
     parse.add_argument('-dynamic_context', '--dynamic_context', type=int, default=1, help='whether to add dynamic_context part')
     parse.add_argument('-dynamic_spatial', '--dynamic_spatial', type=int, default=1, help='whether to add dynamic_spatial part')
+    parse.add_argument('-dynamic_adj_matrix', '--dynamic_adj_matrix', type=int, default=1, help='whether to use dynamic adjacent matrix')
     parse.add_argument('-add_ext', '--add_ext', type=int, default=1, help='whether to add external factors')
     parse.add_argument('-model_save', '--model_save', type=str, default='gcn', help='folder name to save model')
     parse.add_argument('-pretrained_model', '--pretrained_model_path', type=str, default=None,
@@ -123,6 +124,7 @@ def main():
     if args.model == 'GCN':
         model = GCN(num_station, args.input_steps, args.output_steps,
                     ext_dim=e_data.shape[-1],
+                    dy_adj=args.dynamic_adj_matrix,
                     batch_size=args.batch_size,
                     add_ext=args.add_ext)
     model_path = os.path.join(args.folder_name, 'model_save', args.model_save)
