@@ -17,6 +17,7 @@ def main():
     # ---------- environment setting: which gpu -------
     parse.add_argument('-gpu', '--gpu', type=str, default='0', help='which gpu to use: 0 or 1')
     parse.add_argument('-folder_name', '--folder_name', type=str, default='datasets/citibike-data/data/')
+    parse.add_argument('-output_folder_name', '--output_folder_name', type=str, default='output/citibike-data/data/')
     parse.add_argument('-if_minus_mean', '--if_minus_mean', type=int, default=1,
                        help='use MinMaxNormalize01 or MinMaxNormalize01_minus_mean')
     # ---------- input/output settings -------
@@ -134,7 +135,11 @@ def main():
                     dy_adj=f_adj_mx,
                     batch_size=args.batch_size,
                     add_ext=args.add_ext)
-    model_path = os.path.join(args.folder_name, 'model_save', args.model_save)
+    #
+    model_path = os.path.join(args.output_folder_name, 'model_save', args.model_save)
+    if not os.path.exists(model_path):
+        os.makedirs(model_path)
+    #model_path = os.path.join(args.folder_name, 'model_save', args.model_save)
     solver = ModelSolver(model, train_loader, test_loader, pre_process,
                          batch_size=args.batch_size,
                          show_batches=args.show_batches,
