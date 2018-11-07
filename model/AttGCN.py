@@ -12,10 +12,12 @@ class AttGCN():
                  ext_dim=7,
                  num_units=64,
                  max_diffusion_step=2,
+                 dy_adj=1,
                  f_adj_mx=None,
                  filter_type='dual_random_walk',
                  batch_size=32,
-                 add_ext=0):
+                 add_ext=0,
+                 att_dy_adj=1):
         self.num_station = num_station
         self.input_steps = input_steps
         self.output_steps = output_steps
@@ -27,14 +29,18 @@ class AttGCN():
 
         self.batch_size = batch_size
         self.add_ext = add_ext
+        self.att_dy_adj=att_dy_adj
 
         self.weight_initializer = tf.contrib.layers.xavier_initializer()
         self.const_initializer = tf.constant_initializer(0.0, dtype=tf.float32)
         self.neg_inf = tf.constant(value=-np.inf, name='numpy_neg_inf')
         self.output_dim = 2
 
-        
-        self.cell = DCGRUCell(self.num_units, self.max_diffusion_step, self.num_station, adj_mx=self.f_adj_mx, reuse=tf.AUTO_REUSE, filter_type=self.filter_type)
+        if dy_adj:
+            self.cell = DCGRUCell(self.num_units, self.max_diffusion_step, self.num_station, adj_mx=None, reuse=tf.AUTO_REUSE, filter_type=self.filter_type)
+        else:
+            self.cell = DCGRUCell(self.num_units, self.max_diffusion_step, self.num_station, adj_mx=self.f_adj_mx,
+                                  reuse=tf.AUTO_REUSE, filter_type=self.filter_type)
         #self.cell_with_projection = DCGRUCell(self.num_units, max_diffusion_step=max_diffusion_step, num_nodes=self.num_station,  adj_mx=self.f_adj_mx, num_proj=2, filter_type=self.filter_type)
 
 
@@ -54,7 +60,7 @@ class AttGCN():
         #current_state = tf.zeros([self.batch_size, self.num_station*self.num_unists])
         #state = hidden_state, current_state
         state_1 = hidden_state
-        state_2 = hidden_state
+        #state_2 = hidden_state
         y_ = []
         for i in range(self.input_steps):
             # for each step
@@ -71,7 +77,10 @@ class AttGCN():
             #
             with tf.variable_scope('attention', reuse=tf.AUTO_REUSE):
                 output_1 = tf.reshape(output_1, (self.batch_size, self.num_station, -1))
-                att_1, att_2 = self.attention_layer(output_1, adj_mx=f)
+                if self.att_dy_adj:
+                    att_1, att_2 = self.attention_layer(output_1, adj_mx=f)
+                else:
+                    att_1, att_2 = self.attention_layer(output_1, adj_mx=self.f_adj_mx)
             with tf.variable_scope('output', reuse=tf.AUTO_REUSE):
                 cat_input = tf.concat([output_1, att_1, att_2], axis=-1)
                 cat_dim = cat_input.get_shape()[-1].value

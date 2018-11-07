@@ -12,6 +12,7 @@ class GCN():
                  ext_dim=7,
                  num_units=64,
                  max_diffusion_step=2,
+                 dy_adj=1,
                  f_adj_mx=None,
                  filter_type='dual_random_walk',
                  batch_size=32,
@@ -31,9 +32,12 @@ class GCN():
         self.weight_initializer = tf.contrib.layers.xavier_initializer()
         self.const_initializer = tf.constant_initializer()
 
-        
-        self.cell = DCGRUCell(self.num_units, self.max_diffusion_step, self.num_station, adj_mx=self.f_adj_mx, reuse=tf.AUTO_REUSE, filter_type=self.filter_type)
-        self.cell_with_projection = DCGRUCell(self.num_units, max_diffusion_step=max_diffusion_step, num_nodes=self.num_station,  adj_mx=self.f_adj_mx, num_proj=2, filter_type=self.filter_type)
+        if dy_adj:
+            adj_mx = None
+        else:
+            adj_mx = self.f_adj_mx
+        self.cell = DCGRUCell(self.num_units, self.max_diffusion_step, self.num_station, adj_mx=adj_mx, reuse=tf.AUTO_REUSE, filter_type=self.filter_type)
+        self.cell_with_projection = DCGRUCell(self.num_units, max_diffusion_step=max_diffusion_step, num_nodes=self.num_station,  adj_mx=adj_mx, num_proj=2, filter_type=self.filter_type)
 
 
         self.x = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, 2])
