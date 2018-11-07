@@ -88,7 +88,8 @@ def main():
         train_data = norm_mean_data[:split[0]]
         test_data = norm_mean_data[split[0]:]
     else:
-        pre_process = MinMaxNormalization01()
+        #pre_process = MinMaxNormalization01()
+        pre_process = StandardScaler()
         pre_process.fit(train_data)
         train_data = pre_process.transform(train_data)
         test_data = pre_process.transform(test_data)
