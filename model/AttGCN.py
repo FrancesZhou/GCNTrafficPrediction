@@ -55,6 +55,7 @@ class AttGCN():
         f_all = tf.unstack(tf.reshape(self.f, (self.batch_size, self.input_steps, self.num_station*self.num_station)), axis=1)
 
         e_all = tf.transpose(self.e, [1, 0, 2])
+        adj_mx = tf.manip.tile(tf.expand_dims(self.f_adj_mx, 0), (self.batch_size, 1, 1))
         y = self.y
         hidden_state = tf.zeros([self.batch_size, self.num_station*self.num_units])
         #current_state = tf.zeros([self.batch_size, self.num_station*self.num_unists])
@@ -80,12 +81,13 @@ class AttGCN():
                 if self.att_dy_adj:
                     att_1, att_2 = self.attention_layer(output_1, adj_mx=f)
                 else:
-                    att_1, att_2 = self.attention_layer(output_1, adj_mx=self.f_adj_mx)
+                    att_1, att_2 = self.attention_layer(output_1, adj_mx=adj_mx)
             with tf.variable_scope('output', reuse=tf.AUTO_REUSE):
                 cat_input = tf.concat([output_1, att_1, att_2], axis=-1)
                 cat_dim = cat_input.get_shape()[-1].value
                 cat_input = tf.reshape(cat_input, (-1, cat_dim))
-                w = tf.get_variable('w', shape=[cat_dim, self.output_dim])
+                w = tf.get_variable('w', shape=[cat_dim, self.output_dim], dtype=tf.float32,
+                                   initializer=self.weight_initializer)
                 output_2 = tf.reshape(tf.matmul(cat_input, w), shape=(self.batch_size, self.num_station, self.output_dim))
             y_.append(output_2)
         y_ = tf.stack(y_)
@@ -104,9 +106,9 @@ class AttGCN():
                           tf.zeros_like(adj_mx))
         adj_mx = tf.reshape(adj_mx, (batch_size, self.num_station, -1))
 
-        w1 = tf.get_variable('w1', shape=[num_hidden], dtype=tf.float32,
+        w1 = tf.get_variable('w1', shape=[num_hidden, 1], dtype=tf.float32,
                              initializer=self.weight_initializer)
-        z1 = tf.get_variable('z1', shape=[num_hidden], dtype=tf.float32,
+        z1 = tf.get_variable('z1', shape=[num_hidden, 1], dtype=tf.float32,
                              initializer=self.weight_initializer)
         b1 = tf.get_variable('b1', [1], dtype=tf.float32,
                             initializer=self.const_initializer)
@@ -114,9 +116,9 @@ class AttGCN():
         if share_weight:
             w2, z2, b2 = w1, z1, b1
         else:
-            w2 = tf.get_variable('w2', shape=[num_hidden], dtype=tf.float32,
+            w2 = tf.get_variable('w2', shape=[num_hidden, 1], dtype=tf.float32,
                                  initializer=self.weight_initializer)
-            z2 = tf.get_variable('z2', shape=[num_hidden], dtype=tf.float32,
+            z2 = tf.get_variable('z2', shape=[num_hidden, 1], dtype=tf.float32,
                                  initializer=self.weight_initializer)
             b2 = tf.get_variable('b2', [1], dtype=tf.float32,
                                  initializer=self.const_initializer)
@@ -127,7 +129,8 @@ class AttGCN():
         B1 = tf.reshape(tf.matmul(tf.reshape(hidden_states, (-1, num_hidden)), z1),
                        (batch_size, 1, self.num_station))
         B1 = tf.multiply(adj_mx, B1)
-        s_1 = activation(tf.nn.bias_add(A1+B1, b1))
+        #s_1 = activation(tf.nn.bias_add(A1+B1, b1))
+        s_1 = activation((A1+B1)+b1)
         mask_1 = tf.where(adj_mx>tf.zeros_like(adj_mx),
                         tf.zeros_like(adj_mx),
                         tf.ones_like(adj_mx)*self.neg_inf)
@@ -139,7 +142,8 @@ class AttGCN():
         B2 = tf.reshape(tf.matmul(tf.reshape(hidden_states, (-1, num_hidden)), z2),
                         (batch_size, 1, self.num_station))
         B2 = tf.multiply(tf.transpose(adj_mx, (0, 2, 1)), B2)
-        s_2 = activation(tf.nn.bias_add(A2 + B2, b2))
+        #s_2 = activation(tf.nn.bias_add(A2 + B2, b2))
+        s_2 = activation((A2+B2)+b2)
         mask_2 = tf.transpose(mask_1, (0, 2, 1))
         s_2 = tf.expand_dims(tf.nn.softmax(s_2 + mask_2, axis=1), -1)
         #
