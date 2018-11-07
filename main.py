@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 import tensorflow as tf
 from gensim.models import Word2Vec
+from model.AttGCN import AttGCN
 from model.GCN import GCN
 from model.DyST import DyST
 from solver import ModelSolver
@@ -31,7 +32,7 @@ def main():
     parse.add_argument('-embedding_size', '--embedding_size', type=int, default=100,
                        help='dim of embedding')
     # ---------- model ----------
-    parse.add_argument('-model', '--model', type=str, default='GCN', help='model: LSTM, DyST, GCN')
+    parse.add_argument('-model', '--model', type=str, default='GCN', help='model: DyST, GCN, AttGCN')
     parse.add_argument('-dynamic_context', '--dynamic_context', type=int, default=1, help='whether to add dynamic_context part')
     parse.add_argument('-dynamic_spatial', '--dynamic_spatial', type=int, default=1, help='whether to add dynamic_spatial part')
     parse.add_argument('-dynamic_adj_matrix', '--dynamic_adj_matrix', type=int, default=1, help='whether to use dynamic adjacent matrix')
@@ -53,7 +54,7 @@ def main():
                        default=100, help='show how many batches have been processed.')
     parse.add_argument('-lr', '--learning_rate', type=float, default=0.0002, help='learning rate')
     parse.add_argument('-update_rule', '--update_rule', type=str, default='adam', help='update rule')
-    # ------ train or predict -------
+    # ---------- train or predict -------
     parse.add_argument('-train', '--train', type=int, default=1, help='whether to train')
     parse.add_argument('-test', '--test', type=int, default=0, help='if test')
     #
@@ -131,6 +132,12 @@ def main():
                      dynamic_context=args.dynamic_context, dynamic_spatial=args.dynamic_spatial, add_ext=args.add_ext)
     if args.model == 'GCN':
         model = GCN(num_station, args.input_steps, args.output_steps,
+                    ext_dim=e_data.shape[-1],
+                    f_adj_mx=f_adj_mx,
+                    batch_size=args.batch_size,
+                    add_ext=args.add_ext)
+    if args.model == 'AttGCN':
+        model = AttGCN(num_station, args.input_steps, args.output_steps,
                     ext_dim=e_data.shape[-1],
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size,

@@ -7,7 +7,7 @@ from utils import *
 from model.dcrnn_cell import DCGRUCell
 
 
-class GCN():
+class AttGCN():
     def __init__(self, num_station, input_steps, output_steps,
                  ext_dim=7,
                  num_units=64,
