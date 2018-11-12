@@ -67,9 +67,10 @@ class AttGCN():
             # for each step
             #print(i)
             f = f_all[i]
-            current_step_batch = x[i]
+            #current_step_batch = x[i]
+            output_1 = x[i]
             with tf.variable_scope('dcrnn', reuse=tf.AUTO_REUSE):
-                output_1, state_1 = self.cell(tf.reshape(current_step_batch, (self.batch_size, -1)), f, state_1)
+                output_1, state_1 = self.cell(tf.reshape(output_1, (self.batch_size, -1)), f, state_1)
             # with tf.variable_scope('output', reuse=tf.AUTO_REUSE):
             #     output_2, state_2 = self.cell_with_projection(tf.reshape(output_1, (self.batch_size, -1)), f, state_2)
             # output: [batch_size, state_size]
@@ -79,9 +80,9 @@ class AttGCN():
             with tf.variable_scope('attention', reuse=tf.AUTO_REUSE):
                 output_1 = tf.reshape(output_1, (self.batch_size, self.num_station, -1))
                 if self.att_dy_adj:
-                    att_1, att_2 = self.attention_layer(output_1, adj_mx=f)
+                    att_1, att_2 = self.att_head(output_1, adj_mx=f)
                 else:
-                    att_1, att_2 = self.attention_layer(output_1, adj_mx=adj_mx)
+                    att_1, att_2 = self.att_head(output_1, adj_mx=adj_mx)
             with tf.variable_scope('output', reuse=tf.AUTO_REUSE):
                 cat_input = tf.concat([output_1, att_1, att_2], axis=-1)
                 cat_dim = cat_input.get_shape()[-1].value
@@ -96,7 +97,7 @@ class AttGCN():
         return y_, loss
 
 
-    def attention_layer(self, hidden_states, adj_mx, activation=tf.nn.leaky_relu, share_weight=False):
+    def attention_layer(self, hidden_states, adj_mx, activation=tf.nn.elu, share_weight=False):
         batch_size = hidden_states.get_shape()[0].value
         hidden_states = tf.reshape(hidden_states, (batch_size, self.num_station, -1))
         num_hidden = hidden_states.get_shape()[-1].value
@@ -123,11 +124,11 @@ class AttGCN():
             #b2 = tf.get_variable('b2', [1], dtype=tf.float32, initializer=self.const_initializer)
         #
         A1 = tf.reshape(tf.matmul(tf.reshape(hidden_states, (-1, num_hidden)), w1),
-                       (batch_size, self.num_station, 1))
-        A1 = tf.manip.tile(A1, (1, 1, self.num_station))
+                       (batch_size, self.num_station, -1))
+        #A1 = tf.manip.tile(A1, (1, 1, self.num_station))
         B1 = tf.reshape(tf.matmul(tf.reshape(hidden_states, (-1, num_hidden)), z1),
                        (batch_size, 1, self.num_station))
-        B1 = tf.multiply(adj_mx, B1)
+        #B1 = tf.multiply(adj_mx, B1)
         #s_1 = activation(tf.nn.bias_add(A1+B1, b1))
         s_1 = activation(A1+B1)
         mask_1 = tf.where(adj_mx>tf.zeros_like(adj_mx),
@@ -154,6 +155,39 @@ class AttGCN():
         att_1 = tf.reduce_sum(tf.multiply(s_1, tile_hidden_states), -2)
         att_2 = tf.reduce_sum(tf.multiply(s_2, tile_hidden_states), -2)
         return att_1, att_2
+
+
+    def att_head(self, hidden_states, adj_mx, num_units=32, activation=tf.nn.elu, share_weights=False):
+        batch_size = hidden_states.get_shape()[0].value
+        hidden_states = tf.reshape(hidden_states, (batch_size, self.num_station, -1))
+        hidden_states = tf.layers.conv1d(hidden_states, num_units, 1, use_bias=False)
+        #num_hidden = hidden_states.get_shape()[-1].value
+        #
+        adj_mx = tf.where(adj_mx>tf.zeros_like(adj_mx),
+                          tf.ones_like(adj_mx),
+                          tf.zeros_like(adj_mx))
+        adj_mx = tf.reshape(adj_mx, (batch_size, self.num_station, -1))
+        mask_1 = tf.where(adj_mx > tf.zeros_like(adj_mx),
+                          tf.zeros_like(adj_mx),
+                          tf.ones_like(adj_mx) * self.neg_inf)
+        mask_2 = tf.transpose(mask_1, (0, 2, 1))
+        #
+        A1 = tf.layers.conv1d(hidden_states, 1, 1)
+        B1 = tf.layers.conv1d(hidden_states, 1, 1)
+        logits_1 = A1 + tf.transpose(B1, [0, 2, 1])
+        coefs_1 = tf.nn.softmax(tf.nn.leaky_relu(logits_1) + mask_1)
+        att_1 = tf.matmul(coefs_1, hidden_states)
+        #
+        if share_weights:
+            A2, B2 = A1, B1
+        else:
+            A2 = tf.layers.conv1d(hidden_states, 1, 1)
+            B2 = tf.layers.conv1d(hidden_states, 1, 1)
+        logits_2 = A2 + tf.transpose(B2, [0, 2, 1])
+        coefs_2 = tf.nn.softmax(tf.nn.leaky_relu(logits_2) + mask_2)
+        att_2 = tf.matmul(coefs_2, hidden_states)
+        #
+        return activation(att_1), activation(att_2)
 
     def build_easy_model(self):
         x = tf.unstack(tf.reshape(self.x, (self.batch_size, self.input_steps, self.num_station*2)), axis=1)
