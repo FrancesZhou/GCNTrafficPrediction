@@ -69,8 +69,8 @@ class AttGCN():
             f = f_all[i]
             #current_step_batch = x[i]
             output_1 = x[i]
-            #with tf.variable_scope('dcrnn', reuse=tf.AUTO_REUSE):
-            #    output_1, state_1 = self.cell(tf.reshape(output_1, (self.batch_size, -1)), f, state_1)
+            with tf.variable_scope('dcrnn', reuse=tf.AUTO_REUSE):
+                output_1, state_1 = self.cell(tf.reshape(output_1, (self.batch_size, -1)), f, state_1)
             # with tf.variable_scope('output', reuse=tf.AUTO_REUSE):
             #     output_2, state_2 = self.cell_with_projection(tf.reshape(output_1, (self.batch_size, -1)), f, state_2)
             # output: [batch_size, state_size]
@@ -80,9 +80,9 @@ class AttGCN():
             with tf.variable_scope('attention', reuse=tf.AUTO_REUSE):
                 output_1 = tf.reshape(output_1, (self.batch_size, self.num_station, -1))
                 if self.att_dy_adj:
-                    att_1, att_2 = self.att_head(output_1, adj_mx=f)
+                    att_1, att_2 = self.attention_layer(output_1, adj_mx=f)
                 else:
-                    att_1, att_2 = self.att_head(output_1, adj_mx=adj_mx)
+                    att_1, att_2 = self.attention_layer(output_1, adj_mx=adj_mx)
             with tf.variable_scope('output', reuse=tf.AUTO_REUSE):
                 cat_input = tf.concat([output_1, att_1, att_2], axis=-1)
                 cat_dim = cat_input.get_shape()[-1].value
@@ -127,23 +127,23 @@ class AttGCN():
                        (batch_size, self.num_station, -1))
         #A1 = tf.manip.tile(A1, (1, 1, self.num_station))
         B1 = tf.reshape(tf.matmul(tf.reshape(hidden_states, (-1, num_hidden)), z1),
-                       (batch_size, 1, self.num_station))
+                       (batch_size, self.num_station, -1))
         #B1 = tf.multiply(adj_mx, B1)
         #s_1 = activation(tf.nn.bias_add(A1+B1, b1))
-        s_1 = activation(A1+B1)
+        s_1 = tf.nn.leaky_relu(A1+tf.transpose(B1, (0, 2, 1)))
         mask_1 = tf.where(adj_mx>tf.zeros_like(adj_mx),
                         tf.zeros_like(adj_mx),
                         tf.ones_like(adj_mx)*self.neg_inf)
         s_1 = tf.expand_dims(tf.nn.softmax(s_1 + mask_1, axis=1), -1)
         #
         A2 = tf.reshape(tf.matmul(tf.reshape(hidden_states, (-1, num_hidden)), w2),
-                        (batch_size, self.num_station, 1))
-        A2 = tf.manip.tile(A2, (1, 1, self.num_station))
+                        (batch_size, self.num_station, -1))
+        #A2 = tf.manip.tile(A2, (1, 1, self.num_station))
         B2 = tf.reshape(tf.matmul(tf.reshape(hidden_states, (-1, num_hidden)), z2),
-                        (batch_size, 1, self.num_station))
-        B2 = tf.multiply(tf.transpose(adj_mx, (0, 2, 1)), B2)
+                        (batch_size, self.num_station, -1))
+        #B2 = tf.multiply(tf.transpose(adj_mx, (0, 2, 1)), B2)
         #s_2 = activation(tf.nn.bias_add(A2 + B2, b2))
-        s_2 = activation(A2+B2)
+        s_2 = tf.nn.leaky_relu(A2+tf.transpose(B2, (0, 2, 1)))
         mask_2 = tf.transpose(mask_1, (0, 2, 1))
         s_2 = tf.expand_dims(tf.nn.softmax(s_2 + mask_2, axis=1), -1)
         #
@@ -154,7 +154,7 @@ class AttGCN():
         tile_hidden_states = tf.manip.tile(tf.expand_dims(hidden_states, 2), (1, 1, self.num_station, 1))
         att_1 = tf.reduce_sum(tf.multiply(s_1, tile_hidden_states), -2)
         att_2 = tf.reduce_sum(tf.multiply(s_2, tile_hidden_states), -2)
-        return att_1, att_2
+        return activation(att_1), activation(att_2)
 
 
     def att_head(self, hidden_states, adj_mx, num_units=32, activation=tf.nn.elu, share_weights=False):
