@@ -96,7 +96,7 @@ class AttGCN():
         return y_, loss
 
 
-    def attention_layer(self, hidden_states, adj_mx, activation=tf.nn.sigmoid, share_weight=False):
+    def attention_layer(self, hidden_states, adj_mx, activation=tf.nn.leaky_relu, share_weight=False):
         batch_size = hidden_states.get_shape()[0].value
         hidden_states = tf.reshape(hidden_states, (batch_size, self.num_station, -1))
         num_hidden = hidden_states.get_shape()[-1].value
@@ -110,18 +110,17 @@ class AttGCN():
                              initializer=self.weight_initializer)
         z1 = tf.get_variable('z1', shape=[num_hidden, 1], dtype=tf.float32,
                              initializer=self.weight_initializer)
-        b1 = tf.get_variable('b1', [1], dtype=tf.float32,
-                            initializer=self.const_initializer)
+        #b1 = tf.get_variable('b1', [1], dtype=tf.float32, initializer=self.const_initializer)
         #
         if share_weight:
-            w2, z2, b2 = w1, z1, b1
+            #w2, z2, b2 = w1, z1, b1
+            w2, z2 = w1, z1
         else:
             w2 = tf.get_variable('w2', shape=[num_hidden, 1], dtype=tf.float32,
                                  initializer=self.weight_initializer)
             z2 = tf.get_variable('z2', shape=[num_hidden, 1], dtype=tf.float32,
                                  initializer=self.weight_initializer)
-            b2 = tf.get_variable('b2', [1], dtype=tf.float32,
-                                 initializer=self.const_initializer)
+            #b2 = tf.get_variable('b2', [1], dtype=tf.float32, initializer=self.const_initializer)
         #
         A1 = tf.reshape(tf.matmul(tf.reshape(hidden_states, (-1, num_hidden)), w1),
                        (batch_size, self.num_station, 1))
@@ -130,7 +129,7 @@ class AttGCN():
                        (batch_size, 1, self.num_station))
         B1 = tf.multiply(adj_mx, B1)
         #s_1 = activation(tf.nn.bias_add(A1+B1, b1))
-        s_1 = activation((A1+B1)+b1)
+        s_1 = activation(A1+B1)
         mask_1 = tf.where(adj_mx>tf.zeros_like(adj_mx),
                         tf.zeros_like(adj_mx),
                         tf.ones_like(adj_mx)*self.neg_inf)
@@ -143,7 +142,7 @@ class AttGCN():
                         (batch_size, 1, self.num_station))
         B2 = tf.multiply(tf.transpose(adj_mx, (0, 2, 1)), B2)
         #s_2 = activation(tf.nn.bias_add(A2 + B2, b2))
-        s_2 = activation((A2+B2)+b2)
+        s_2 = activation(A2+B2)
         mask_2 = tf.transpose(mask_1, (0, 2, 1))
         s_2 = tf.expand_dims(tf.nn.softmax(s_2 + mask_2, axis=1), -1)
         #
