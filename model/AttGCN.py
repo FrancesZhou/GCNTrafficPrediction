@@ -69,8 +69,8 @@ class AttGCN():
             f = f_all[i]
             #current_step_batch = x[i]
             output_1 = x[i]
-            with tf.variable_scope('dcrnn', reuse=tf.AUTO_REUSE):
-                output_1, state_1 = self.cell(tf.reshape(output_1, (self.batch_size, -1)), f, state_1)
+            #with tf.variable_scope('dcrnn', reuse=tf.AUTO_REUSE):
+            #    output_1, state_1 = self.cell(tf.reshape(output_1, (self.batch_size, -1)), f, state_1)
             # with tf.variable_scope('output', reuse=tf.AUTO_REUSE):
             #     output_2, state_2 = self.cell_with_projection(tf.reshape(output_1, (self.batch_size, -1)), f, state_2)
             # output: [batch_size, state_size]
