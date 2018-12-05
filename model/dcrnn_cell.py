@@ -21,8 +21,8 @@ class DCGRUCell(RNNCell):
     def compute_output_shape(self, input_shape):
         pass
 
-    def __init__(self, num_units, max_diffusion_step, num_nodes, adj_mx=None, num_proj=None,
-                 activation=tf.nn.tanh, reuse=None, filter_type="laplacian", use_gc_for_ru=True):
+    def __init__(self, num_units, max_diffusion_step, num_nodes, adj_mx=None, dy_adj=1, num_proj=None,
+                 activation=tf.nn.tanh, reuse=None, filter_type="laplacian", dy_filter=0, use_gc_for_ru=True):
         """
 
         :param num_units:
@@ -38,7 +38,9 @@ class DCGRUCell(RNNCell):
         """
         super(DCGRUCell, self).__init__(_reuse=reuse)
         self._activation = activation
+        self.dy_adj = dy_adj
         self.filter_type = filter_type
+        self.dy_filter = dy_filter
         self._num_nodes = num_nodes
         self._num_proj = num_proj
         self._num_units = num_units
@@ -46,12 +48,17 @@ class DCGRUCell(RNNCell):
         self._use_gc_for_ru = use_gc_for_ru
         self._supports = []
         #
-        if adj_mx is not None:
-            if self.filter_type == "random_walk":
-                self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
-            elif self.filter_type == "dual_random_walk":
-                self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
-                self._supports.append(tf.transpose(self.calculate_random_walk_matrix(tf.transpose(adj_mx))))
+        if self.filter_type == "dual_random_walk":
+            self._len_supports = 2
+        else:
+            self._len_supports = 1
+        #if self.dy_adj==0 and adj_mx is not None:
+        # for fixed adjacent matrix
+        if self.filter_type == "random_walk":
+            self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
+        elif self.filter_type == "dual_random_walk":
+            self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
+            self._supports.append(tf.transpose(self.calculate_random_walk_matrix(tf.transpose(adj_mx))))
 
 
     @staticmethod
@@ -139,12 +146,6 @@ class DCGRUCell(RNNCell):
         d_inv = tf.where(tf.math.greater(d, tf.zeros_like(d)) , tf.math.reciprocal(d), tf.zeros_like(d))
         d_mat_inv = tf.matrix_diag(d_inv)
         random_walk_mx = tf.matmul(d_mat_inv, adj_mx)
-        #adj_mx = sp.coo_matrix(adj_mx)
-        #d = np.array(adj_mx.sum(1))
-        #d_inv = np.power(d, -1).flatten()
-        #d_inv[np.isinf(d_inv)] = 0.
-        #d_mat_inv = sp.diags(d_inv)
-        #random_walk_mx = d_mat_inv.dot(adj_mx).tocoo()
         return random_walk_mx
 
     def calculate_random_walk_matrix_2d(self, adj_mx):
@@ -210,7 +211,7 @@ class DCGRUCell(RNNCell):
                 pass
             else:
                 # get dynamic adj_mx
-                if len(self._supports):
+                if self.dy_adj==0:
                     dy_supports = self._supports
                     x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)
                     x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
@@ -233,7 +234,8 @@ class DCGRUCell(RNNCell):
                         x = self._concat(x, x2)
                         x1, x0 = x2, x1
 
-            num_matrices = len(dy_supports) * self._max_diffusion_step + 1  # Adds for x itself.
+            #num_matrices = len(dy_supports) * self._max_diffusion_step + 1  # Adds for x itself.
+            num_matrices = self._len_supports * self._max_diffusion_step + 1  # Adds for x itself.
             '''
             x = tf.reshape(x, shape=[num_matrices, self._num_nodes, input_size, batch_size])
             x = tf.transpose(x, perm=[3, 1, 2, 0])  # (batch_size, num_nodes, input_size, order)
@@ -245,20 +247,76 @@ class DCGRUCell(RNNCell):
             else:
                 x = tf.reshape(x, shape=[num_matrices, batch_size, self._num_nodes, input_size])
                 x = tf.transpose(x, perm=[1, 2, 3, 0])  # (batch_size, num_nodes, input_size, order)
-            x = tf.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])
+
+            if self.dy_filter==0:
+                x = tf.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])
+
+                weights = tf.get_variable(
+                    'weights', [input_size * num_matrices, output_size], dtype=dtype,
+                    initializer=tf.contrib.layers.xavier_initializer())
+                x = tf.matmul(x, weights)  # (batch_size * self._num_nodes, output_size)
+
+                biases = tf.get_variable("biases", [output_size], dtype=dtype,
+                                         initializer=tf.constant_initializer(bias_start, dtype=dtype))
+                x = tf.nn.bias_add(x, biases)
+            else:
+                x = tf.reshape(x, shape=[batch_size, self._num_nodes, input_size*num_matrices])
+                x = tf.expand_dims(x, axis=2)
+                filters = self.graph_conv(adj_mx, self._num_nodes,
+                                          output_size=input_size*output_size*num_matrices, max_degree=2)
+                filters = tf.reshape(filters, shape=[batch_size, self._num_nodes, output_size, input_size*num_matrices])
+                x = tf.multiply(x, filters)
+                x = tf.reduce_sum(x, axis=-1)
+
+        # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
+        return tf.reshape(x, [batch_size, self._num_nodes * output_size])
+
+    def graph_conv(self, inputs, num_nodes, output_size, max_degree=2):
+        """Simple Graph convolution with fixed graph.
+        :param inputs: a 3D Tensor
+        :param output_size:
+        """
+        # Reshape input and state to (batch_size, num_nodes, input_dim/state_dim)
+        batch_size = inputs.get_shape()[0].value
+        inputs = tf.reshape(inputs, (batch_size, num_nodes, -1))
+        input_size = inputs.get_shape()[2].value
+        dtype = inputs.dtype
+
+        x = inputs
+        x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)
+        x0 = tf.reshape(x0, shape=[num_nodes, input_size * batch_size])
+        x = tf.expand_dims(x0, axis=0)
+
+        scope = tf.get_variable_scope()
+        with tf.variable_scope(scope):
+            if max_degree == 0:
+                pass
+            else:
+                for support in self._supports:
+                    x1 = tf.sparse_tensor_dense_matmul(support, x0)
+                    x = self._concat(x, x1)
+
+                    for k in range(2, max_degree + 1):
+                        x2 = 2 * tf.sparse_tensor_dense_matmul(support, x1) - x0
+                        x = self._concat(x, x2)
+                        x1, x0 = x2, x1
+
+            num_matrices = len(self._supports) * max_degree + 1  # Adds for x itself.
+            x = tf.reshape(x, shape=[num_matrices, num_nodes, input_size, batch_size])
+            x = tf.transpose(x, perm=[3, 1, 2, 0])  # (batch_size, num_nodes, input_size, order)
+            x = tf.reshape(x, shape=[batch_size * num_nodes, input_size * num_matrices])
 
             weights = tf.get_variable(
                 'weights', [input_size * num_matrices, output_size], dtype=dtype,
                 initializer=tf.contrib.layers.xavier_initializer())
             x = tf.matmul(x, weights)  # (batch_size * self._num_nodes, output_size)
+            return tf.reshape(x, [batch_size, self._num_nodes, output_size])
 
-            biases = tf.get_variable("biases", [output_size], dtype=dtype,
-                                     initializer=tf.constant_initializer(bias_start, dtype=dtype))
-            x = tf.nn.bias_add(x, biases)
+            #biases = tf.get_variable("biases", [output_size], dtype=dtype, initializer=tf.constant_initializer(bias_start, dtype=dtype))
+            #x = tf.nn.bias_add(x, biases)
         # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
-        return tf.reshape(x, [batch_size, self._num_nodes * output_size])
+        #return tf.reshape(x, [batch_size, self._num_nodes * output_size])
 
-    
     
     
     

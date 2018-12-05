@@ -5,7 +5,6 @@ import tensorflow as tf
 from gensim.models import Word2Vec
 from model.AttGCN import AttGCN
 from model.GCN import GCN
-from model.DyST import DyST
 from solver import ModelSolver
 from preprocessing import *
 from utils import *
@@ -33,9 +32,10 @@ def main():
                        help='dim of embedding')
     # ---------- model ----------
     parse.add_argument('-model', '--model', type=str, default='GCN', help='model: DyST, GCN, AttGCN')
-    parse.add_argument('-dynamic_context', '--dynamic_context', type=int, default=1, help='whether to add dynamic_context part')
-    parse.add_argument('-dynamic_spatial', '--dynamic_spatial', type=int, default=1, help='whether to add dynamic_spatial part')
-    parse.add_argument('-dynamic_adj_matrix', '--dynamic_adj_matrix', type=int, default=1, help='whether to use dynamic adjacent matrix for lower feature extraction layer')
+    parse.add_argument('-dynamic_adj_matrix', '--dynamic_adj_matrix', type=int, default=1,
+                       help='whether to use dynamic adjacent matrix for lower feature extraction layer')
+    parse.add_argument('-dynamic_filter', '--dynamic_filter', type=int, default=1,
+                       help='whether to use dynamic filter generate region-specific filter ')
     parse.add_argument('-att_dynamic_adj_matrix', '--att_dynamic_adj_matrix', type=int, default=1, help='whether to use dynamic adjacent matrix in attention parts')
     parse.add_argument('-add_ext', '--add_ext', type=int, default=1, help='whether to add external factors')
     parse.add_argument('-model_save', '--model_save', type=str, default='gcn', help='folder name to save model')
@@ -115,27 +115,12 @@ def main():
     test_loader = DataLoader(test_data, test_f_data, test_e_data,
                             args.input_steps, args.output_steps,
                             num_station)
-    if args.model == 'DyST':
-        if args.pretrained_embeddings:
-            print('load pretrained embeddings...')
-            embeddings = get_embedding_from_file(args.folder_name + 'embeddings.txt', num_station)
-        else:
-            print('train station embeddings via Word2Vec model...')
-            trip_data = load_pickle(args.folder_name + 'all_trip_data.pkl')
-            word2vec_model = Word2Vec(sentences=trip_data, size=args.embedding_size)
-            print('save Word2Vec model and embeddings...')
-            word2vec_model.save(args.folder_name + 'word2vec_model')
-            word2vec_model.wv.save_word2vec_format(args.folder_name + 'embeddings.txt', binary=False)
-            del word2vec_model
-            embeddings = get_embedding_from_file(args.folder_name + 'embeddings.txt', num_station)
-        model = DyST(num_station, args.input_steps, args.output_steps,
-                     embedding_dim=args.embedding_size, embeddings=embeddings, ext_dim=e_data.shape[-1],
-                     batch_size=args.batch_size,
-                     dynamic_context=args.dynamic_context, dynamic_spatial=args.dynamic_spatial, add_ext=args.add_ext)
+
     if args.model == 'GCN':
         model = GCN(num_station, args.input_steps, args.output_steps,
                     ext_dim=e_data.shape[-1],
                     dy_adj=args.dynamic_adj_matrix,
+                    dy_filter=args.dynamic_filter,
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size,
                     add_ext=args.add_ext)

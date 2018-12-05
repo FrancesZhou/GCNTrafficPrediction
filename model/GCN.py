@@ -13,6 +13,7 @@ class GCN():
                  num_units=64,
                  max_diffusion_step=2,
                  dy_adj=1,
+                 dy_filter=0,
                  f_adj_mx=None,
                  filter_type='dual_random_walk',
                  batch_size=32,
@@ -23,6 +24,9 @@ class GCN():
         self.ext_dim = ext_dim
         self.num_units = num_units
         self.max_diffusion_step = max_diffusion_step
+
+        self.dy_adj = dy_adj
+        self.dy_filter = dy_filter
         self.f_adj_mx = f_adj_mx
         self.filter_type = filter_type
 
@@ -32,7 +36,7 @@ class GCN():
         self.weight_initializer = tf.contrib.layers.xavier_initializer()
         self.const_initializer = tf.constant_initializer()
 
-        if dy_adj:
+        if self.dy_adj:
             adj_mx = None
         else:
             adj_mx = self.f_adj_mx

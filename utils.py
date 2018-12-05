@@ -104,6 +104,8 @@ def calculate_scaled_laplacian(adj_mx, lambda_max=2, undirected=True):
     L = (2 / lambda_max * L) - I
     return L.astype(np.float32)
 
+
+
 def get_index_for_month(year, month):
     if year=='2012' or year=='2016':
         day_sum = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
