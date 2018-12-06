@@ -32,11 +32,11 @@ def main():
                        help='dim of embedding')
     # ---------- model ----------
     parse.add_argument('-model', '--model', type=str, default='GCN', help='model: DyST, GCN, AttGCN')
-    parse.add_argument('-dynamic_adj_matrix', '--dynamic_adj_matrix', type=int, default=1,
+    parse.add_argument('-dynamic_adj', '--dynamic_adj', type=int, default=1,
                        help='whether to use dynamic adjacent matrix for lower feature extraction layer')
     parse.add_argument('-dynamic_filter', '--dynamic_filter', type=int, default=1,
                        help='whether to use dynamic filter generate region-specific filter ')
-    parse.add_argument('-att_dynamic_adj_matrix', '--att_dynamic_adj_matrix', type=int, default=1, help='whether to use dynamic adjacent matrix in attention parts')
+    parse.add_argument('-att_dynamic_adj', '--att_dynamic_adj', type=int, default=1, help='whether to use dynamic adjacent matrix in attention parts')
     parse.add_argument('-add_ext', '--add_ext', type=int, default=1, help='whether to add external factors')
     parse.add_argument('-model_save', '--model_save', type=str, default='gcn', help='folder name to save model')
     parse.add_argument('-pretrained_model', '--pretrained_model_path', type=str, default=None,
@@ -119,7 +119,7 @@ def main():
     if args.model == 'GCN':
         model = GCN(num_station, args.input_steps, args.output_steps,
                     ext_dim=e_data.shape[-1],
-                    dy_adj=args.dynamic_adj_matrix,
+                    dy_adj=args.dynamic_adj,
                     dy_filter=args.dynamic_filter,
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size,
@@ -127,11 +127,11 @@ def main():
     if args.model == 'AttGCN':
         model = AttGCN(num_station, args.input_steps, args.output_steps,
                     ext_dim=e_data.shape[-1],
-                    dy_adj=args.dynamic_adj_matrix,
+                    dy_adj=args.dynamic_adj,
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size,
                     add_ext=args.add_ext,
-                    att_dy_adj=args.att_dynamic_adj_matrix)
+                    att_dy_adj=args.att_dynamic_adj)
     #
     model_path = os.path.join(args.output_folder_name, 'model_save', args.model_save)
     if not os.path.exists(model_path):
