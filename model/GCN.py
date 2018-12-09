@@ -103,13 +103,15 @@ class GCN():
 
 
     def build_easy_model(self):
-        x = tf.unstack(tf.reshape(self.x, (self.batch_size, self.input_steps, self.num_station*2)), axis=1)
+        #x = tf.unstack(tf.reshape(self.x, (self.batch_size, self.input_steps, self.num_station*2)), axis=1)
+        #f_all = tf.unstack(tf.reshape(self.f, (self.batch_size, self.input_steps, self.num_station*self.num_station)), axis=1)
+        x = tf.transpose(tf.reshape(self.x, (self.batch_size, self.input_steps, -1)), [1, 0, 2])
+        f_all = tf.transpose(tf.reshape(self.f, (self.batch_size, self.input_steps, -1)), [1, 0, 2])
         #print(len(x))
-        f_all = tf.unstack(tf.reshape(self.f, (self.batch_size, self.input_steps, self.num_station*self.num_station)), axis=1)
         #print(len(f_all))
         #inputs = list(zip(*(x, f_all)))
         elems = (x, f_all)
-        inputs = tf.map_fn(lambda x: tf.tuple([x[0], x[1]]), elems, dtype=tf.float32)
+        inputs = tf.map_fn(lambda x: tf.tuple([x[0], x[1]]), elems, dtype=[tf.float32, tf.float32])
         self.cells = tf.contrib.rnn.MultiRNNCell([self.cell, self.cell_with_projection], state_is_tuple=True)
         outputs, _ = tf.contrib.rnn.static_rnn(self.cells, inputs, dtype=tf.float32)
         outputs = tf.stack(outputs)
