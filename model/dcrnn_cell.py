@@ -293,11 +293,13 @@ class DCGRUCell(RNNCell):
                 pass
             else:
                 for support in self._supports:
-                    x1 = tf.sparse_tensor_dense_matmul(support, x0)
+                    #x1 = tf.sparse_tensor_dense_matmul(support, x0)
+                    x1 = tf.matmul(support, x0)
                     x = self._concat(x, x1)
 
                     for k in range(2, max_degree + 1):
-                        x2 = 2 * tf.sparse_tensor_dense_matmul(support, x1) - x0
+                        #x2 = 2 * tf.sparse_tensor_dense_matmul(support, x1) - x0
+                        x2 = 2 * tf.matmul(support, x1) - x0
                         x = self._concat(x, x2)
                         x1, x0 = x2, x1
 
