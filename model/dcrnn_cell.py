@@ -79,7 +79,8 @@ class DCGRUCell(RNNCell):
             output_size = self._num_nodes * self._num_proj
         return output_size
 
-    def __call__(self, inputs, adj_mx, state, scope=None):
+    #def __call__(self, inputs, adj_mx, state, scope=None):
+    def __call__(self, inputs, state, scope=None):
         """Gated recurrent unit (GRU) with Graph Convolution.
         :param
         - #inputs: (input, adj_mx)
@@ -91,7 +92,8 @@ class DCGRUCell(RNNCell):
         - New state: Either a single `2-D` tensor, or a tuple of tensors matching
             the arity and shapes of `state`
         """
-        #input, adj_mx = inputs
+        _input, adj_mx = inputs
+        inputs = _input
         with tf.variable_scope(scope or "dcgru_cell", reuse=tf.AUTO_REUSE):
             with tf.variable_scope("gates", reuse=tf.AUTO_REUSE):  # Reset gate and update gate.
                 output_size = 2 * self._num_units

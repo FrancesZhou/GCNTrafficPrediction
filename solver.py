@@ -124,7 +124,8 @@ class ModelSolver(object):
         train_loader = self.train_data
         test_loader = self.test_data
         # build graphs
-        y_, loss = self.model.build_model()
+        #y_, loss = self.model.build_model()
+        y_, loss = self.model.build_easy_model()
         # train op
         with tf.name_scope('optimizer'):
             optimizer = self.optimizer(learning_rate=self.learning_rate)
