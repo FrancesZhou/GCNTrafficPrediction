@@ -4,7 +4,6 @@ import scipy.io as sio
 import scipy.sparse as sp
 from scipy.sparse import linalg
 from sklearn import preprocessing
-from scipy.sparse import csr_matrix
 
 class StrToBytes:
     def __init__(self, fileobj):
@@ -21,20 +20,26 @@ def dump_pickle(data, file):
     except Exception as e:
         raise e
 
-def load_pickle_from_python2(file):
+def load_pickle_str2bytes(file):
     try:
         with open(file, 'r') as datafile:
-            data = pickle.load(StrToBytes(datafile))
+            pickle.load(StrToBytes(datafile))
+    except Exception as e:
+        raise e
+
+def load_pickle_rb(file):
+    try:
+        with open(file, 'rb') as datafile:
+            data = pickle.load(datafile)
     except Exception as e:
         raise e
     return data
 
 def load_pickle(file):
     try:
-        with open(file, 'rb') as datafile:
-            data = pickle.load(datafile)
-    except Exception as e:
-        raise e
+        data = load_pickle_rb(file)
+    except:
+        data = load_pickle_str2bytes(file)
     return data
 
 def load_npy_data(filename, split):
@@ -54,10 +59,7 @@ def load_npy_data(filename, split):
     return data, train, validate, test
 
 def load_pkl_data(filename, split):
-    try:
-        data = load_pickle(filename)
-    except:
-        data = load_pickle_from_python2(filename)
+    data = load_pickle(filename)
     train = data[0:split[0]]
     if len(split) > 2:
         validate = data[split[0]:(split[0] + split[1])]

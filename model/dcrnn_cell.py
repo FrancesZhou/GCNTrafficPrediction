@@ -33,6 +33,11 @@ class DCGRUCell(RNNCell):
         :param num_nodes:
         :param input_size:
         :param num_proj:
+        #
+        :param input_dim: num_nodes*input_channels if dy_adj=1
+        :param dy_adj: whether to use dynamic adjacent matrix (input_dim should be given if dy_adj=1)
+        :param dy_filter: whether to use dynamic generated filter
+        #
         :param activation:
         :param reuse:
         :param filter_type: "laplacian", "random_walk", "dual_random_walk".
@@ -275,7 +280,7 @@ class DCGRUCell(RNNCell):
             else:
                 x = tf.reshape(x, shape=[batch_size, self._num_nodes, input_size*num_matrices])
                 x = tf.expand_dims(x, axis=2)
-                filters = self.graph_conv(adj_mx, self._num_nodes,
+                filters = self.graph_conv(dy_adj_mx, self._num_nodes,
                                           output_size=input_size*output_size*num_matrices, max_degree=2)
                 filters = tf.reshape(filters, shape=[batch_size, self._num_nodes, output_size, input_size*num_matrices])
                 x = tf.multiply(x, filters)

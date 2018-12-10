@@ -12,7 +12,7 @@ class DataLoader():
     def __init__(self, d_data, f_data, e_data,
                  input_steps, output_steps,
                  num_station,
-                 flow_format='rowcol'):
+                 flow_format='index'):
         self.d_data = d_data
         self.f_data = f_data
         self.e_data = e_data
