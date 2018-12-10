@@ -4,6 +4,7 @@ import scipy.io as sio
 import scipy.sparse as sp
 from scipy.sparse import linalg
 from sklearn import preprocessing
+from scipy.sparse import csr_matrix
 
 class StrToBytes:
     def __init__(self, fileobj):
@@ -119,7 +120,6 @@ def calculate_scaled_laplacian(adj_mx, lambda_max=2, undirected=True):
     I = sp.identity(M, format='csr', dtype=L.dtype)
     L = (2 / lambda_max * L) - I
     return L.astype(np.float32)
-
 
 
 def get_index_for_month(year, month):

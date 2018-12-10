@@ -74,7 +74,7 @@ def main():
         filename=[args.folder_name+'d_station.npy', args.folder_name+'p_station.npy'], split=split)
     # data: [num, station_num, 2]
     f_data, train_f_data, val_f_data, test_f_data = load_pkl_data(args.folder_name + 'f_data_list.pkl', split=split)
-    #print(f_data.shape)
+    print(len(f_data))
     #print('preprocess train/val/test flow data...')
     #f_preprocessing = StandardScaler()
     #f_preprocessing.fit(train_f_data)
