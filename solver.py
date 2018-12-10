@@ -203,7 +203,7 @@ class ModelSolver(object):
                     save_name = os.path.join(self.model_path, 'model')
                     saver.save(sess, save_name, global_step=e + 1)
                     print("model-%s saved." % (e + 1))
-                # ============================ for validate data ===============================
+                # ============================ validate ===============================
                 if e % 1 == 0:
                     print('test for validate data...')
                     val_l2_loss = 0

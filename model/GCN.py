@@ -38,15 +38,14 @@ class GCN():
 
 
         adj_mx = self.f_adj_mx
-        self.cell = DCGRUCell(self.num_units, self.max_diffusion_step, self.num_station,
-                              adj_mx=adj_mx, dy_adj=self.dy_adj,
-                              reuse=tf.AUTO_REUSE,
-                              filter_type=self.filter_type, dy_filter=self.dy_filter)
-        self.cell_with_projection = DCGRUCell(self.num_units, max_diffusion_step=max_diffusion_step,
-                                              num_nodes=self.num_station,
-                                              adj_mx=adj_mx, dy_adj=self.dy_adj, num_proj=2,
-                                              filter_type=self.filter_type, dy_filter=0)
-
+        self.cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=self.max_diffusion_step,
+                              num_nodes=self.num_station, num_proj=None,
+                              input_dim=self.num_station*2, dy_adj=self.dy_adj, dy_filter=self.dy_filter,
+                              reuse=tf.AUTO_REUSE, filter_type=self.filter_type)
+        self.cell_with_projection = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=max_diffusion_step,
+                                              num_nodes=self.num_station, num_proj=2,
+                                              input_dim=self.num_station*self.num_units, dy_adj=self.dy_adj, dy_filter=0,
+                                              reuse=tf.AUTO_REUSE, filter_type=self.filter_type)
 
         self.x = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, 2])
         self.f = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, self.num_station])
@@ -109,13 +108,17 @@ class GCN():
 
 
     def build_easy_model(self):
-        x = tf.unstack(tf.reshape(self.x, (self.batch_size, self.input_steps, self.num_station*2)), axis=1)
-        f_all = tf.unstack(tf.reshape(self.f, (self.batch_size, self.input_steps, self.num_station*self.num_station)), axis=1)
-        # print(len(x))
-        #print(len(f_all))
+        #x = tf.unstack(tf.reshape(self.x, (self.batch_size, self.input_steps, self.num_station*2)), axis=1)
+        #f_all = tf.unstack(tf.reshape(self.f, (self.batch_size, self.input_steps, self.num_station*self.num_station)), axis=1)
+        x = tf.transpose(tf.reshape(self.x, (self.batch_size, self.input_steps, -1)), [1, 0, 2])
+        f_all = tf.transpose(tf.reshape(self.f, (self.batch_size, self.input_steps, -1)), [1, 0, 2])
+        # x: [input_steps, batch_size, num_station*2]
+        # f_all: [input_steps, batch_size, num_station*num_station]
+        inputs = tf.concat([x, f_all], axis=-1)
+        inputs = tf.unstack(inputs, axis=0)
         #inputs = list(zip(*(x, f_all)))
-        elems = (x, f_all)
-        inputs = tf.map_fn(lambda x: tf.tuple([x[0], x[1]]), elems, dtype=tf.float32)
+        #elems = (x, f_all)
+        #inputs = tf.map_fn(lambda x: tf.tuple([x[0], x[1]]), elems, dtype=[tf.float32, tf.float32])
         self.cells = tf.contrib.rnn.MultiRNNCell([self.cell, self.cell_with_projection], state_is_tuple=True)
         outputs, _ = tf.contrib.rnn.static_rnn(self.cells, inputs, dtype=tf.float32)
         outputs = tf.stack(outputs)

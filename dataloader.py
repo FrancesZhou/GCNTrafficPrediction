@@ -23,6 +23,11 @@ class DataLoader():
         self.num_station = num_station
         self.num_data = len(self.d_data)
         self.data_index = np.arange(self.num_data - self.input_steps)
+        f_data_dim = len(self.f_data[0][0])
+        if f_data_dim == 2:
+            self.get_flow_map_from_list = self.get_flow_map_from_list_2
+        elif f_data_dim == 3:
+            self.get_flow_map_from_list = self.get_flow_map_from_list_3
         #self.reset_data()
 
     def get_flow_adj_mx(self):
@@ -36,16 +41,19 @@ class DataLoader():
             f_adj_mx = f_adj_mx + f_map
         return f_adj_mx
 
-    def get_flow_map_from_list(self, f_list):
+    def get_flow_map_from_list_2(self, f_list):
         f_map = np.zeros((self.num_station, self.num_station), dtype=np.float32)
         if len(f_list):
-            if len(f_list[0]) == 3:
-                rows, cols, values = zip(*f_list)
-                f_map[rows, cols] = values
-            elif len(f_list[0]) == 2:
-                rows, cols = zip(*f_list)
-                values = [0] + [1]*(len(rows) - 1)
-                f_map = csr_matrix((values, (rows, cols)), shape=(self.num_station, self.num_station), dtype=np.float32).toarray()
+            rows, cols = zip(*f_list)
+            values = [0] + [1]*(len(rows) - 1)
+            f_map = csr_matrix((values, (rows, cols)), shape=(self.num_station, self.num_station), dtype=np.float32).toarray()
+        return f_map
+
+    def get_flow_map_from_list_3(self, f_list):
+        f_map = np.zeros((self.num_station, self.num_station), dtype=np.float32)
+        if len(f_list):
+            rows, cols, values = zip(*f_list)
+            f_map[rows, cols] = values
         return f_map
 
 

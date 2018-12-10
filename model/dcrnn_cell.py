@@ -7,6 +7,7 @@ import scipy.sparse as sp
 import tensorflow as tf
 
 from tensorflow.contrib.rnn import RNNCell
+from tensorflow.python.ops import array_ops
 
 import utils
 
@@ -21,8 +22,9 @@ class DCGRUCell(RNNCell):
     def compute_output_shape(self, input_shape):
         pass
 
-    def __init__(self, num_units, max_diffusion_step, num_nodes, adj_mx=None, dy_adj=1, num_proj=None,
-                 activation=tf.nn.tanh, reuse=None, filter_type="laplacian", dy_filter=0, use_gc_for_ru=True):
+    def __init__(self, num_units, adj_mx, max_diffusion_step, num_nodes, num_proj=None,
+                 input_dim=None, dy_adj=1, dy_filter=0,
+                 activation=tf.nn.tanh, reuse=None, filter_type="laplacian", use_gc_for_ru=True):
         """
 
         :param num_units:
@@ -42,6 +44,7 @@ class DCGRUCell(RNNCell):
         self.filter_type = filter_type
         self.dy_filter = dy_filter
         self._num_nodes = num_nodes
+        self._input_dim = input_dim
         self._num_proj = num_proj
         self._num_units = num_units
         self._max_diffusion_step = max_diffusion_step
@@ -92,8 +95,16 @@ class DCGRUCell(RNNCell):
         - New state: Either a single `2-D` tensor, or a tuple of tensors matching
             the arity and shapes of `state`
         """
-        _input, adj_mx = inputs
-        inputs = _input
+        if self._input_dim is None:
+            dy_adj_mx = None
+        else:
+            whole_input_dim = inputs.get_shape().as_list()
+            dy_adj_dim = whole_input_dim[-1] - self._input_dim
+            if dy_adj_dim>0:
+                _input, dy_adj_mx = tf.split(inputs, num_or_size_splits=[self._input_dim, dy_adj_dim], axis=-1)
+                inputs = _input
+            else:
+                dy_adj_mx = None
         with tf.variable_scope(scope or "dcgru_cell", reuse=tf.AUTO_REUSE):
             with tf.variable_scope("gates", reuse=tf.AUTO_REUSE):  # Reset gate and update gate.
                 output_size = 2 * self._num_units
@@ -102,13 +113,13 @@ class DCGRUCell(RNNCell):
                     fn = self._gconv
                 else:
                     fn = self._fc
-                value = tf.nn.sigmoid(fn(inputs, state, adj_mx, output_size, bias_start=1.0))
+                value = tf.nn.sigmoid(fn(inputs, state, dy_adj_mx, output_size, bias_start=1.0))
                 value = tf.reshape(value, (-1, self._num_nodes, output_size))
                 r, u = tf.split(value=value, num_or_size_splits=2, axis=-1)
                 r = tf.reshape(r, (-1, self._num_nodes * self._num_units))
                 u = tf.reshape(u, (-1, self._num_nodes * self._num_units))
             with tf.variable_scope("candidate", reuse=tf.AUTO_REUSE):
-                c = self._gconv(inputs, r * state, adj_mx, self._num_units)
+                c = self._gconv(inputs, r * state, dy_adj_mx, self._num_units)
                 if self._activation is not None:
                     c = self._activation(c)
             output = new_state = u * state + (1 - u) * c
@@ -125,7 +136,7 @@ class DCGRUCell(RNNCell):
         x_ = tf.expand_dims(x_, 0)
         return tf.concat([x, x_], axis=0)
 
-    def _fc(self, inputs, state, adj_max, output_size, bias_start=0.0):
+    def _fc(self, inputs, state, dy_adj_max, output_size, bias_start=0.0):
         dtype = inputs.dtype
         batch_size = inputs.get_shape()[0].value
         inputs = tf.reshape(inputs, (batch_size * self._num_nodes, -1))
@@ -179,7 +190,7 @@ class DCGRUCell(RNNCell):
         '''
         return supports
 
-    def _gconv(self, inputs, state, adj_mx, output_size, bias_start=0.0):
+    def _gconv(self, inputs, state, dy_adj_mx, output_size, bias_start=0.0):
         """Graph convolution between input and the graph matrix.
 
         :param args: a 2D Tensor or a list of 2D, batch x n, Tensors.
@@ -194,7 +205,7 @@ class DCGRUCell(RNNCell):
         inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
         state = tf.reshape(state, (batch_size, self._num_nodes, -1))
         
-        adj_mx = tf.reshape(adj_mx, (batch_size, self._num_nodes, -1))
+        dy_adj_mx = tf.reshape(dy_adj_mx, (batch_size, self._num_nodes, -1))
         
         inputs_and_state = tf.concat([inputs, state], axis=2)
         input_size = inputs_and_state.get_shape()[2].value
@@ -219,7 +230,7 @@ class DCGRUCell(RNNCell):
                     x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
                     x = tf.expand_dims(x0, axis=0)
                 else:
-                    dy_supports = self.get_supports(adj_mx)
+                    dy_supports = self.get_supports(dy_adj_mx)
                     x0 = x
                     x = tf.expand_dims(x0, axis=0)
                 #
