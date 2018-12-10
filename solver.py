@@ -14,10 +14,10 @@ from utils import *
 
 
 class ModelSolver(object):
-    def __init__(self, model, train_data, test_data, preprocessing, **kwargs):
+    def __init__(self, model, train_data, val_data, test_data, preprocessing, **kwargs):
         self.model = model
         self.train_data = train_data
-        #self.val_data = val_data
+        self.val_data = val_data
         self.test_data = test_data
         self.preprocessing = preprocessing
         self.cross_val = kwargs.pop('cross_val', False)
@@ -122,6 +122,7 @@ class ModelSolver(object):
     def train(self, output_file_path=None):
         o_file = open(output_file_path, 'w')
         train_loader = self.train_data
+        val_loader = self.val_data
         test_loader = self.test_data
         # build graphs
         #y_, loss = self.model.build_model()
@@ -129,12 +130,12 @@ class ModelSolver(object):
         # train op
         with tf.name_scope('optimizer'):
             optimizer = self.optimizer(learning_rate=self.learning_rate)
-            #grads = tf.gradients(loss, tf.trainable_variables())
-            #grads_and_vars = list(zip(grads, tf.trainable_variables()))
-            gvs = optimizer.compute_gradients(loss)
-            capped_gvs = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gvs if grad is not None]
-            train_op = optimizer.apply_gradients(capped_gvs)
-            #train_op = optimizer.apply_gradients(grads_and_vars=grads_and_vars)
+            grads = tf.gradients(loss, tf.trainable_variables())
+            grads_and_vars = list(zip(grads, tf.trainable_variables()))
+            train_op = optimizer.apply_gradients(grads_and_vars=grads_and_vars)
+            # gvs = optimizer.compute_gradients(loss)
+            # capped_gvs = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gvs if grad is not None]
+            # train_op = optimizer.apply_gradients(capped_gvs)
 
         gpu_options = tf.GPUOptions(allow_growth=True)
         tf.get_variable_scope().reuse_variables()
@@ -150,12 +151,6 @@ class ModelSolver(object):
             #summary_writer = tf.summary.FileWriter(self.log_path, graph=sess.graph)
             saver = tf.train.Saver(tf.global_variables())
             #
-            if self.partial_pretrain:
-                self.model.w_att_1 = tf.assign(self.model.w_att_1, np.load(os.path.join(self.model_path,'pretrain/w_att_1.npy')))
-                self.model.w_att_2 = tf.assign(self.model.w_att_2, np.load(os.path.join(self.model_path,'pretrain/w_att_2.npy')))
-                self.model.w_h_in = tf.assign(self.model.w_h_in, np.load(os.path.join(self.model_path,'pretrain/w_h_in.npy')))
-                self.model.w_h_out = tf.assign(self.model.w_h_out, np.load(os.path.join(self.model_path,'pretrain/w_h_out.npy')))
-            #
             if self.pretrained_model is not None:
                 print("Start training with pretrained model...")
                 saver.restore(sess, os.path.join(self.model_path, self.pretrained_model))
@@ -163,17 +158,14 @@ class ModelSolver(object):
             for e in range(self.n_epochs):
                 # ========================== train ====================
                 train_l2_loss = 0
-                train_metric_loss = np.zeros(6, dtype=np.float32)
-                #in_rmse, out_rmse, in_rmlse, out_rmlse, in_er, out_er
                 train_loader.data_index = np.arange(train_loader.num_data-train_loader.input_steps-self.batch_size+1)
                 num_train_batches = (train_loader.num_data - train_loader.input_steps - self.batch_size + 1)//self.batch_size
                 print('number of training batches: %d' % num_train_batches)
+                print('-------------------- train %d epoch ----------------------' % e)
                 widgets = ['Train: ', Percentage(), ' ', Bar('-'), ' ', ETA()]
                 pbar = ProgressBar(widgets=widgets, maxval=num_train_batches).start()
                 train_loader.reset_data()
                 for i in range(num_train_batches):
-                    # if i % self.show_batches == 0:
-                    #     print 'train batch %d' % i
                     pbar.update(i)
                     #print i
                     #t1 = time.time()
@@ -183,101 +175,115 @@ class ModelSolver(object):
                         continue
                     #t2 = time.time()
                     #print 'load batch time: %s' % (t2-t1)
-                    #print np.array(x).shape
                     feed_dict = {self.model.x: np.array(x),
                                  self.model.f: np.array(f),
                                  self.model.e: np.array(ee),
                                  self.model.y: np.array(y)
                                  }
                     _, l, y_out = sess.run([train_op, loss, y_], feed_dict)
+                    '''
                     y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, :, :], index[:, -1]))
                     y = np.round(self.preprocessing.inverse_transform(y[:, -1, :, :], index[:, -1]))
-                    # y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, :, :]))
-                    # y = np.round(self.preprocessing.inverse_transform(y[:, -1, :, :]))
                     y = np.clip(y, 0, None)
                     y_out = np.clip(y_out, 0, None)
-                    metric_loss = get_loss_by_batch(y, y_out)
+                    '''
+                    #
                     #t3 = time.time()
                     #print 'train batch time: %s' % (t3-t2)
                     train_l2_loss += l
-                    train_metric_loss += metric_loss
                 pbar.finish()
                 # compute counts of all regions
-                t_count = num_train_batches*self.batch_size*(train_loader.input_steps*train_loader.num_station*2)
-                train_rmse = np.sqrt(train_l2_loss / t_count)
-                train_metric_loss = train_metric_loss/(num_train_batches*self.batch_size)
-                '''
-                w_text = 'at epoch %d, train l2 loss is %.6f\n' \
-                         'all in/out rmse is %.6f/%.6f\n' \
-                         'all in/out rmlse is %.6f/%.6f\n' \
-                         'all in/out er is %.6f/%.6f' % \
-                         (e, train_rmse,
-                          train_metric_loss[0], train_metric_loss[1],
-                          train_metric_loss[2], train_metric_loss[3],
-                          train_metric_loss[4], train_metric_loss[5])
-                print w_text
+                t_count = num_train_batches*self.batch_size*train_loader.input_steps*train_loader.num_station*2
+                train_loss = self.preprocessing.real_loss(np.sqrt(train_l2_loss / t_count))
+                w_text = 'at epoch %d, train l2 loss is %.6f \n' % (e, train_loss)
+                print(w_text)
                 o_file.write(w_text)
-                #'''
+                # save model
                 if (e + 1) % self.save_every == 0:
                     save_name = os.path.join(self.model_path, 'model')
                     saver.save(sess, save_name, global_step=e + 1)
                     print("model-%s saved." % (e + 1))
-                # ============================ for test data ===============================
+                # ============================ for validate data ===============================
                 if e % 1 == 0:
-                    print('test for test data...')
-                    test_l2_loss = 0
-                    test_metric_loss = np.zeros(6)
-                    #num_test_batches = (test_loader.num_data - test_loader.input_steps - test_loader.output_steps + 1) / self.batch_size
-                    num_test_batches = (test_loader.num_data - test_loader.input_steps - self.batch_size + 1) // self.batch_size
-                    print('number of testing batches: %d' % num_test_batches)
+                    print('test for validate data...')
+                    val_l2_loss = 0
+                    num_val_batches = np.ceil((val_loader.num_data - val_loader.input_steps - self.batch_size + 1) / self.batch_size)
+                    print('number of val_data batches: %d' % num_val_batches)
                     widgets = ['Test: ', Percentage(), ' ', Bar('*'), ' ', ETA()]
-                    pbar = ProgressBar(widgets=widgets, maxval=num_test_batches).start()
-                    test_prediction = []
-                    test_target = []
-                    for i in range(num_test_batches):
-                        # if i % self.show_batches == 0:
-                        #     print 'test batch %d' % i
+                    pbar = ProgressBar(widgets=widgets, maxval=num_val_batches).start()
+                    val_prediction = []
+                    val_target = []
+                    for i in range(num_val_batches):
                         pbar.update(i)
-                        #x, y, f, padding_len = test_loader.next_batch_for_test(i * self.batch_size, (i + 1) * self.batch_size)
-                        x, f, ee, y, index = test_loader.next_batch_for_train(i * self.batch_size, (i + 1) * self.batch_size)
-                        #x, f, ee, y = test_loader.next_sample(i)
+                        x, f, ee, y, index, padding_len = val_loader.next_batch_for_test(i * self.batch_size,(i + 1) * self.batch_size)
                         feed_dict = {self.model.x: np.array(x),
                                      self.model.f: np.array(f),
                                      self.model.e: np.array(ee),
                                      self.model.y: np.array(y)
                                      }
                         y_out, l = sess.run([y_, loss], feed_dict)
-                        y_out = np.round(self.preprocessing.inverse_transform(y_out[:,-1,:,:], index[:, -1]+3912))
-                        y = np.round(self.preprocessing.inverse_transform(y[:,-1,:,:], index[:, -1]+3912))
-                        # y_out = np.round(self.preprocessing.inverse_transform(y_out[:,-1,:,:]))
-                        # y = np.round(self.preprocessing.inverse_transform(y[:,-1,:,:]))
+                        y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, :, :], index[:, -1] + train_loader.num_data))
+                        y = np.round(self.preprocessing.inverse_transform(y[:, -1, :, :], index[:, -1] + train_loader.num_data))
                         y = np.clip(y, 0, None)
                         y_out = np.clip(y_out, 0, None)
+                        #
+                        if padding_len > 0:
+                            y_out = y_out[:-padding_len]
+                            y = y[:-padding_len]
+                        val_prediction.append(y_out)
+                        val_target.append(y)
+                        val_l2_loss += l
+                    pbar.finish()
+                    val_target = np.concatenate(np.array(val_target), axis=0)
+                    val_prediction = np.concatenate(np.array(val_prediction), axis=0)
+                    print(val_target.shape)
+                    # compute counts of all regions
+                    t_count = num_val_batches*self.batch_size*(val_loader.input_steps * val_loader.num_station * 2)
+                    val_loss = np.sqrt(val_l2_loss / t_count)
+                    val_rmse = np.sqrt(np.square(val_target-val_prediction)/np.prod(val_target.shape))
+                    w_text = 'at epoch %d, val loss is %s, validate prediction rmse is %s \n' % (e, val_loss, val_rmse)
+                    print(w_text)
+                    o_file.write(w_text)
+                    # ================================ test =====================================
+                    print('test for test data...')
+                    test_l2_loss = 0
+                    num_test_batches = np.ceil(
+                        (test_loader.num_data - test_loader.input_steps - self.batch_size + 1) / self.batch_size)
+                    print('number of test_data batches: %d' % num_test_batches)
+                    widgets = ['Test: ', Percentage(), ' ', Bar('*'), ' ', ETA()]
+                    pbar = ProgressBar(widgets=widgets, maxval=num_test_batches).start()
+                    test_prediction = []
+                    test_target = []
+                    for i in range(num_test_batches):
+                        pbar.update(i)
+                        x, f, ee, y, index, padding_len = test_loader.next_batch_for_test(i * self.batch_size,
+                                                                                         (i + 1) * self.batch_size)
+                        feed_dict = {self.model.x: np.array(x),
+                                     self.model.f: np.array(f),
+                                     self.model.e: np.array(ee),
+                                     self.model.y: np.array(y)
+                                     }
+                        y_out, l = sess.run([y_, loss], feed_dict)
+                        y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, :, :], index[:, -1] + train_loader.num_data+test_loader.num_data))
+                        y = np.round(self.preprocessing.inverse_transform(y[:, -1, :, :], index[:, -1] + train_loader.num_data+test_loader.num_data))
+                        y = np.clip(y, 0, None)
+                        y_out = np.clip(y_out, 0, None)
+                        #
+                        if padding_len > 0:
+                            y_out = y_out[:-padding_len]
+                            y = y[:-padding_len]
                         test_prediction.append(y_out)
                         test_target.append(y)
-                        metric_loss = get_loss_by_batch(y, y_out)
                         test_l2_loss += l
-                        test_metric_loss += metric_loss
                     pbar.finish()
                     test_target = np.concatenate(np.array(test_target), axis=0)
                     test_prediction = np.concatenate(np.array(test_prediction), axis=0)
                     print(test_target.shape)
                     # compute counts of all regions
                     t_count = num_test_batches * self.batch_size * (test_loader.input_steps * test_loader.num_station * 2)
-                    test_rmse = np.sqrt(test_l2_loss / t_count)
-                    test_metric_loss = test_metric_loss / (num_test_batches * self.batch_size)
-                    #w_text = 'at epoch %d, train l2 loss is %s\n' % (e, t_rmse)
-                    #w_text += 'in/out rmse, rmlse, er is ' + str(test_metric_loss)
-                    #'''
-                    w_text = 'at epoch %d, train l2 loss is %.6f \t\t test all l2 loss is %.6f \n' \
-                             'train in/out rmse is %.6f/%.6f \t test in/out rmse is %.6f/%.6f \n' \
-                             'train in/out rmlse is %.6f/%.6f \t test in/out rmlse is %.6f/%.6f\n' \
-                             'train in/out er is %.6f/%.6f \t\t test in/out er is %.6f/%.6f' % \
-                             (e, train_rmse, test_rmse,
-                              train_metric_loss[0], train_metric_loss[1], test_metric_loss[0], test_metric_loss[1],
-                              train_metric_loss[2], train_metric_loss[3], test_metric_loss[2], test_metric_loss[3],
-                              train_metric_loss[4], train_metric_loss[5], test_metric_loss[4], test_metric_loss[5])
-                    #'''
+                    test_loss = np.sqrt(test_l2_loss / t_count)
+                    test_rmse = np.sqrt(np.square(test_target - test_prediction) / np.prod(test_target.shape))
+                    w_text = 'at epoch %d, test loss is %s, test prediction rmse is %s \n' % (e, test_loss, test_rmse)
                     print(w_text)
                     o_file.write(w_text)
             return np.array(test_target), np.array(test_prediction)

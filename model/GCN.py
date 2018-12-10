@@ -52,11 +52,17 @@ class GCN():
         self.f = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, self.num_station])
         self.e = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.ext_dim])
         self.y = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, 2])
+        # self.x = tf.placeholder(tf.float32, [None, self.input_steps, self.num_station, 2])
+        # self.f = tf.placeholder(tf.float32, [None, self.input_steps, self.num_station, self.num_station])
+        # self.e = tf.placeholder(tf.float32, [None, self.input_steps, self.ext_dim])
+        # self.y = tf.placeholder(tf.float32, [None, self.input_steps, self.num_station, 2])
 
 
     def build_model(self):
         x = tf.unstack(tf.reshape(self.x, (self.batch_size, self.input_steps, self.num_station*2)), axis=1)
         f_all = tf.unstack(tf.reshape(self.f, (self.batch_size, self.input_steps, self.num_station*self.num_station)), axis=1)
+        #x = tf.unstack(tf.reshape(self.x, (-1, self.input_steps, self.num_station * 2)), axis=1)
+        #f_all = tf.unstack(tf.reshape(self.f, (-1, self.input_steps, self.num_station*self.num_station)), axis=1)
 
         e_all = tf.transpose(self.e, [1, 0, 2])
         y = self.y
@@ -104,8 +110,8 @@ class GCN():
 
     def build_easy_model(self):
         x = tf.unstack(tf.reshape(self.x, (self.batch_size, self.input_steps, self.num_station*2)), axis=1)
-        #print(len(x))
         f_all = tf.unstack(tf.reshape(self.f, (self.batch_size, self.input_steps, self.num_station*self.num_station)), axis=1)
+        # print(len(x))
         #print(len(f_all))
         #inputs = list(zip(*(x, f_all)))
         elems = (x, f_all)

@@ -18,7 +18,7 @@ def main():
     parse.add_argument('-gpu', '--gpu', type=str, default='0', help='which gpu to use: 0 or 1')
     parse.add_argument('-folder_name', '--folder_name', type=str, default='datasets/citibike-data/data/')
     parse.add_argument('-output_folder_name', '--output_folder_name', type=str, default='output/citibike-data/data/')
-    parse.add_argument('-if_minus_mean', '--if_minus_mean', type=int, default=1,
+    parse.add_argument('-if_minus_mean', '--if_minus_mean', type=int, default=0,
                        help='use MinMaxNormalize01 or MinMaxNormalize01_minus_mean')
     # ---------- input/output settings -------
     parse.add_argument('-input_steps', '--input_steps', type=int, default=6,
@@ -65,53 +65,56 @@ def main():
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     print('load train, test data...')
-    # train: 20140401 - 20140910
+    # split = [3912, 480]
+    # train: 20140401 - 20140831
+    # validate: 20140901 - 20140910
     # test: 20140911 - 20140930
-    split = [3912, 480]
-    data, train_data, test_data, _ = load_npy_data(
+    split = [3672, 240, 480]
+    data, train_data, val_data, test_data = load_npy_data(
         filename=[args.folder_name+'d_station.npy', args.folder_name+'p_station.npy'], split=split)
     # data: [num, station_num, 2]
-    f_data, train_f_data, test_f_data, _ = load_pkl_data(args.folder_name + 'f_data_list.pkl', split=split)
-    print(len(f_data))
+    f_data, train_f_data, val_f_data, test_f_data = load_pkl_data(args.folder_name + 'f_data_list.pkl', split=split)
+    print(f_data.shape)
+    print('preprocess train/val/test flow data...')
+    f_preprocessing = StandardScaler()
+    f_preprocessing.fit(train_f_data)
+    train_f_data = f_preprocessing.transform(train_f_data)
+    val_f_data = f_preprocessing.transform(val_f_data)
+    test_f_data = f_preprocessing.transform(test_f_data)
     # e_data: [num, ext_dim]
-    e_data, train_e_data, test_e_data, _ = load_mat_data(args.folder_name + 'fea2.mat', 'fea', split=split)
+    e_data, train_e_data, val_e_data, test_e_data = load_mat_data(args.folder_name + 'fea2.mat', 'fea', split=split)
+    # print('preprocess train/val/test external factor data...')
     # e_preprocess = MinMaxNormalization01()
     # e_preprocess.fit(train_e_data)
     # train_e_data = e_preprocess.transform(train_e_data)
     # test_e_data = e_preprocess.transform(test_e_data)
-    print('preprocess train/test data...')
+    print('preprocess train/val/test data...')
     #pre_process = MinMaxNormalization01_by_axis()
     if args.if_minus_mean:
         pre_process = MinMaxNormalization01_minus_mean()
-        pre_process.fit(train_data)
-        norm_mean_data = pre_process.transform(data)
-        train_data = norm_mean_data[:split[0]]
-        test_data = norm_mean_data[split[0]:]
     else:
         #pre_process = MinMaxNormalization01()
         pre_process = StandardScaler()
-        pre_process.fit(train_data)
-        train_data = pre_process.transform(train_data)
-        test_data = pre_process.transform(test_data)
-    # embeddings
-    #id_map = load_pickle(args.folder_name+'station_map.pkl')
-    #num_station = len(id_map)
+    pre_process.fit(train_data)
+    train_data = pre_process.transform(train_data)
+    val_data = pre_process.transform(val_data)
+    test_data = pre_process.transform(test_data)
+    #
     num_station = data.shape[1]
     print('number of station: %d' % num_station)
-
+    #
     train_loader = DataLoader(train_data, train_f_data, train_e_data,
                               args.input_steps, args.output_steps,
                               num_station)
-    f_adj_mx = None
-    #if args.dynamic_adj_matrix == 0:
+    #f_adj_mx = None
     if os.path.isfile(args.folder_name+'f_adj_mx.npy'):
         f_adj_mx = np.load(args.folder_name+'f_adj_mx.npy')
     else:
         f_adj_mx = train_loader.get_flow_adj_mx()
         np.save(args.folder_name+'f_adj_mx.npy', f_adj_mx)
-    # val_loader = DataLoader(val_data, val_f_data,
-    #                           args.input_steps, args.output_steps,
-    #                           num_station, pre_process)
+    val_loader = DataLoader(val_data, val_f_data,
+                              args.input_steps, args.output_steps,
+                              num_station, pre_process)
     test_loader = DataLoader(test_data, test_f_data, test_e_data,
                             args.input_steps, args.output_steps,
                             num_station)
@@ -137,7 +140,7 @@ def main():
     if not os.path.exists(model_path):
         os.makedirs(model_path)
     #model_path = os.path.join(args.folder_name, 'model_save', args.model_save)
-    solver = ModelSolver(model, train_loader, test_loader, pre_process,
+    solver = ModelSolver(model, train_loader, val_loader, test_loader, pre_process,
                          batch_size=args.batch_size,
                          show_batches=args.show_batches,
                          n_epochs=args.n_epochs,
@@ -145,7 +148,6 @@ def main():
                          update_rule=args.update_rule,
                          learning_rate=args.learning_rate,
                          model_path=model_path,
-                         partial_pretrain=args.partial_pretrain
                          )
     results_path = os.path.join(model_path, 'results')
     if not os.path.exists(results_path):

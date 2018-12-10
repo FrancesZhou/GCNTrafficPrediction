@@ -15,12 +15,12 @@ class StrToBytes:
 
 def dump_pickle(data, file):
     try:
-        with open(file, 'w') as datafile:
+        with open(file, 'wb') as datafile:
             pickle.dump(data, datafile)
     except Exception as e:
         raise e
 
-def load_pickle(file):
+def load_pickle_from_python2(file):
     try:
         with open(file, 'r') as datafile:
             data = pickle.load(StrToBytes(datafile))
@@ -28,27 +28,42 @@ def load_pickle(file):
         raise e
     return data
 
+def load_pickle(file):
+    try:
+        with open(file, 'rb') as datafile:
+            data = pickle.load(datafile)
+    except Exception as e:
+        raise e
+    return data
+
 def load_npy_data(filename, split):
-    if len(filename)==2:
+    if len(filename) == 2:
         d1 = np.load(filename[0])
         d2 = np.load(filename[1])
         data = np.concatenate((np.expand_dims(d1, axis=-1), np.expand_dims(d2, axis=-1)), axis=-1)
+    elif len(filename) == 1:
+        data = np.load(filename[0])
     train = data[0:split[0]]
-    validate = data[split[0]:(split[0]+split[1])]
     if len(split) > 2:
+        validate = data[split[0]:(split[0] + split[1])]
         test = data[(split[0]+split[1]):(split[0]+split[1]+split[2])]
     else:
-        test = []
+        validate = None
+        test = data[split[0]:(split[0] + split[1])]
     return data, train, validate, test
 
 def load_pkl_data(filename, split):
-    data = load_pickle(filename)
+    try:
+        data = load_pickle(filename)
+    except:
+        data = load_pickle_from_python2(filename)
     train = data[0:split[0]]
-    validate = data[split[0]:(split[0]+split[1])]
     if len(split) > 2:
+        validate = data[split[0]:(split[0] + split[1])]
         test = data[(split[0]+split[1]):(split[0]+split[1]+split[2])]
     else:
-        test = []
+        validate = None
+        test = data[split[0]:(split[0]+split[1])]
     return data, train, validate, test
 
 def load_mat_data(filename, dataname, split):
@@ -59,11 +74,12 @@ def load_mat_data(filename, dataname, split):
     #data[:, -2:] = (data[:, -2:] - min_d)/(max_d - min_d)
     data[:, -2:] = preprocessing.scale(data[:, -2:])
     train = data[0:split[0]]
-    validate = data[split[0]:(split[0]+split[1])]
     if len(split) > 2:
+        validate = data[split[0]:(split[0] + split[1])]
         test = data[(split[0]+split[1]):(split[0]+split[1]+split[2])]
     else:
-        test = []
+        validate = None
+        test = data[split[0]:(split[0] + split[1])]
     return data, train, validate, test
 
 def calculate_normalized_laplacian(adj):
