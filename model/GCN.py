@@ -9,19 +9,16 @@ from model.dcrnn_cell import DCGRUCell
 
 class GCN():
     def __init__(self, num_station, input_steps, output_steps,
-                 ext_dim=7,
                  num_units=64,
                  max_diffusion_step=2,
                  dy_adj=1,
                  dy_filter=0,
                  f_adj_mx=None,
                  filter_type='dual_random_walk',
-                 batch_size=32,
-                 add_ext=0):
+                 batch_size=32):
         self.num_station = num_station
         self.input_steps = input_steps
         self.output_steps = output_steps
-        self.ext_dim = ext_dim
         self.num_units = num_units
         self.max_diffusion_step = max_diffusion_step
 
@@ -31,7 +28,6 @@ class GCN():
         self.filter_type = filter_type
 
         self.batch_size = batch_size
-        self.add_ext = add_ext
 
         self.weight_initializer = tf.contrib.layers.xavier_initializer()
         self.const_initializer = tf.constant_initializer()
@@ -51,12 +47,7 @@ class GCN():
 
         self.x = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, 2])
         self.f = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, self.num_station])
-        self.e = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.ext_dim])
         self.y = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, 2])
-        # self.x = tf.placeholder(tf.float32, [None, self.input_steps, self.num_station, 2])
-        # self.f = tf.placeholder(tf.float32, [None, self.input_steps, self.num_station, self.num_station])
-        # self.e = tf.placeholder(tf.float32, [None, self.input_steps, self.ext_dim])
-        # self.y = tf.placeholder(tf.float32, [None, self.input_steps, self.num_station, 2])
 
 
     def build_model(self):
@@ -65,7 +56,6 @@ class GCN():
         #x = tf.unstack(tf.reshape(self.x, (-1, self.input_steps, self.num_station * 2)), axis=1)
         #f_all = tf.unstack(tf.reshape(self.f, (-1, self.input_steps, self.num_station*self.num_station)), axis=1)
 
-        e_all = tf.transpose(self.e, [1, 0, 2])
         y = self.y
         hidden_state = tf.zeros([self.batch_size, self.num_station*self.num_units])
         #current_state = tf.zeros([self.batch_size, self.num_station*self.num_unists])
@@ -84,24 +74,6 @@ class GCN():
                 output_2, state_2 = self.cell_with_projection(tf.reshape(output_1, (self.batch_size, -1)), f, state_2)
             # output: [batch_size, state_size]
             output_2 = tf.reshape(output_2, (self.batch_size, self.num_station, -1))
-            #
-            '''
-            if self.add_ext:
-                e = e_all[i]
-                out_3 = tf.matmul(e, self.w_e_out)
-                in_3 = tf.matmul(e, self.w_e_in)
-            else:
-                out_3 = tf.constant(0.0, dtype=tf.float32, shape=[self.batch_size, self.num_station])
-                in_3 = tf.constant(0.0, dtype=tf.float32, shape=[self.batch_size, self.num_station])
-            next_out = out_1 + out_2 + out_3
-            # check-in
-            #in_1 = tf.squeeze(tf.matmul(tf.multiply(f_out_gate, self.w_2), tf.expand_dims(x_out, -1)))
-            in_1 = tf.squeeze(tf.matmul(tf.multiply(f_in_gate, self.w_2), tf.expand_dims(x_out, -1)))
-            in_2 = tf.reduce_sum(tf.multiply(cxt_in, self.w_h_in), axis=-1) + tf.matmul(output, self.w_t_in)
-            next_in = in_1 + in_2 + in_3
-            next_output = tf.concat((tf.expand_dims(next_in, -1), tf.expand_dims(next_out, -1)), -1)
-            y_.append(next_output)
-            '''
             y_.append(output_2)
         y_ = tf.stack(y_)
         y_ = tf.transpose(y_, [1, 0, 2, 3])

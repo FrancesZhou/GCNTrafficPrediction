@@ -25,11 +25,6 @@ def main():
                        help='number of input steps')
     parse.add_argument('-output_steps', '--output_steps', type=int, default=1,
                        help='number of output steps')
-    # ---------- station embeddings --------
-    parse.add_argument('-pretrained_embeddings', '--pretrained_embeddings', type=int, default=1,
-                       help='whether to use pretrained embeddings')
-    parse.add_argument('-embedding_size', '--embedding_size', type=int, default=100,
-                       help='dim of embedding')
     # ---------- model ----------
     parse.add_argument('-model', '--model', type=str, default='GCN', help='model: DyST, GCN, AttGCN')
     parse.add_argument('-dynamic_adj', '--dynamic_adj', type=int, default=1,
@@ -37,7 +32,6 @@ def main():
     parse.add_argument('-dynamic_filter', '--dynamic_filter', type=int, default=1,
                        help='whether to use dynamic filter generate region-specific filter ')
     parse.add_argument('-att_dynamic_adj', '--att_dynamic_adj', type=int, default=1, help='whether to use dynamic adjacent matrix in attention parts')
-    parse.add_argument('-add_ext', '--add_ext', type=int, default=1, help='whether to add external factors')
     parse.add_argument('-model_save', '--model_save', type=str, default='gcn', help='folder name to save model')
     parse.add_argument('-pretrained_model', '--pretrained_model_path', type=str, default=None,
                        help='path to the pretrained model')
@@ -59,8 +53,6 @@ def main():
     parse.add_argument('-train', '--train', type=int, default=1, help='whether to train')
     parse.add_argument('-test', '--test', type=int, default=0, help='if test')
     #
-    parse.add_argument('-pretrain', '--pretrain', type=int, default=0, help='whether to pretrain')
-    parse.add_argument('-partial_pretrain', '--partial_pretrain', type=int, default=0, help='whether to load pretrained vars')
     args = parse.parse_args()
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
@@ -81,13 +73,6 @@ def main():
     #train_f_data = f_preprocessing.transform(train_f_data)
     #val_f_data = f_preprocessing.transform(val_f_data)
     #test_f_data = f_preprocessing.transform(test_f_data)
-    # e_data: [num, ext_dim]
-    e_data, train_e_data, val_e_data, test_e_data = load_mat_data(args.folder_name + 'fea2.mat', 'fea', split=split)
-    # print('preprocess train/val/test external factor data...')
-    # e_preprocess = MinMaxNormalization01()
-    # e_preprocess.fit(train_e_data)
-    # train_e_data = e_preprocess.transform(train_e_data)
-    # test_e_data = e_preprocess.transform(test_e_data)
     print('preprocess train/val/test data...')
     #pre_process = MinMaxNormalization01_by_axis()
     if args.if_minus_mean:
@@ -103,7 +88,7 @@ def main():
     num_station = data.shape[1]
     print('number of station: %d' % num_station)
     #
-    train_loader = DataLoader(train_data, train_f_data, train_e_data,
+    train_loader = DataLoader(train_data, train_f_data,
                               args.input_steps, args.output_steps,
                               num_station)
     #f_adj_mx = None
@@ -115,13 +100,12 @@ def main():
     val_loader = DataLoader(val_data, val_f_data,
                               args.input_steps, args.output_steps,
                               num_station, pre_process)
-    test_loader = DataLoader(test_data, test_f_data, test_e_data,
+    test_loader = DataLoader(test_data, test_f_data,
                             args.input_steps, args.output_steps,
                             num_station)
 
     if args.model == 'GCN':
         model = GCN(num_station, args.input_steps, args.output_steps,
-                    ext_dim=e_data.shape[-1],
                     dy_adj=args.dynamic_adj,
                     dy_filter=args.dynamic_filter,
                     f_adj_mx=f_adj_mx,
@@ -129,7 +113,6 @@ def main():
                     add_ext=args.add_ext)
     if args.model == 'AttGCN':
         model = AttGCN(num_station, args.input_steps, args.output_steps,
-                    ext_dim=e_data.shape[-1],
                     dy_adj=args.dynamic_adj,
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size,

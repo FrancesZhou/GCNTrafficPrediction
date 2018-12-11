@@ -207,7 +207,7 @@ class ModelSolver(object):
                 if e % 1 == 0:
                     print('test for validate data...')
                     val_l2_loss = 0
-                    num_val_batches = np.ceil((val_loader.num_data - val_loader.input_steps - self.batch_size + 1) / self.batch_size)
+                    num_val_batches = math.ceil((val_loader.num_data - val_loader.input_steps - self.batch_size + 1) / self.batch_size)
                     print('number of val_data batches: %d' % num_val_batches)
                     widgets = ['Test: ', Percentage(), ' ', Bar('*'), ' ', ETA()]
                     pbar = ProgressBar(widgets=widgets, maxval=num_val_batches).start()
@@ -247,7 +247,7 @@ class ModelSolver(object):
                     # ================================ test =====================================
                     print('test for test data...')
                     test_l2_loss = 0
-                    num_test_batches = np.ceil(
+                    num_test_batches = math.ceil(
                         (test_loader.num_data - test_loader.input_steps - self.batch_size + 1) / self.batch_size)
                     print('number of test_data batches: %d' % num_test_batches)
                     widgets = ['Test: ', Percentage(), ' ', Bar('*'), ' ', ETA()]

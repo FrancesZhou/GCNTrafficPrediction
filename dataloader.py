@@ -9,16 +9,14 @@ import random
 # import copy
 
 class DataLoader():
-    def __init__(self, d_data, f_data, e_data,
+    def __init__(self, d_data, f_data,
                  input_steps, output_steps,
                  num_station,
                  flow_format='index'):
         self.d_data = d_data
         self.f_data = f_data
-        self.e_data = e_data
         # d_data: [num, num_station, 2]
         # f_data: [num, {num_station, num_station}]
-        # e_data: [num, 7]
         self.input_steps = input_steps
         self.output_steps = output_steps
         self.num_station = num_station
@@ -66,16 +64,14 @@ class DataLoader():
             batch_x = []
             batch_y = []
             batch_f = []
-            batch_e = []
             batch_index = []
             for i in self.data_index[start:end]:
                 batch_x.append(self.d_data[i: i + self.input_steps])
                 batch_y.append(self.d_data[i + 1: i + self.input_steps + 1])
                 f_map = [self.get_flow_map_from_list(self.f_data[j]) for j in range(i, i + self.input_steps)]
                 batch_f.append(f_map)
-                batch_e.append(self.e_data[i+1: i+self.input_steps+1])
                 batch_index.append(np.arange(i+1, i+self.input_steps+1))
-            return np.array(batch_x), np.array(batch_f, dtype=np.float32), np.array(batch_e), np.array(batch_y), np.array(batch_index)
+            return np.array(batch_x), np.array(batch_f, dtype=np.float32), np.array(batch_y), np.array(batch_index)
 
     def next_batch_for_test(self, start, end):
         padding_len = 0
@@ -88,21 +84,18 @@ class DataLoader():
         batch_x = []
         batch_y = []
         batch_f = []
-        batch_e = []
         batch_index = []
         for i in self.data_index[start:end]:
             batch_x.append(self.d_data[i: i+self.input_steps])
             batch_y.append(self.d_data[i+self.input_steps: i+self.input_steps+self.output_steps])
             f_map = [self.get_flow_map_from_list(self.f_data[j]) for j in range(i, i + self.input_steps)]
             batch_f.append(f_map)
-            batch_e.append(self.e_data[i + 1: i + self.input_steps + 1])
             batch_index.append(np.arange(i + 1, i + self.input_steps + 1))
         if padding_len > 0:
             batch_x = np.concatenate((np.array(batch_x), np.zeros((padding_len, self.input_steps, self.num_station, 2))), axis=0)
             batch_y = np.concatenate((np.array(batch_y), np.zeros((padding_len, self.output_steps, self.num_station, 2))), axis=0)
             batch_f = np.concatenate((np.array(batch_f), np.zeros((padding_len, self.input_steps, self.num_station, self.num_station))), axis=0)
-            batch_e = np.concatenate((np.array(batch_e), np.zeros((padding_len, self.input_steps, self.e_data.shape[-1]))), axis=0)
-        return batch_x, batch_f, batch_e, batch_y, batch_index, padding_len
+        return batch_x, batch_f, batch_y, batch_index, padding_len
 
     def reset_data(self):
         np.random.shuffle(self.data_index)
