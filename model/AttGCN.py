@@ -8,7 +8,7 @@ from model.dcrnn_cell import DCGRUCell
 
 
 class AttGCN():
-    def __init__(self, num_station, input_steps, output_steps,
+    def __init__(self, num_station, input_steps,
                  num_units=64,
                  max_diffusion_step=2,
                  dy_adj=1,
@@ -18,7 +18,6 @@ class AttGCN():
                  att_dy_adj=1):
         self.num_station = num_station
         self.input_steps = input_steps
-        self.output_steps = output_steps
         self.num_units = num_units
         self.max_diffusion_step = max_diffusion_step
         self.f_adj_mx = f_adj_mx

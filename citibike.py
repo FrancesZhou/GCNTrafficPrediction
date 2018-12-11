@@ -23,8 +23,6 @@ def main():
     # ---------- input/output settings -------
     parse.add_argument('-input_steps', '--input_steps', type=int, default=6,
                        help='number of input steps')
-    parse.add_argument('-output_steps', '--output_steps', type=int, default=1,
-                       help='number of output steps')
     # ---------- model ----------
     parse.add_argument('-model', '--model', type=str, default='GCN', help='model: DyST, GCN, AttGCN')
     parse.add_argument('-dynamic_adj', '--dynamic_adj', type=int, default=1,
@@ -89,13 +87,13 @@ def main():
     print('number of station: %d' % num_station)
     #
     train_loader = DataLoader_graph(train_data, train_f_data,
-                              args.input_steps, args.output_steps,
+                              args.input_steps,
                               num_station)
     val_loader = DataLoader_graph(val_data, val_f_data,
-                              args.input_steps, args.output_steps,
+                              args.input_steps,
                               num_station)
     test_loader = DataLoader_graph(test_data, test_f_data,
-                            args.input_steps, args.output_steps,
+                            args.input_steps,
                             num_station)
     # f_adj_mx = None
     if os.path.isfile(args.folder_name + 'f_adj_mx.npy'):
@@ -105,13 +103,13 @@ def main():
         np.save(args.folder_name + 'f_adj_mx.npy', f_adj_mx)
 
     if args.model == 'GCN':
-        model = GCN(num_station, args.input_steps, args.output_steps,
+        model = GCN(num_station, args.input_steps,
                     dy_adj=args.dynamic_adj,
                     dy_filter=args.dynamic_filter,
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size)
     if args.model == 'AttGCN':
-        model = AttGCN(num_station, args.input_steps, args.output_steps,
+        model = AttGCN(num_station, args.input_steps,
                     dy_adj=args.dynamic_adj,
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size,
