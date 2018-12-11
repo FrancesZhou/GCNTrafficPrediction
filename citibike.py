@@ -88,21 +88,21 @@ def main():
     num_station = data.shape[1]
     print('number of station: %d' % num_station)
     #
-    train_loader = DataLoader(train_data, train_f_data,
+    train_loader = DataLoader_graph(train_data, train_f_data,
                               args.input_steps, args.output_steps,
                               num_station)
-    #f_adj_mx = None
-    if os.path.isfile(args.folder_name+'f_adj_mx.npy'):
-        f_adj_mx = np.load(args.folder_name+'f_adj_mx.npy')
-    else:
-        f_adj_mx = train_loader.get_flow_adj_mx()
-        np.save(args.folder_name+'f_adj_mx.npy', f_adj_mx)
-    val_loader = DataLoader(val_data, val_f_data,
+    val_loader = DataLoader_graph(val_data, val_f_data,
                               args.input_steps, args.output_steps,
-                              num_station, pre_process)
-    test_loader = DataLoader(test_data, test_f_data,
+                              num_station)
+    test_loader = DataLoader_graph(test_data, test_f_data,
                             args.input_steps, args.output_steps,
                             num_station)
+    # f_adj_mx = None
+    if os.path.isfile(args.folder_name + 'f_adj_mx.npy'):
+        f_adj_mx = np.load(args.folder_name + 'f_adj_mx.npy')
+    else:
+        f_adj_mx = train_loader.get_flow_adj_mx()
+        np.save(args.folder_name + 'f_adj_mx.npy', f_adj_mx)
 
     if args.model == 'GCN':
         model = GCN(num_station, args.input_steps, args.output_steps,
