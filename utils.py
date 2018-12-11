@@ -59,7 +59,7 @@ def load_npy_data(filename, split):
     return data, train, validate, test
 
 def load_pkl_data(filename, split):
-    data = load_pickle(filename)
+    data = load_pickle_rb(filename)
     train = data[0:split[0]]
     if len(split) > 2:
         validate = data[split[0]:(split[0] + split[1])]

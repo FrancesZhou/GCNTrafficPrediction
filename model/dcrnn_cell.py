@@ -23,7 +23,7 @@ class DCGRUCell(RNNCell):
         pass
 
     def __init__(self, num_units, adj_mx, max_diffusion_step, num_nodes, num_proj=None,
-                 input_dim=None, dy_adj=1, dy_filter=0,
+                 input_dim=None, dy_adj=1, dy_filter=0, output_dy_adj=False,
                  activation=tf.nn.tanh, reuse=None, filter_type="laplacian", use_gc_for_ru=True):
         """
 
@@ -48,6 +48,7 @@ class DCGRUCell(RNNCell):
         self.dy_adj = dy_adj
         self.filter_type = filter_type
         self.dy_filter = dy_filter
+        self.output_dy_adj = output_dy_adj
         self._num_nodes = num_nodes
         self._input_dim = input_dim
         self._num_proj = num_proj
@@ -100,16 +101,17 @@ class DCGRUCell(RNNCell):
         - New state: Either a single `2-D` tensor, or a tuple of tensors matching
             the arity and shapes of `state`
         """
-        if self._input_dim is None:
-            dy_adj_mx = None
-        else:
+        if self.dy_adj>0 and self._input_dim is not None:
             whole_input_dim = inputs.get_shape().as_list()
             dy_adj_dim = whole_input_dim[-1] - self._input_dim
             if dy_adj_dim>0:
                 _input, dy_adj_mx = tf.split(inputs, num_or_size_splits=[self._input_dim, dy_adj_dim], axis=-1)
                 inputs = _input
             else:
+                print('There is no input dynamic flow to generate dynamic adjacent matrix.')
                 dy_adj_mx = None
+        else:
+            dy_adj_mx = None
         with tf.variable_scope(scope or "dcgru_cell", reuse=tf.AUTO_REUSE):
             with tf.variable_scope("gates", reuse=tf.AUTO_REUSE):  # Reset gate and update gate.
                 output_size = 2 * self._num_units
@@ -134,6 +136,8 @@ class DCGRUCell(RNNCell):
                     batch_size = inputs.get_shape()[0].value
                     output = tf.reshape(new_state, shape=(-1, self._num_units))
                     output = tf.reshape(tf.matmul(output, w), shape=(batch_size, self.output_size))
+        if self.output_dy_adj:
+            output = tf.concat([output, dy_adj_mx], axis=-1)
         return output, new_state
 
     @staticmethod
@@ -210,7 +214,14 @@ class DCGRUCell(RNNCell):
         inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
         state = tf.reshape(state, (batch_size, self._num_nodes, -1))
         
-        dy_adj_mx = tf.reshape(dy_adj_mx, (batch_size, self._num_nodes, -1))
+        if self.dy_adj>0:
+            if dy_adj_mx is not None:
+                dy_adj_mx = tf.reshape(dy_adj_mx, (batch_size, self._num_nodes, -1))
+            else:
+                print('No dynamic flow input to generate dynamic adjacent matrix.')
+                dy_adj_mx = None
+        else:
+            dy_adj_mx = None
         
         inputs_and_state = tf.concat([inputs, state], axis=2)
         input_size = inputs_and_state.get_shape()[2].value
@@ -259,7 +270,7 @@ class DCGRUCell(RNNCell):
             x = tf.transpose(x, perm=[3, 1, 2, 0])  # (batch_size, num_nodes, input_size, order)
             x = tf.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])
             '''
-            if len(self._supports):
+            if self.dy_adj==0:
                 x = tf.reshape(x, shape=[num_matrices, self._num_nodes, input_size, batch_size])
                 x = tf.transpose(x, perm=[3, 1, 2, 0])  # (batch_size, num_nodes, input_size, order)
             else:

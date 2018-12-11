@@ -2,7 +2,7 @@ import os
 import argparse
 import numpy as np
 import tensorflow as tf
-from gensim.models import Word2Vec
+#from gensim.models import Word2Vec
 from model.AttGCN import AttGCN
 from model.GCN import GCN
 from solver import ModelSolver
