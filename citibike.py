@@ -109,14 +109,12 @@ def main():
                     dy_adj=args.dynamic_adj,
                     dy_filter=args.dynamic_filter,
                     f_adj_mx=f_adj_mx,
-                    batch_size=args.batch_size,
-                    add_ext=args.add_ext)
+                    batch_size=args.batch_size)
     if args.model == 'AttGCN':
         model = AttGCN(num_station, args.input_steps, args.output_steps,
                     dy_adj=args.dynamic_adj,
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size,
-                    add_ext=args.add_ext,
                     att_dy_adj=args.att_dynamic_adj)
     #
     model_path = os.path.join(args.output_folder_name, 'model_save', args.model_save)
@@ -135,13 +133,6 @@ def main():
     results_path = os.path.join(model_path, 'results')
     if not os.path.exists(results_path):
         os.makedirs(results_path)
-    if args.pretrain:
-        print('==================== begin pretrain ======================')
-        w_att_1, w_att_2, w_h_in, w_h_out = solver.pretrain(os.path.join(model_path, 'pretrain_out'))
-        np.save(os.path.join(model_path, 'w_att_1.npy'), w_att_1)
-        np.save(os.path.join(model_path, 'w_att_2.npy'), w_att_2)
-        np.save(os.path.join(model_path, 'w_h_in.npy'), w_h_in)
-        np.save(os.path.join(model_path, 'w_h_out.npy'), w_h_out)
     if args.train:
         print('==================== begin training ======================')
         test_target, test_prediction = solver.train(os.path.join(model_path, 'out'))

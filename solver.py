@@ -77,13 +77,12 @@ class ModelSolver(object):
                 train_loader.reset_data()
                 for i in range(num_train_batches):
                     pbar.update(i)
-                    x, f, ee, y, index = train_loader.next_batch_for_train(i*self.batch_size, (i+1)*self.batch_size)
+                    x, f, y, index = train_loader.next_batch_for_train(i*self.batch_size, (i+1)*self.batch_size)
                     if x is None:
                         print('invalid batch')
                         continue
                     feed_dict = {self.model.x: np.array(x),
                                  self.model.f: np.array(f),
-                                 self.model.e: np.array(ee),
                                  self.model.y: np.array(y)
                                  }
                     _, l, y_out = sess.run([train_op, loss, y_], feed_dict)
@@ -169,7 +168,7 @@ class ModelSolver(object):
                     pbar.update(i)
                     #print i
                     #t1 = time.time()
-                    x, f, ee, y, index = train_loader.next_batch_for_train(i*self.batch_size, (i+1)*self.batch_size)
+                    x, f, y, index = train_loader.next_batch_for_train(i*self.batch_size, (i+1)*self.batch_size)
                     if x is None:
                         print('invalid batch')
                         continue
@@ -177,7 +176,6 @@ class ModelSolver(object):
                     #print 'load batch time: %s' % (t2-t1)
                     feed_dict = {self.model.x: np.array(x),
                                  self.model.f: np.array(f),
-                                 self.model.e: np.array(ee),
                                  self.model.y: np.array(y)
                                  }
                     _, l, y_out = sess.run([train_op, loss, y_], feed_dict)
@@ -215,10 +213,9 @@ class ModelSolver(object):
                     val_target = []
                     for i in range(num_val_batches):
                         pbar.update(i)
-                        x, f, ee, y, index, padding_len = val_loader.next_batch_for_test(i * self.batch_size,(i + 1) * self.batch_size)
+                        x, f, y, index, padding_len = val_loader.next_batch_for_test(i * self.batch_size,(i + 1) * self.batch_size)
                         feed_dict = {self.model.x: np.array(x),
                                      self.model.f: np.array(f),
-                                     self.model.e: np.array(ee),
                                      self.model.y: np.array(y)
                                      }
                         y_out, l = sess.run([y_, loss], feed_dict)
@@ -256,11 +253,10 @@ class ModelSolver(object):
                     test_target = []
                     for i in range(num_test_batches):
                         pbar.update(i)
-                        x, f, ee, y, index, padding_len = test_loader.next_batch_for_test(i * self.batch_size,
+                        x, f, y, index, padding_len = test_loader.next_batch_for_test(i * self.batch_size,
                                                                                          (i + 1) * self.batch_size)
                         feed_dict = {self.model.x: np.array(x),
                                      self.model.f: np.array(f),
-                                     self.model.e: np.array(ee),
                                      self.model.y: np.array(y)
                                      }
                         y_out, l = sess.run([y_, loss], feed_dict)
@@ -313,11 +309,10 @@ class ModelSolver(object):
                 for i in range(num_test_batches):
                     pbar.update(i)
                     # x, y, f, padding_len = test_loader.next_batch_for_test(i * self.batch_size, (i + 1) * self.batch_size)
-                    x, f, ee, y, index = test_loader.next_batch_for_train(i * self.batch_size, (i + 1) * self.batch_size)
+                    x, f, y, index = test_loader.next_batch_for_train(i * self.batch_size, (i + 1) * self.batch_size)
                     # x, f, ee, y = test_loader.next_sample(i)
                     feed_dict = {self.model.x: np.array(x),
                                  self.model.f: np.array(f),
-                                 self.model.e: np.array(ee),
                                  self.model.y: np.array(y)
                                  }
                     y_out, l = sess.run([y_, loss], feed_dict)

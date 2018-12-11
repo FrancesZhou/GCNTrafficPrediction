@@ -9,26 +9,22 @@ from model.dcrnn_cell import DCGRUCell
 
 class AttGCN():
     def __init__(self, num_station, input_steps, output_steps,
-                 ext_dim=7,
                  num_units=64,
                  max_diffusion_step=2,
                  dy_adj=1,
                  f_adj_mx=None,
                  filter_type='dual_random_walk',
                  batch_size=32,
-                 add_ext=0,
                  att_dy_adj=1):
         self.num_station = num_station
         self.input_steps = input_steps
         self.output_steps = output_steps
-        self.ext_dim = ext_dim
         self.num_units = num_units
         self.max_diffusion_step = max_diffusion_step
         self.f_adj_mx = f_adj_mx
         self.filter_type = filter_type
 
         self.batch_size = batch_size
-        self.add_ext = add_ext
         self.att_dy_adj=att_dy_adj
 
         self.weight_initializer = tf.contrib.layers.xavier_initializer()
@@ -46,7 +42,6 @@ class AttGCN():
 
         self.x = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, 2])
         self.f = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, self.num_station])
-        self.e = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.ext_dim])
         self.y = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, 2])
 
 
@@ -54,7 +49,6 @@ class AttGCN():
         x = tf.unstack(tf.reshape(self.x, (self.batch_size, self.input_steps, self.num_station*2)), axis=1)
         f_all = tf.unstack(tf.reshape(self.f, (self.batch_size, self.input_steps, self.num_station*self.num_station)), axis=1)
 
-        e_all = tf.transpose(self.e, [1, 0, 2])
         adj_mx = tf.manip.tile(tf.expand_dims(self.f_adj_mx, 0), (self.batch_size, 1, 1))
         y = self.y
         hidden_state = tf.zeros([self.batch_size, self.num_station*self.num_units])
