@@ -94,7 +94,7 @@ class DataLoader_graph():
             batch_x = np.concatenate((np.array(batch_x), np.zeros((padding_len, self.input_steps, self.num_station, 2))), axis=0)
             batch_y = np.concatenate((np.array(batch_y), np.zeros((padding_len, self.input_steps, self.num_station, 2))), axis=0)
             batch_f = np.concatenate((np.array(batch_f), np.zeros((padding_len, self.input_steps, self.num_station, self.num_station))), axis=0)
-        return batch_x, batch_f, batch_y, batch_index, padding_len
+        return np.array(batch_x), np.array(batch_f, dtype=np.float32), np.array(batch_y), np.array(batch_index), padding_len
 
     def reset_data(self):
         np.random.shuffle(self.data_index)

@@ -154,16 +154,19 @@ class ModelSolver(object):
                 print("Start training with pretrained model...")
                 saver.restore(sess, os.path.join(self.model_path, self.pretrained_model))
             #
+            train_loader.data_index = np.arange(train_loader.num_data-train_loader.input_steps-self.batch_size+1)
+            num_train_batches = (train_loader.num_data - train_loader.input_steps - self.batch_size + 1)//self.batch_size
+            num_val_batches = math.ceil((val_loader.num_data - val_loader.input_steps - self.batch_size + 1) / self.batch_size)
+            num_test_batches = math.ceil(
+                        (test_loader.num_data - test_loader.input_steps - self.batch_size + 1) / self.batch_size)
             for e in range(self.n_epochs):
                 # ========================== train ====================
                 train_l2_loss = 0
-                train_loader.data_index = np.arange(train_loader.num_data-train_loader.input_steps-self.batch_size+1)
-                num_train_batches = (train_loader.num_data - train_loader.input_steps - self.batch_size + 1)//self.batch_size
-                print('number of training batches: %d' % num_train_batches)
-                print('-------------------- train %d epoch ----------------------' % e)
+                #print('number of training batches: %d' % num_train_batches)
+                #print('-------------------- train %d epoch ----------------------' % e)
+                train_loader.reset_data()
                 widgets = ['Train: ', Percentage(), ' ', Bar('-'), ' ', ETA()]
                 pbar = ProgressBar(widgets=widgets, maxval=num_train_batches).start()
-                train_loader.reset_data()
                 for i in range(num_train_batches):
                     pbar.update(i)
                     #print i
@@ -193,21 +196,18 @@ class ModelSolver(object):
                 # compute counts of all regions
                 t_count = num_train_batches*self.batch_size*train_loader.input_steps*train_loader.num_station*2
                 train_loss = self.preprocessing.real_loss(np.sqrt(train_l2_loss / t_count))
-                w_text = 'at epoch %d, train l2 loss is %.6f \n' % (e, train_loss)
-                print(w_text)
-                o_file.write(w_text)
+                w_text_1 = 'at epoch %d, train l2 loss is %.6f \n' % (e, train_loss)
+                o_file.write(w_text_1)
                 # save model
                 if (e + 1) % self.save_every == 0:
                     save_name = os.path.join(self.model_path, 'model')
                     saver.save(sess, save_name, global_step=e + 1)
-                    print("model-%s saved." % (e + 1))
                 # ============================ validate ===============================
                 if e % 1 == 0:
-                    print('test for validate data...')
+                    #print('test for validate data...')
                     val_l2_loss = 0
-                    num_val_batches = math.ceil((val_loader.num_data - val_loader.input_steps - self.batch_size + 1) / self.batch_size)
-                    print('number of val_data batches: %d' % num_val_batches)
-                    widgets = ['Test: ', Percentage(), ' ', Bar('*'), ' ', ETA()]
+                    #print('number of val_data batches: %d' % num_val_batches)
+                    widgets = ['Validate: ', Percentage(), ' ', Bar('*'), ' ', ETA()]
                     pbar = ProgressBar(widgets=widgets, maxval=num_val_batches).start()
                     val_prediction = []
                     val_target = []
@@ -233,20 +233,17 @@ class ModelSolver(object):
                     pbar.finish()
                     val_target = np.concatenate(np.array(val_target), axis=0)
                     val_prediction = np.concatenate(np.array(val_prediction), axis=0)
-                    print(val_target.shape)
+                    #print(val_target.shape)
                     # compute counts of all regions
                     t_count = num_val_batches*self.batch_size*(val_loader.input_steps * val_loader.num_station * 2)
                     val_loss = np.sqrt(val_l2_loss / t_count)
-                    val_rmse = np.sqrt(np.square(val_target-val_prediction)/np.prod(val_target.shape))
-                    w_text = 'at epoch %d, val loss is %s, validate prediction rmse is %s \n' % (e, val_loss, val_rmse)
-                    print(w_text)
-                    o_file.write(w_text)
+                    val_rmse = np.sqrt(np.sum(np.square(val_target-val_prediction))/np.prod(val_target.shape))
+                    w_text_2 = 'at epoch %d, val loss is %s, validate prediction rmse is %s \n' % (e, val_loss, val_rmse)
+                    o_file.write(w_text_2)
                     # ================================ test =====================================
-                    print('test for test data...')
+                    #print('test for test data...')
                     test_l2_loss = 0
-                    num_test_batches = math.ceil(
-                        (test_loader.num_data - test_loader.input_steps - self.batch_size + 1) / self.batch_size)
-                    print('number of test_data batches: %d' % num_test_batches)
+                    #print('number of test_data batches: %d' % num_test_batches)
                     widgets = ['Test: ', Percentage(), ' ', Bar('*'), ' ', ETA()]
                     pbar = ProgressBar(widgets=widgets, maxval=num_test_batches).start()
                     test_prediction = []
@@ -274,14 +271,17 @@ class ModelSolver(object):
                     pbar.finish()
                     test_target = np.concatenate(np.array(test_target), axis=0)
                     test_prediction = np.concatenate(np.array(test_prediction), axis=0)
-                    print(test_target.shape)
+                    #print(test_target.shape)
                     # compute counts of all regions
                     t_count = num_test_batches * self.batch_size * (test_loader.input_steps * test_loader.num_station * 2)
                     test_loss = np.sqrt(test_l2_loss / t_count)
-                    test_rmse = np.sqrt(np.square(test_target - test_prediction) / np.prod(test_target.shape))
-                    w_text = 'at epoch %d, test loss is %s, test prediction rmse is %s \n' % (e, test_loss, test_rmse)
-                    print(w_text)
-                    o_file.write(w_text)
+                    test_rmse = np.sqrt(np.sum(np.square(test_target - test_prediction)) / np.prod(test_target.shape))
+                    w_text_3 = 'at epoch %d, test loss is %s, test prediction rmse is %s \n' % (e, test_loss, test_rmse)
+                    o_file.write(w_text_3)
+                    print(w_text_1)
+                    print(w_text_2)
+                    print(w_text_3)
+                    print("model-%s saved." % (e + 1))
             return np.array(test_target), np.array(test_prediction)
 
 
