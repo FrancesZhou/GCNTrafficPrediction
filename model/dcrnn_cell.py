@@ -24,7 +24,7 @@ class DCGRUCell(RNNCell):
 
     def __init__(self, num_units, adj_mx, max_diffusion_step, num_nodes, num_proj=None,
                  input_dim=None, dy_adj=1, dy_filter=0, output_dy_adj=False,
-                 output_att_context=False, att_inputs=[], att_hidden_dim=64,
+                 add_att_context=False, att_inputs=[], att_hidden_dim=64,
                  activation=tf.nn.tanh, reuse=None, filter_type="laplacian", use_gc_for_ru=True):
         """
 
@@ -50,7 +50,7 @@ class DCGRUCell(RNNCell):
         self.filter_type = filter_type
         self.dy_filter = dy_filter
         self.output_dy_adj = output_dy_adj
-        self.output_att_context = output_att_context
+        self.add_att_context = add_att_context
         self.att_inputs = tf.convert_to_tensor(att_inputs, dtype=tf.float32)
         self.att_hidden_dim = att_hidden_dim
         self._num_nodes = num_nodes
@@ -122,6 +122,10 @@ class DCGRUCell(RNNCell):
                 dy_adj_mx = None
         else:
             dy_adj_mx = None
+        #
+        if self.add_att_context:
+            dy_adj_mx = self.attention_layer(state, self._num_nodes * self._num_units, self.att_hidden_dim)
+
         with tf.variable_scope(scope or "dcgru_cell", reuse=tf.AUTO_REUSE):
             with tf.variable_scope("gates", reuse=tf.AUTO_REUSE):  # Reset gate and update gate.
                 output_size = 2 * self._num_units
@@ -146,8 +150,6 @@ class DCGRUCell(RNNCell):
                     batch_size = inputs.get_shape()[0].value
                     output = tf.reshape(new_state, shape=(-1, self._num_units))
                     output = tf.reshape(tf.matmul(output, w), shape=(batch_size, self.output_size))
-            if self.output_att_context:
-                output = self.attention_layer(new_state, self._num_nodes*self._num_units, self.att_hidden_dim)
         if self.output_dy_adj:
             output = tf.concat([output, dy_adj_mx], axis=-1)
         return output, new_state
