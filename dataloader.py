@@ -296,5 +296,21 @@ class DataLoader_multi_graph():
             batch_f = np.concatenate((np.array(batch_f), np.zeros((padding_len, self.input_steps, self.num_station, self.num_station))), axis=0)
         return np.array(batch_x), np.array(batch_f, dtype=np.float32), np.array(batch_y), np.array(batch_index), padding_len
 
+    def next_batch_for_final_test(self, batch_size):
+        padding_len = batch_size - 1
+        # batch_x: [end-start, input_steps, num_station, 2]
+        # batch_y: [end-start, output_steps, num_station, 2]
+        # batch_f: [end-start, input_steps, num_station, num_station]
+        batch_x = np.expand_dims(self.d_data[-self.input_steps:], axis=0)
+        # give zero fake y
+        batch_y = np.zeros((1, self.output_steps, self.num_station, self.input_dim))
+        batch_f = np.expand_dims([self.get_flow_map_from_list(self.f_data[j]) for j in range(-self.input_steps, 0)], axis=0)
+        batch_index = [np.arange(self.num_data, self.num_data+self.output_steps)]
+        if padding_len > 0:
+            batch_x = np.concatenate((np.array(batch_x), np.zeros((padding_len, self.input_steps, self.num_station, self.input_dim))), axis=0)
+            batch_y = np.concatenate((np.array(batch_y), np.zeros((padding_len, self.output_steps, self.num_station, self.input_dim))), axis=0)
+            batch_f = np.concatenate((np.array(batch_f), np.zeros((padding_len, self.input_steps, self.num_station, self.num_station))), axis=0)
+        return np.array(batch_x), np.array(batch_f, dtype=np.float32), np.array(batch_y), np.array(batch_index), padding_len
+
     def reset_data(self):
         np.random.shuffle(self.data_index)
