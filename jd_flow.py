@@ -25,7 +25,7 @@ def main():
     parse.add_argument('-input_steps', '--input_steps', type=int, default=15, help='number of input steps')
     parse.add_argument('-output_steps', '--output_steps', type=int, default=15, help='number of input steps')
     # ---------- model ----------
-    parse.add_argument('-model', '--model', type=str, default='GCN', help='model: DyST, GCN, AttGCN')
+    parse.add_argument('-model', '--model', type=str, default='GCN_multi', help='model: DyST, GCN, AttGCN')
     parse.add_argument('-dynamic_adj', '--dynamic_adj', type=int, default=1,
                        help='whether to use dynamic adjacent matrix for lower feature extraction layer')
     parse.add_argument('-dynamic_filter', '--dynamic_filter', type=int, default=1,
@@ -43,7 +43,7 @@ def main():
                        default=0.5, help='keep probability in dropout layer')
     # ---------- training parameters --------
     parse.add_argument('-n_epochs', '--n_epochs', type=int, default=20, help='number of epochs')
-    parse.add_argument('-batch_size', '--batch_size', type=int, default=8, help='batch size for training')
+    parse.add_argument('-batch_size', '--batch_size', type=int, default=16, help='batch size for training')
     parse.add_argument('-show_batches', '--show_batches', type=int,
                        default=100, help='show how many batches have been processed.')
     parse.add_argument('-lr', '--learning_rate', type=float, default=0.0002, help='learning rate')
@@ -61,11 +61,11 @@ def main():
     # split = [3912, 480]
     # train: 20170601 - 20180228
     # test: 20180131 - 20180301
-    split = [26852-30, 30]
+    split = [274-30, 30]
     data, train_data, val_data, test_data = load_npy_data(
         filename=[args.folder_name+'flow_data.npy'], split=split)
     # data: [num, station_num, 2]
-    f_data, train_f_data, val_f_data, test_f_data = load_pkl_data(args.folder_name + 'trans_data.pkl', split=split)
+    f_data, train_f_data, val_f_data, test_f_data = load_npy_data([args.folder_name + 'trans_data.npy'], split=split)
     print(len(f_data))
     #print('preprocess train/val/test flow data...')
     #f_preprocessing = StandardScaler()
@@ -111,23 +111,26 @@ def main():
         np.save(args.folder_name + 'f_adj_mx.npy', f_adj_mx)
 
     if args.model == 'GCN':
+        print(args.model)
         model = GCN(num_station, args.input_steps,
                     dy_adj=args.dynamic_adj,
                     dy_filter=args.dynamic_filter,
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size)
     if args.model == 'AttGCN':
+        print(args.model)
         model = AttGCN(num_station, args.input_steps,
                     dy_adj=args.dynamic_adj,
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size,
                     att_dy_adj=args.att_dynamic_adj)
     if args.model == 'GCN_multi':
+        print(args.model)
         model = GCN_multi(num_station, args.input_steps, args.output_steps,
                  dy_adj=args.dynamic_adj,
                  dy_filter=args.dynamic_filter,
                  f_adj_mx=f_adj_mx,
-                 batch_size=16)
+                 batch_size=args.batch_size)
     #
     model_path = os.path.join(args.output_folder_name, 'model_save', args.model_save)
     if not os.path.exists(model_path):

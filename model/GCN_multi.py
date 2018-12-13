@@ -42,44 +42,13 @@ class GCN_multi():
                               reuse=tf.AUTO_REUSE, filter_type=self.filter_type)
         self.cell_with_projection = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=max_diffusion_step,
                                               num_nodes=self.num_station, num_proj=3,
-                                              input_dim=self.num_station*self.num_units, 
+                                              input_dim=self.num_station*3, 
                                               dy_adj=self.dy_adj, dy_filter=0, output_dy_adj=False,
                                               reuse=tf.AUTO_REUSE, filter_type=self.filter_type)
 
         self.x = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, 3])
         self.f = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, self.num_station])
         self.y = tf.placeholder(tf.float32, [self.batch_size, self.output_steps, self.num_station, 3])
-
-
-    def build_model(self):
-        x = tf.unstack(tf.reshape(self.x, (self.batch_size, self.input_steps, self.num_station*2)), axis=1)
-        f_all = tf.unstack(tf.reshape(self.f, (self.batch_size, self.input_steps, self.num_station*self.num_station)), axis=1)
-        #x = tf.unstack(tf.reshape(self.x, (-1, self.input_steps, self.num_station * 2)), axis=1)
-        #f_all = tf.unstack(tf.reshape(self.f, (-1, self.input_steps, self.num_station*self.num_station)), axis=1)
-
-        y = self.y
-        hidden_state = tf.zeros([self.batch_size, self.num_station*self.num_units])
-        #current_state = tf.zeros([self.batch_size, self.num_station*self.num_unists])
-        #state = hidden_state, current_state
-        state_1 = hidden_state
-        state_2 = hidden_state
-        y_ = []
-        for i in range(self.input_steps):
-            # for each step
-            #print(i)
-            f = f_all[i]
-            current_step_batch = x[i]
-            with tf.variable_scope('dcrnn', reuse=tf.AUTO_REUSE):
-                output_1, state_1 = self.cell(tf.reshape(current_step_batch, (self.batch_size, -1)), f, state_1)
-            with tf.variable_scope('output', reuse=tf.AUTO_REUSE):
-                output_2, state_2 = self.cell_with_projection(tf.reshape(output_1, (self.batch_size, -1)), f, state_2)
-            # output: [batch_size, state_size]
-            output_2 = tf.reshape(output_2, (self.batch_size, self.num_station, -1))
-            y_.append(output_2)
-        y_ = tf.stack(y_)
-        y_ = tf.transpose(y_, [1, 0, 2, 3])
-        loss = 2*tf.nn.l2_loss(y-y_)
-        return y_, loss
 
 
     def build_easy_model(self, is_training=False):
@@ -92,9 +61,14 @@ class GCN_multi():
         inputs = tf.concat([x, f_all], axis=-1)
         inputs = tf.unstack(inputs, axis=0)
         #
-        labels = tf.unstack(tf.reshape(self.y, (self.batch_size, self.input_steps, -1)), axis=1)
+        l_decode = tf.transpose(tf.reshape(self.y, (self.batch_size, self.output_steps, -1)), [1,0,2])
+        f_decode = tf.tile(tf.expand_dims(f_all[-1], axis=0), (self.output_steps, 1, 1))
+        labels = tf.unstack(tf.concat([l_decode, f_decode], axis=-1), axis=0)
+        #print(labels[0].get_shape().as_list())
+        #labels = tf.unstack(tf.reshape(self.y, (self.batch_size, self.output_steps, -1)), axis=1)
         #
-        GO_SYMBOL = tf.zeros(shape=(self.batch_size, self.num_station * 3))
+        GO_SYMBOL = tf.zeros(shape=(self.batch_size, self.num_station*3+self.num_station*self.num_station))
+        #GO_SYMBOL = tf.zeros(shape=(self.batch_size, self.num_station*3))
 
         with tf.variable_scope('GCN_SEQ'):
 
@@ -109,11 +83,14 @@ class GCN_multi():
                 else:
                     # Return the prediction of the model in testing.
                     result = prev
-                result = tf.concat([result, f_all[-1]], axis=-1)
+                    result = tf.concat([result, f_all[-1]], axis=-1)
+                #print(result.get_shape().as_list())
                 #result = tf.concat([result, self.f_adj_mx], axis=-1)
                 return result
 
+            #print('encode')
             _, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
+            #print('decode')
             outputs, final_state = legacy_seq2seq.rnn_decoder(labels, enc_state, decoding_cells,
                                                               loop_function=_loop_function)
 

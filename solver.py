@@ -169,6 +169,8 @@ class ModelSolver(object):
             else:
                 num_val_batches = 0
             num_test_batches = test_loader._num_batches(self.batch_size, use_all_data=True)
+            print('number of training batches: %d' % num_train_batches)
+            print('number of test_data batches: %d' % num_test_batches)
             for e in range(self.n_epochs):
                 # ========================== train ====================
                 train_l2_loss = 0
@@ -187,6 +189,7 @@ class ModelSolver(object):
                         continue
                     #t2 = time.time()
                     #print 'load batch time: %s' % (t2-t1)
+                    #print(self.batch_size)
                     feed_dict = {self.model.x: np.array(x),
                                  self.model.f: np.array(f),
                                  self.model.y: np.array(y)
@@ -291,7 +294,7 @@ class ModelSolver(object):
                     test_loss = np.sqrt(test_l2_loss / t_count)
                     test_rmse = np.sqrt(np.sum(np.square(test_target - test_prediction)) / np.prod(test_target.shape))
                     test_rmlse = np.sqrt(np.sum(np.square(np.log(test_target) - np.log(test_prediction))) / np.prod(test_target.shape))
-                    w_text_3 = 'at epoch %d, test loss is %s, test prediction rmse/rmlse is %s/%s \n' % (e, test_loss, test_rmse, test_rmlse)
+                    w_text_3 = 'at epoch %d, test loss is %.6f, test prediction rmse/rmlse is %.6f/%.6f \n' % (e, test_loss, test_rmse, test_rmlse)
                     o_file.write(w_text_3)
                     print(w_text_1)
                     print(w_text_2)

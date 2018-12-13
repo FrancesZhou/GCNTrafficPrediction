@@ -103,7 +103,9 @@ class DCGRUCell(RNNCell):
         """
         if self.dy_adj>0 and self._input_dim is not None:
             whole_input_dim = inputs.get_shape().as_list()
+            #print(whole_input_dim)
             dy_adj_dim = whole_input_dim[-1] - self._input_dim
+            #print(dy_adj_dim)
             if dy_adj_dim>0:
                 _input, dy_adj_mx = tf.split(inputs, num_or_size_splits=[self._input_dim, dy_adj_dim], axis=-1)
                 inputs = _input

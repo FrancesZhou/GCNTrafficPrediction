@@ -247,6 +247,8 @@ class DataLoader_multi_graph():
 
     def _num_batches(self, batch_size, use_all_data=False):
         if use_all_data:
+            print(self.num_data)
+            print((self.num_data - self.input_steps - self.output_steps + 1)/batch_size)
             return math.ceil((self.num_data - self.input_steps - self.output_steps + 1)/batch_size)
         else:
             return (self.num_data - self.input_steps -self.output_steps + 1)//batch_size
