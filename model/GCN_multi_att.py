@@ -40,7 +40,7 @@ class GCN_multi_att():
         self.cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=self.max_diffusion_step,
                               num_nodes=self.num_station, num_proj=None,
                               input_dim=self.num_station*3, dy_adj=self.dy_adj,
-                              dy_filter=self.dy_filter, output_dy_adj=True,
+                              dy_filter=self.dy_filter, output_dy_adj=False,
                               output_att_context=True, att_inputs=self.att_inputs, att_hidden_dim=64,
                               activation=tf.nn.tanh,
                               reuse=tf.AUTO_REUSE, filter_type=self.filter_type)
@@ -84,8 +84,11 @@ class GCN_multi_att():
 
 
 
-            #print('encode')
+            print('encode')
             context_outputs, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
+            context_outputs = tf.unstack(context_outputs, axis=0)
+            context_outputs.insert(0, tf.zeros(shape=(self.batch_size, self.num_station*self.num_station)))
+            print(len(context_outputs))
 
             def _loop_function(prev, i):
                 if is_training:
@@ -95,11 +98,13 @@ class GCN_multi_att():
                     # Return the prediction of the model in testing.
                     result = prev
                 #print(result.get_shape().as_list())
+                #print(context_outputs[i].get_shape().as_list())
                 #result = tf.concat([result, f_all[-1]], axis=-1)
+                print(i)
                 result = tf.concat([result, context_outputs[i]], axis=-1)
                 return result
 
-            #print('decode')
+            print('decode')
             outputs, final_state = legacy_seq2seq.rnn_decoder(labels, enc_state, decoding_cells,
                                                               loop_function=_loop_function)
 

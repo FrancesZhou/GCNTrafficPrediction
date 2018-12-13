@@ -111,9 +111,9 @@ class DCGRUCell(RNNCell):
         """
         if self.dy_adj>0 and self._input_dim is not None:
             whole_input_dim = inputs.get_shape().as_list()
-            #print(whole_input_dim)
+            print(whole_input_dim)
             dy_adj_dim = whole_input_dim[-1] - self._input_dim
-            #print(dy_adj_dim)
+            print(dy_adj_dim)
             if dy_adj_dim>0:
                 _input, dy_adj_mx = tf.split(inputs, num_or_size_splits=[self._input_dim, dy_adj_dim], axis=-1)
                 inputs = _input
@@ -369,7 +369,7 @@ class DCGRUCell(RNNCell):
         #
         att_input_shape = self.att_inputs.get_shape().as_list()
         # att_input_shape: [cluster_num, num_nodes, num_nodes]
-        att_inputs = np.reshape(self.att_inputs, (att_input_shape[0], -1))
+        att_inputs = tf.reshape(self.att_inputs, [att_input_shape[0], -1])
         # att_shape: [cluster_num, att_input_dim]
         att_shape = [att_input_shape[0], att_input_shape[1]*att_input_shape[2]]
         att = tf.tile(tf.expand_dims(att_inputs, 0), [h_shape[0], 1, 1])
