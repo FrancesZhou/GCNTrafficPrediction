@@ -252,7 +252,7 @@ class ModelSolver(object):
                         t_count = num_val_batches*self.batch_size*(val_loader.input_steps * val_loader.num_station * 2)
                         val_loss = np.sqrt(val_l2_loss / t_count)
                         val_rmse = np.sqrt(np.sum(np.square(val_target-val_prediction))/np.prod(val_target.shape))
-                        val_rmlse = np.sqrt(np.sum(np.square(np.log(val_target)-np.log(val_prediction)))/np.prod(val_target.shape))
+                        val_rmlse = np.sqrt(np.sum(np.square(np.log(val_target+1)-np.log(val_prediction+1)))/np.prod(val_target.shape))
                         w_text_2 = 'at epoch %d, val loss is %s, validate prediction rmse/rmlse is %s/%s \n' % (e, val_loss, val_rmse, val_rmlse)
                         o_file.write(w_text_2)
                     else:
@@ -293,7 +293,7 @@ class ModelSolver(object):
                     t_count = num_test_batches * self.batch_size * (test_loader.input_steps * test_loader.num_station * 2)
                     test_loss = np.sqrt(test_l2_loss / t_count)
                     test_rmse = np.sqrt(np.sum(np.square(test_target - test_prediction)) / np.prod(test_target.shape))
-                    test_rmlse = np.sqrt(np.sum(np.square(np.log(test_target) - np.log(test_prediction))) / np.prod(test_target.shape))
+                    test_rmlse = np.sqrt(np.sum(np.square(np.log(test_target+1) - np.log(test_prediction+1))) / np.prod(test_target.shape))
                     w_text_3 = 'at epoch %d, test loss is %.6f, test prediction rmse/rmlse is %.6f/%.6f \n' % (e, test_loss, test_rmse, test_rmlse)
                     o_file.write(w_text_3)
                     print(w_text_1)

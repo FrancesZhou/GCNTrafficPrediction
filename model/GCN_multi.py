@@ -39,11 +39,13 @@ class GCN_multi():
                               num_nodes=self.num_station, num_proj=None,
                               input_dim=self.num_station*3, dy_adj=self.dy_adj,
                               dy_filter=self.dy_filter, output_dy_adj=True,
+                              activation=tf.nn.tanh,
                               reuse=tf.AUTO_REUSE, filter_type=self.filter_type)
         self.cell_with_projection = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=max_diffusion_step,
                                               num_nodes=self.num_station, num_proj=3,
                                               input_dim=self.num_station*3, 
                                               dy_adj=self.dy_adj, dy_filter=0, output_dy_adj=False,
+                                              activation=tf.nn.tanh,
                                               reuse=tf.AUTO_REUSE, filter_type=self.filter_type)
 
         self.x = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, 3])
@@ -96,7 +98,9 @@ class GCN_multi():
 
         outputs = tf.stack(outputs[:-1], axis=1)
         self._outputs = tf.reshape(outputs, (self.batch_size, self.input_steps, self.num_station, -1), name='outputs')
-        loss = 2*tf.nn.l2_loss(self.y - self._outputs)
+        #loss = 2*tf.nn.l2_loss(self.y - self._outputs)
+        self._outputs = tf.nn.relu(self._outputs)
+        loss = 2*tf.nn.l2_loss(tf.log(self.y + 1) - tf.log(self._outputs + 1))
         #
         # self.cells = tf.contrib.rnn.MultiRNNCell([self.cell, self.cell_with_projection], state_is_tuple=True)
         # outputs, _ = tf.contrib.rnn.static_rnn(self.cells, inputs, dtype=tf.float32)

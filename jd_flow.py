@@ -28,7 +28,7 @@ def main():
     parse.add_argument('-model', '--model', type=str, default='GCN_multi', help='model: DyST, GCN, AttGCN')
     parse.add_argument('-dynamic_adj', '--dynamic_adj', type=int, default=1,
                        help='whether to use dynamic adjacent matrix for lower feature extraction layer')
-    parse.add_argument('-dynamic_filter', '--dynamic_filter', type=int, default=1,
+    parse.add_argument('-dynamic_filter', '--dynamic_filter', type=int, default=0,
                        help='whether to use dynamic filter generate region-specific filter ')
     parse.add_argument('-att_dynamic_adj', '--att_dynamic_adj', type=int, default=1, help='whether to use dynamic adjacent matrix in attention parts')
     parse.add_argument('-model_save', '--model_save', type=str, default='gcn', help='folder name to save model')
