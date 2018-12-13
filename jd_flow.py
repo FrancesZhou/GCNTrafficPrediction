@@ -3,9 +3,11 @@ import argparse
 import numpy as np
 import tensorflow as tf
 #from gensim.models import Word2Vec
+from sklearn.cluster import KMeans
 from model.AttGCN import AttGCN
 from model.GCN import GCN
 from model.GCN_multi import GCN_multi
+from model.GCN_multi_att import GCN_multi_att
 from solver import ModelSolver
 from preprocessing import *
 from utils import *
@@ -25,7 +27,7 @@ def main():
     parse.add_argument('-input_steps', '--input_steps', type=int, default=15, help='number of input steps')
     parse.add_argument('-output_steps', '--output_steps', type=int, default=15, help='number of input steps')
     # ---------- model ----------
-    parse.add_argument('-model', '--model', type=str, default='GCN_multi', help='model: DyST, GCN, AttGCN')
+    parse.add_argument('-model', '--model', type=str, default='GCN_multi_att', help='model: DyST, GCN, AttGCN')
     parse.add_argument('-dynamic_adj', '--dynamic_adj', type=int, default=1,
                        help='whether to use dynamic adjacent matrix for lower feature extraction layer')
     parse.add_argument('-dynamic_filter', '--dynamic_filter', type=int, default=0,
@@ -34,6 +36,12 @@ def main():
     parse.add_argument('-model_save', '--model_save', type=str, default='gcn', help='folder name to save model')
     parse.add_argument('-pretrained_model', '--pretrained_model_path', type=str, default=None,
                        help='path to the pretrained model')
+    # ----------- kmeans ------------
+    parse.add_argument('-cluster_num', '--cluster_num', type=int, default=16, help="num of cluster in attention mechanism")
+    parse.add_argument('-kmeans_run_num', '--kmeans_run_num', type=int, default=5,
+                                help="times for running kmeans to cluster")
+    parse.add_argument('-att_nodes', '--att_nodes', type=int, default=64, help="num of nodes in attention layer")
+    parse.add_argument('-pre_saved_cluster', '--pre_saved_cluster', type=int, default=0, help="if use saved cluster as annotation tensors")
     # ---------- params for CNN ------------
     parse.add_argument('-num_filters', '--num_filters', type=int,
                        default=32, help='number of filters in CNN')
@@ -64,15 +72,15 @@ def main():
     split = [274-30, 30]
     data, train_data, val_data, test_data = load_npy_data(
         filename=[args.folder_name+'flow_data.npy'], split=split)
-    # data: [num, station_num, 2]
+    # data: [num, station_num, 3]
     f_data, train_f_data, val_f_data, test_f_data = load_npy_data([args.folder_name + 'trans_data.npy'], split=split)
     print(len(f_data))
-    #print('preprocess train/val/test flow data...')
-    #f_preprocessing = StandardScaler()
-    #f_preprocessing.fit(train_f_data)
-    #train_f_data = f_preprocessing.transform(train_f_data)
-    #val_f_data = f_preprocessing.transform(val_f_data)
-    #test_f_data = f_preprocessing.transform(test_f_data)
+    # f_data: [num, station_num, station_num]
+
+    model_path = os.path.join(args.output_folder_name, 'model_save', args.model_save)
+    if not os.path.exists(model_path):
+        os.makedirs(model_path)
+
     print('preprocess train/val/test data...')
     #pre_process = MinMaxNormalization01_by_axis()
     if args.if_minus_mean:
@@ -131,10 +139,28 @@ def main():
                  dy_filter=args.dynamic_filter,
                  f_adj_mx=f_adj_mx,
                  batch_size=args.batch_size)
+    if args.model == 'GCN_multi_att':
+        # --------------- kmeans -----------------
+        print('k-means to cluster...')
+        if args.pre_saved_cluster:
+            cluster_centroid = np.load(model_path + 'cluster_centroid.npy')
+        else:
+            vector_data = np.reshape(train_f_data, (train_f_data.shape[0], -1))
+            # init_vectors = vector_data[:FLAGS.cluster_num, :]
+            # cluster_centroid = init_vectors
+            kmeans = KMeans(n_clusters=args.cluster_num, init='random', n_init=args.kmeans_run_num,
+                            tol=0.00000001).fit(vector_data)
+            cluster_centroid = kmeans.cluster_centers_
+            # reshape to [cluster_num, row, col, channel]
+            cluster_centroid = np.reshape(cluster_centroid, (-1, train_f_data.shape[1], train_f_data.shape[2]))
+            np.save(model_path + 'cluster_centroid.npy', cluster_centroid)
+        model = GCN_multi_att(num_station, args.input_steps, args.output_steps,
+                              att_inputs=cluster_centroid,
+                              dy_adj=args.dynamic_adj,
+                              dy_filter=args.dynamic_filter,
+                              f_adj_mx=f_adj_mx,
+                              batch_size=args.batch_size)
     #
-    model_path = os.path.join(args.output_folder_name, 'model_save', args.model_save)
-    if not os.path.exists(model_path):
-        os.makedirs(model_path)
     #model_path = os.path.join(args.folder_name, 'model_save', args.model_save)
     solver = ModelSolver(model, train_loader, val_loader, test_loader, pre_process,
                          batch_size=args.batch_size,

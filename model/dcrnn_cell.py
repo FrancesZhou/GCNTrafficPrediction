@@ -24,6 +24,7 @@ class DCGRUCell(RNNCell):
 
     def __init__(self, num_units, adj_mx, max_diffusion_step, num_nodes, num_proj=None,
                  input_dim=None, dy_adj=1, dy_filter=0, output_dy_adj=False,
+                 output_att_context=False, att_inputs=[], att_hidden_dim=64,
                  activation=tf.nn.tanh, reuse=None, filter_type="laplacian", use_gc_for_ru=True):
         """
 
@@ -49,6 +50,9 @@ class DCGRUCell(RNNCell):
         self.filter_type = filter_type
         self.dy_filter = dy_filter
         self.output_dy_adj = output_dy_adj
+        self.output_att_context = output_att_context
+        self.att_inputs = tf.convert_to_tensor(att_inputs, dtype=tf.float32)
+        self.att_hidden_dim = att_hidden_dim
         self._num_nodes = num_nodes
         self._input_dim = input_dim
         self._num_proj = num_proj
@@ -57,6 +61,10 @@ class DCGRUCell(RNNCell):
         self._use_gc_for_ru = use_gc_for_ru
         self._supports = []
         #
+
+        self.weight_initializer = tf.contrib.layers.xavier_initializer()
+        self.const_initializer = tf.constant_initializer()
+
         if self.filter_type == "dual_random_walk":
             self._len_supports = 2
         else:
@@ -138,6 +146,8 @@ class DCGRUCell(RNNCell):
                     batch_size = inputs.get_shape()[0].value
                     output = tf.reshape(new_state, shape=(-1, self._num_units))
                     output = tf.reshape(tf.matmul(output, w), shape=(batch_size, self.output_size))
+            if self.output_att_context:
+                output = self.attention_layer(new_state, self._num_nodes*self._num_units, self.att_hidden_dim)
         if self.output_dy_adj:
             output = tf.concat([output, dy_adj_mx], axis=-1)
         return output, new_state
@@ -350,8 +360,39 @@ class DCGRUCell(RNNCell):
         # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
         #return tf.reshape(x, [batch_size, self._num_nodes * output_size])
 
-    
-    
-    
+
+    def attention_layer(self, hidden_states, hidden_dim, att_hidden_dim):
+        # hidden_states: [batch_size, hidden_dim]
+        # att_inputs: [cluster_num, num_nodes, num_nodes]
+        hidden_states = tf.reshape(hidden_states, [-1, hidden_dim])
+        h_shape = hidden_states.get_shape().as_list()
+        #
+        att_input_shape = self.att_inputs.get_shape().as_list()
+        # att_input_shape: [cluster_num, num_nodes, num_nodes]
+        att_inputs = np.reshape(self.att_inputs, (att_input_shape[0], -1))
+        # att_shape: [cluster_num, att_input_dim]
+        att_shape = [att_input_shape[0], att_input_shape[1]*att_input_shape[2]]
+        att = tf.tile(tf.expand_dims(att_inputs, 0), [h_shape[0], 1, 1])
+        # att: [batch_size, cluster_num, att_input_dim]
+        with tf.variable_scope('att_layer'):
+            with tf.variable_scope('w', reuse=tf.AUTO_REUSE):
+                w = tf.get_variable('w', [hidden_dim, att_hidden_dim], initializer=self.weight_initializer)
+                h_att = tf.matmul(hidden_states, w)
+                # h_att: [batch_size, att_hidden_dim]
+            with tf.variable_scope('att', reuse=tf.AUTO_REUSE):
+                w = tf.get_variable('w', [att_shape[-1], att_hidden_dim], initializer=self.weight_initializer)
+                att_proj = tf.matmul(tf.reshape(att, [-1, att_shape[-1]]), w)
+                att_proj = tf.reshape(att_proj, [-1, att_shape[0], att_hidden_dim])
+                # att_proj: [batch_size, cluster_num, att_hidden_dim]
+            b = tf.get_variable('b', [att_hidden_dim], initializer=self.const_initializer)
+            att_h_plus = tf.nn.relu(att_proj + tf.expand_dims(h_att, 1) + b)
+            w_att = tf.get_variable('w_att', [att_hidden_dim, 1], initializer=self.weight_initializer)
+            out_att = tf.reshape(tf.matmul(tf.reshape(att_h_plus, [-1, att_hidden_dim]), w_att), [-1, att_shape[0]])
+            # out_att: [batch_size, cluster_num]
+            alpha = tf.nn.softmax(out_att)
+            att_context = tf.reduce_sum(att*tf.expand_dims(alpha, 2), 1, name='context')
+            # att_context: [batch_size, num_nodes*num_nodes]
+            #att_context = tf.reshape(context, [-1, att_input_shape[1], att_input_shape[2]])
+            return att_context
     
     
