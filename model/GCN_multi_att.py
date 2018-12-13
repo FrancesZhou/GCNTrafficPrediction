@@ -81,7 +81,7 @@ class GCN_multi_att():
             labels.insert(0, GO_SYMBOL)
 
             # labels: (horizon+1, batch_size, num_nodes*output_dim]
-            print('encode')
+            #print('encode')
             # context_outputs, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
             # context_outputs = tf.unstack(context_outputs, axis=0)
             # context_outputs.insert(0, tf.zeros(shape=(self.batch_size, self.num_station*self.num_station)))
@@ -99,17 +99,17 @@ class GCN_multi_att():
                 #print(result.get_shape().as_list())
                 #print(context_outputs[i].get_shape().as_list())
                 #result = tf.concat([result, f_all[-1]], axis=-1)
-                print(i)
+                #print(i)
                 return result
 
-            print('decode')
+            #print('decode')
             outputs, final_state = legacy_seq2seq.rnn_decoder(labels, enc_state, decoding_cells,
                                                               loop_function=_loop_function)
 
         outputs = tf.stack(outputs[:-1], axis=1)
         self._outputs = tf.reshape(outputs, (self.batch_size, self.input_steps, self.num_station, -1), name='outputs')
-        #loss = 2*tf.nn.l2_loss(self.y - self._outputs)
         self._outputs = tf.nn.relu(self._outputs)
+        #loss = 2*tf.nn.l2_loss(self.y - self._outputs)
         loss = 2*tf.nn.l2_loss(tf.log(self.y + 1) - tf.log(self._outputs + 1))
         return self._outputs, loss
 
