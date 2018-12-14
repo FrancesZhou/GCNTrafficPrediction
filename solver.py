@@ -274,8 +274,8 @@ class ModelSolver(object):
                                      self.model.y: np.array(y)
                                      }
                         y_out, l = sess.run([y_test, loss_test], feed_dict)
-                        y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, :, :], index[:, -1] + train_loader.num_data))
-                        y = np.round(self.preprocessing.inverse_transform(y[:, -1, :, :], index[:, -1] + train_loader.num_data))
+                        y_out = self.preprocessing.inverse_transform(y_out, index + train_loader.num_data)
+                        y = self.preprocessing.inverse_transform(y, index + train_loader.num_data)
                         y = np.clip(y, 0, None)
                         y_out = np.clip(y_out, 0, None)
                         #
@@ -308,7 +308,7 @@ class ModelSolver(object):
         # build graphs
         #y_, loss = self.model.build_model()
         with tf.name_scope('Test'):
-            with tf.variable_scope('DCRNN', reuse=True):
+            with tf.variable_scope('DCRNN', reuse=tf.AUTO_REUSE):
                 y_test, loss_test = self.model.build_easy_model(is_training=False)
         gpu_options = tf.GPUOptions(allow_growth=True)
         tf.get_variable_scope().reuse_variables()
@@ -337,8 +337,8 @@ class ModelSolver(object):
                                  self.model.y: np.array(y)
                                  }
                     y_out, l = sess.run([y_test, loss_test], feed_dict)
-                    y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, :, :], index[:,-1] + self.train_data.num_data))
-                    y = np.round(self.preprocessing.inverse_transform(y[:, -1, :, :], index[:,-1] + self.train_data.num_data))
+                    y_out = self.preprocessing.inverse_transform(y_out, index + self.train_data.num_data)
+                    y = self.preprocessing.inverse_transform(y, index + self.train_data.num_data)
                     y = np.clip(y, 0, None)
                     y_out = np.clip(y_out, 0, None)
                     #

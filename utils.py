@@ -58,6 +58,22 @@ def load_npy_data(filename, split):
         test = data[split[0]:(split[0] + split[1])]
     return data, train, validate, test
 
+def load_npy_data_interval_split(filename, split):
+    if len(filename) == 2:
+        d1 = np.load(filename[0])
+        d2 = np.load(filename[1])
+        data = np.concatenate((np.expand_dims(d1, axis=-1), np.expand_dims(d2, axis=-1)), axis=-1)
+    elif len(filename) == 1:
+        data = np.load(filename[0])
+    train = data[split[0][0]:split[0][1]]
+    if len(split) > 2:
+        validate = data[split[1][0]:split[1][1]]
+        test = data[split[2][0]:split[2][1]]
+    else:
+        validate = None
+        test = data[split[1][0]:split[1][1]]
+    return data, train, validate, test
+
 def load_pkl_data(filename, split):
     data = load_pickle_rb(filename)
     train = data[0:split[0]]

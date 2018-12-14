@@ -107,7 +107,7 @@ class GCN_multi_att():
                                                               loop_function=_loop_function)
 
         outputs = tf.stack(outputs[:-1], axis=1)
-        self._outputs = tf.reshape(outputs, (self.batch_size, self.input_steps, self.num_station, -1), name='outputs')
+        self._outputs = tf.reshape(outputs, (self.batch_size, self.output_steps, self.num_station, -1), name='outputs')
         self._outputs = tf.nn.relu(self._outputs)
         #loss = 2*tf.nn.l2_loss(self.y - self._outputs)
         loss = 2*tf.nn.l2_loss(tf.log(self.y + 1) - tf.log(self._outputs + 1))

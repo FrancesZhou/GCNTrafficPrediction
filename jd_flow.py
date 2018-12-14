@@ -69,11 +69,11 @@ def main():
     # split = [3912, 480]
     # train: 20170601 - 20180228
     # test: 20180131 - 20180301
-    split = [274-30, 30]
-    data, train_data, val_data, test_data = load_npy_data(
+    split = [[0,274-1], [274-args.input_steps-args.output_steps, 274]]
+    data, train_data, val_data, test_data = load_npy_data_interval_split(
         filename=[args.folder_name+'flow_data.npy'], split=split)
     # data: [num, station_num, 3]
-    f_data, train_f_data, val_f_data, test_f_data = load_npy_data([args.folder_name + 'trans_data.npy'], split=split)
+    f_data, train_f_data, val_f_data, test_f_data = load_npy_data_interval_split([args.folder_name + 'trans_data.npy'], split=split)
     print(len(f_data))
     # f_data: [num, station_num, station_num]
 
@@ -143,6 +143,7 @@ def main():
         # --------------- kmeans -----------------
         print('k-means to cluster...')
         if args.pre_saved_cluster:
+            print('k-means restored from saved cluster centroid data.')
             cluster_centroid = np.load(model_path + 'cluster_centroid.npy')
         else:
             vector_data = np.reshape(train_f_data, (train_f_data.shape[0], -1))
