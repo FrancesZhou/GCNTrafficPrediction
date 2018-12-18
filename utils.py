@@ -42,6 +42,16 @@ def load_pickle(file):
         data = load_pickle_str2bytes(file)
     return data
 
+
+def get_subarea_index(n1, n2):
+    delta = n2 - n1
+    indices = []
+    for i in range(delta, delta+n1):
+        indices.append(np.arange(i*n2 + delta - 1, i*n2 + delta -1 + n1))
+    return np.concatenate(indices)
+
+
+
 def load_npy_data(filename, split):
     if len(filename) == 2:
         d1 = np.load(filename[0])

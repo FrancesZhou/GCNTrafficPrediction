@@ -108,44 +108,51 @@ class DataLoader_graph():
 class DataLoader_map():
     def __init__(self, d_data, f_data,
                  input_steps,
-                 input_shape,
-                 flow_format='index'):
+                 flow_format='identity'):
         self.d_data = d_data
         self.f_data = f_data
-        # d_data: [num, num_station, 2]
-        # f_data: [num, {num_station, num_station}]
+        # d_data: [num, height, width, 2]
+        # f_data: [num, height, width, nb_size*nb_size]
         self.input_steps = input_steps
-        self.input_shape = input_shape
-        self.num_data = len(self.d_data)
+        d_data_shape = self.d_data.shape
+        self.map_size = d_data_shape[1:-1]
+        self.input_dim = d_data_shape[-1]
+        self.num_data = d_data_shape[0]
+        f_data_shape = self.f_data.shape
+        self.f_input_dim = f_data_shape[-1]
         self.data_index = np.arange(self.num_data - self.input_steps)
         if flow_format == 'rowcol':
             self.get_flow_map_from_list = self.get_flow_map_from_list_rowcol
         elif flow_format == 'index':
             self.get_flow_map_from_list = self.get_flow_map_from_list_index
+        elif flow_format == 'identity':
+            self.get_flow_map_from_list = self.get_flow_map_identity
         #self.reset_data()
 
-    def get_flow_map_from_list_index(self, f_list):
-        f_map = np.zeros(self.input_shape, dtype=np.float32)
+    def get_flow_map_from_list_index(self, f_list, f_shape):
+        f_map = np.zeros(f_shape, dtype=np.float32)
         data, indices, indptr = f_list
         if len(data):
-            f_map = csr_matrix((data, indices, indptr), shape=self.input_shape, dtype=np.float32).toarray()
+            f_map = csr_matrix((data, indices, indptr), shape=f_shape, dtype=np.float32).toarray()
         return f_map
 
-    def get_flow_map_from_list_rowcol(self, f_list):
-        f_map = np.zeros(self.input_shape, dtype=np.float32)
+    def get_flow_map_from_list_rowcol(self, f_list, f_shape):
+        f_map = np.zeros(f_shape, dtype=np.float32)
         if len(f_list):
             rows, cols, values = zip(*f_list)
             f_map[rows, cols] = values
         return f_map
 
+    def get_flow_map_identity(self, f_list):
+        return f_list
 
     def next_batch_for_train(self, start, end):
         if end > self.num_data-self.input_steps:
             return None
         else:
-            # batch_x: [end-start, input_steps, num_station, 2]
-            # batch_y: [end-start, input_steps, num_station, 2]
-            # batch_f: [end-start, input_steps, num_station, num_station]
+            # batch_x: [end-start, input_steps, h,w, 2]
+            # batch_y: [end-start, input_steps, h,w, 2]
+            # batch_f: [end-start, input_steps, h,w, nb_size*nb_size]
             batch_x = []
             batch_y = []
             batch_f = []
@@ -163,9 +170,9 @@ class DataLoader_map():
         if end > self.num_data-self.input_steps:
             padding_len = end - (self.num_data-self.input_steps)
             end = self.num_data - self.input_steps
-        # batch_x: [end-start, input_steps, num_station, 2]
-        # batch_y: [end-start, output_steps, num_station, 2]
-        # batch_f: [end-start, input_steps, num_station, num_station]
+        # batch_x: [end-start, input_steps, h,w, 2]
+        # batch_y: [end-start, output_steps, h,w, 2]
+        # batch_f: [end-start, input_steps, h,w, nb_size*nb_size]
         batch_x = []
         batch_y = []
         batch_f = []
@@ -177,9 +184,9 @@ class DataLoader_map():
             batch_f.append(f_map)
             batch_index.append(np.arange(i + 1, i + self.input_steps + 1))
         if padding_len > 0:
-            batch_x = np.concatenate((np.array(batch_x), np.zeros((padding_len, self.input_steps, self.input_shape[0], self.input_shape[1], 2))), axis=0)
-            batch_y = np.concatenate((np.array(batch_y), np.zeros((padding_len, self.input_steps, self.input_shape[0], self.input_shape[1], 2))), axis=0)
-            batch_f = np.concatenate((np.array(batch_f), np.zeros((padding_len, self.input_steps, self.input_shape[0]*self.input_shape[1], self.input_shape[0]*self.input_shape[1]))), axis=0)
+            batch_x = np.concatenate((np.array(batch_x), np.zeros((padding_len, self.input_steps, self.map_size[0], self.map_size[1], self.input_dim))), axis=0)
+            batch_y = np.concatenate((np.array(batch_y), np.zeros((padding_len, self.input_steps, self.map_size[0], self.map_size[1], self.input_dim))), axis=0)
+            batch_f = np.concatenate((np.array(batch_f), np.zeros((padding_len, self.input_steps, self.map_size[0], self.map_size[1], self.f_input_dim))), axis=0)
         return batch_x, batch_f, batch_y, batch_index, padding_len
 
     def reset_data(self):
