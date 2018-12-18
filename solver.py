@@ -124,13 +124,14 @@ class ModelSolver(object):
         val_loader = self.val_data
         test_loader = self.test_data
         # build graphs
-        #y_, loss = self.model.build_model()
-        with tf.name_scope('Train'):
-            with tf.variable_scope('DCRNN', reuse=False):
-                y_, loss = self.model.build_easy_model(is_training=True)
-        with tf.name_scope('Test'):
-            with tf.variable_scope('DCRNN', reuse=True):
-                y_test, loss_test = self.model.build_easy_model(is_training=False)
+        y_, loss = self.model.build_easy_model()
+        y_test, loss_test = y_, loss
+#         with tf.name_scope('Train'):
+#             with tf.variable_scope('DCRNN', reuse=False):
+#                 y_, loss = self.model.build_easy_model(is_training=True)
+#         with tf.name_scope('Test'):
+#             with tf.variable_scope('DCRNN', reuse=True):
+#                 y_test, loss_test = self.model.build_easy_model(is_training=False)
         # train op
         with tf.name_scope('optimizer'):
             optimizer = self.optimizer(learning_rate=self.learning_rate)

@@ -34,11 +34,11 @@ class ConvLSTM():
                                     output_channels=self.num_units,
                                     kernel_shape=self.kernel_shape,
                                     input_dim=self.input_shape[-1], dy_adj=self.dy_adj, dy_filter=self.dy_filter, output_dy_adj=True)
-        cell = Conv2DLSTMCell(input_shape=(self.input_shape[0], self.input_shape[1], self.num_units),
+        cell = Conv2DLSTMCell(input_shape=[self.input_shape[0], self.input_shape[1], self.num_units],
                               output_channels=self.num_units,
                               kernel_shape=self.kernel_shape,
                               input_dim=self.input_shape[-1], dy_adj=self.dy_adj, dy_filter=self.dy_filter, output_dy_adj=True)
-        last_cell = Conv2DLSTMCell(input_shape=(self.input_shape[0], self.input_shape[1], self.num_units),
+        last_cell = Conv2DLSTMCell(input_shape=[self.input_shape[0], self.input_shape[1], self.num_units],
                                    output_channels=self.input_shape[-1],
                                    kernel_shape=self.kernel_shape,
                                    input_dim=None, dy_adj=0, dy_filter=0, output_dy_adj=False)
