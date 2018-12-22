@@ -60,7 +60,7 @@ class Dy_Conv2DGRUCell(rnn_cell_impl.RNNCell):
                  skip_connection=False,
                  forget_bias=1.0,
                  initializers=None,
-                 name="conv_lstm_cell"):
+                 name="conv_gru_cell"):
         """Construct ConvLSTMCell.
 
         Args:
@@ -128,7 +128,7 @@ class Dy_Conv2DGRUCell(rnn_cell_impl.RNNCell):
         else:
             dy_f = None
         #
-        cell, hidden = state
+        hidden = state
         new_hidden = self._conv(args=[inputs, hidden], filter_size=self._kernel_shape,
                            num_features=3 * self._output_channels, bias=self._use_bias, bias_start=0,
                            dy_f=dy_f)
