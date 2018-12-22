@@ -6,6 +6,7 @@ import tensorflow as tf
 from model.AttGCN import AttGCN
 from model.GCN import GCN
 from model.ConvLSTM import ConvLSTM
+from model.ConvGRU import ConvGRU
 from solver import ModelSolver
 from preprocessing import *
 from utils import *
@@ -113,6 +114,13 @@ def main():
 
     if args.model == 'ConvLSTM':
         model = ConvLSTM(input_shape=[map_size[0], map_size[1], input_dim], input_steps=args.input_steps,
+                         num_layers=3, num_units=32, kernel_shape=[args.kernel_size, args.kernel_size],
+                         f_input_dim=f_input_dim,
+                         dy_adj=args.dynamic_adj,
+                         dy_filter=args.dynamic_filter,
+                         batch_size=args.batch_size)
+    elif args.model == 'ConvGRU':
+        model = ConvGRU(input_shape=[map_size[0], map_size[1], input_dim], input_steps=args.input_steps,
                          num_layers=3, num_units=32, kernel_shape=[args.kernel_size, args.kernel_size],
                          f_input_dim=f_input_dim,
                          dy_adj=args.dynamic_adj,
