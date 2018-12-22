@@ -98,9 +98,9 @@ class Dy_Conv2DGRUCell(rnn_cell_impl.RNNCell):
         if self._skip_connection:
             self._total_output_channels += self._input_shape[-1]
 
-        state_size = tensor_shape.TensorShape(
-            self._input_shape[:-1] + [self._output_channels])
-        self._state_size = rnn_cell_impl.LSTMStateTuple(state_size, state_size)
+#         state_size = tensor_shape.TensorShape(
+#             self._input_shape[:-1] + [self._output_channels])
+        #self._state_size = rnn_cell_impl.LSTMStateTuple(state_size, state_size)
         self._output_size = tensor_shape.TensorShape(
             self._input_shape[:-1] + [self._total_output_channels])
         
@@ -113,7 +113,8 @@ class Dy_Conv2DGRUCell(rnn_cell_impl.RNNCell):
 
     @property
     def state_size(self):
-        return self._state_size
+        return tensor_shape.TensorShape(self._input_shape[:-1] + [self._output_channels])
+        #return self._state_size
 
     def call(self, inputs, state, scope=None):
         if self._input_dim is not None:
