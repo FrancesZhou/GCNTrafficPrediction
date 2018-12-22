@@ -72,7 +72,7 @@ def main():
     print('input dim: %d' % input_dim)
     #
     if args.dynamic_adj:
-        f_data, train_f_data, val_f_data, test_f_data = load_npy_data([args.folder_name + 'nyc_taxi_flow.pkl'], split=split)
+        f_data, train_f_data, val_f_data, test_f_data = load_npy_data([args.folder_name + 'nyc_taxi_flow.npy'], split=split)
         print(len(f_data))
         if args.dynamic_filter == 0:
             indices = get_subarea_index(args.kernel_size, 7)
@@ -113,7 +113,7 @@ def main():
 
     if args.model == 'ConvLSTM':
         model = ConvLSTM(input_shape=[map_size[0], map_size[1], input_dim], input_steps=args.input_steps,
-                         num_layers=3, num_units=64, kernel_shape=(args.kernel_size, args.kernel_size),
+                         num_layers=3, num_units=32, kernel_shape=[args.kernel_size, args.kernel_size],
                          f_input_dim=f_input_dim,
                          dy_adj=args.dynamic_adj,
                          dy_filter=args.dynamic_filter,

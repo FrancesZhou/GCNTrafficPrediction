@@ -208,7 +208,7 @@ class ModelSolver(object):
                     train_l2_loss += l
                 pbar.finish()
                 # compute counts of all regions
-                t_count = num_train_batches*self.batch_size*train_loader.input_steps*train_loader.num_station*2
+                t_count = num_train_batches*self.batch_size*train_loader.input_steps*np.prod(train_loader.d_data_shape)
                 train_loss = self.preprocessing.real_loss(np.sqrt(train_l2_loss / t_count))
                 w_text_1 = 'at epoch %d, train l2 loss is %.6f \n' % (e, train_loss)
                 o_file.write(w_text_1)
@@ -250,7 +250,7 @@ class ModelSolver(object):
                         val_prediction = np.concatenate(np.array(val_prediction), axis=0)
                         #print(val_target.shape)
                         # compute counts of all regions
-                        t_count = num_val_batches*self.batch_size*(val_loader.input_steps * val_loader.num_station * 2)
+                        t_count = num_val_batches*self.batch_size*(val_loader.input_steps * np.prod(val_loader.d_data_shape))
                         val_loss = np.sqrt(val_l2_loss / t_count)
                         val_rmse = np.sqrt(np.sum(np.square(val_target-val_prediction))/np.prod(val_target.shape))
                         val_rmlse = np.sqrt(np.sum(np.square(np.log(val_target+1)-np.log(val_prediction+1)))/np.prod(val_target.shape))
@@ -291,7 +291,7 @@ class ModelSolver(object):
                     test_prediction = np.concatenate(np.array(test_prediction), axis=0)
                     #print(test_target.shape)
                     # compute counts of all regions
-                    t_count = num_test_batches * self.batch_size * (test_loader.input_steps * test_loader.num_station * 2)
+                    t_count = num_test_batches * self.batch_size * (test_loader.input_steps * np.prod(test_loader.d_data_shape))
                     test_loss = np.sqrt(test_l2_loss / t_count)
                     test_rmse = np.sqrt(np.sum(np.square(test_target - test_prediction)) / np.prod(test_target.shape))
                     test_rmlse = np.sqrt(np.sum(np.square(np.log(test_target+1) - np.log(test_prediction+1))) / np.prod(test_target.shape))

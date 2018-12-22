@@ -6,12 +6,12 @@ import tensorflow as tf
 sys.path.append('./util/')
 from utils import *
 from model.dcrnn_cell import DCGRUCell
-from model.convlstm_cell import Conv2DLSTMCell
+from model.convlstm_cell import Dy_Conv2DLSTMCell
 
 
 class ConvLSTM():
-    def __init__(self, input_shape=(48,32,2), input_steps=6,
-                 num_layers=3, num_units=64, kernel_shape=(3,3),
+    def __init__(self, input_shape=[48,32,2], input_steps=6,
+                 num_layers=3, num_units=32, kernel_shape=[3,3],
                  f_input_dim=9,
                  dy_adj=0,
                  dy_filter=0,
@@ -29,19 +29,25 @@ class ConvLSTM():
 
         self.weight_initializer = tf.contrib.layers.xavier_initializer()
         self.const_initializer = tf.constant_initializer()
-
-        first_cell = Conv2DLSTMCell(input_shape=self.input_shape,
+        
+#         if self.dy_adj > 0:
+#             output_dy_adj = True
+#         else:
+#             output_dy_adj = False
+        
+        first_cell = Dy_Conv2DLSTMCell(input_shape=self.input_shape,
                                     output_channels=self.num_units,
                                     kernel_shape=self.kernel_shape,
-                                    input_dim=self.input_shape[-1], dy_adj=self.dy_adj, dy_filter=self.dy_filter, output_dy_adj=True)
-        cell = Conv2DLSTMCell(input_shape=[self.input_shape[0], self.input_shape[1], self.num_units],
+                                    input_dim=self.input_shape[-1], dy_adj=self.dy_adj, dy_filter=self.dy_filter, output_dy_adj=self.dy_adj)
+        cell = Dy_Conv2DLSTMCell(input_shape=[self.input_shape[0], self.input_shape[1], self.num_units],
                               output_channels=self.num_units,
                               kernel_shape=self.kernel_shape,
-                              input_dim=self.input_shape[-1], dy_adj=self.dy_adj, dy_filter=self.dy_filter, output_dy_adj=True)
-        last_cell = Conv2DLSTMCell(input_shape=[self.input_shape[0], self.input_shape[1], self.num_units],
+                              input_dim=self.num_units, dy_adj=self.dy_adj, dy_filter=self.dy_filter, output_dy_adj=self.dy_adj)
+        last_cell = Dy_Conv2DLSTMCell(input_shape=[self.input_shape[0], self.input_shape[1], self.num_units],
                                    output_channels=self.input_shape[-1],
                                    kernel_shape=self.kernel_shape,
-                                   input_dim=None, dy_adj=0, dy_filter=0, output_dy_adj=False)
+                                   input_dim=self.num_units, dy_adj=self.dy_adj, dy_filter=self.dy_filter, output_dy_adj=0)
+
         if num_layers > 2:
             cells = [first_cell] + [cell] * (num_layers-2) + [last_cell]
         else:

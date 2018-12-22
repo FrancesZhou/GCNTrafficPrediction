@@ -45,18 +45,17 @@ from tensorflow.python.ops import rnn_cell_impl
 from tensorflow.python.ops import variable_scope as vs
 
 
-class Conv2DLSTMCell(rnn_cell_impl.RNNCell):
+class Dy_Conv2DLSTMCell(rnn_cell_impl.RNNCell):
     """Convolutional LSTM recurrent network cell.
 
     https://arxiv.org/pdf/1506.04214v1.pdf
     """
 
     def __init__(self,
-                 conv_ndims,
                  input_shape,
                  output_channels,
                  kernel_shape,
-                 input_dim=None, dy_adj=0, dy_filter=0, output_dy_adj=False,
+                 input_dim=None, dy_adj=0, dy_filter=0, output_dy_adj=0,
                  use_bias=True,
                  skip_connection=False,
                  forget_bias=1.0,
@@ -80,13 +79,8 @@ class Conv2DLSTMCell(rnn_cell_impl.RNNCell):
             ValueError: If `skip_connection` is `True` and stride is different from 1
             or if `input_shape` is incompatible with `conv_ndims`.
         """
-        super(Conv2DLSTMCell, self).__init__(name=name)
+        super(Dy_Conv2DLSTMCell, self).__init__(name=name)
 
-        if conv_ndims != len(input_shape) - 1:
-            raise ValueError("Invalid input_shape {} for conv_ndims={}.".format(
-                input_shape, conv_ndims))
-
-        self._conv_ndims = conv_ndims
         self._input_shape = input_shape
         self._output_channels = output_channels
         self._kernel_shape = kernel_shape
@@ -109,6 +103,9 @@ class Conv2DLSTMCell(rnn_cell_impl.RNNCell):
         self._state_size = rnn_cell_impl.LSTMStateTuple(state_size, state_size)
         self._output_size = tensor_shape.TensorShape(
             self._input_shape[:-1] + [self._total_output_channels])
+        
+        self.weight_initializer = tf.contrib.layers.xavier_initializer()
+        self.const_initializer = tf.constant_initializer()
 
     @property
     def output_size(self):
@@ -119,11 +116,12 @@ class Conv2DLSTMCell(rnn_cell_impl.RNNCell):
         return self._state_size
 
     def call(self, inputs, state, scope=None):
-        if self.dy_adj > 0 and self._input_dim is not None:
+        if self._input_dim is not None:
             whole_input_dim = inputs.get_shape().as_list()
             dy_f_dim = whole_input_dim[-1] - self._input_dim
             if dy_f_dim > 0:
                 _input, dy_f = tf.split(inputs, num_or_size_splits=[self._input_dim, dy_f_dim], axis=-1)
+                #print('we have dynamic flow data.')
                 inputs = _input
             else:
                 dy_f = None
@@ -135,7 +133,7 @@ class Conv2DLSTMCell(rnn_cell_impl.RNNCell):
                            num_features=4 * self._output_channels, bias=self._use_bias, bias_start=0,
                            dy_f=dy_f)
         gates = array_ops.split(
-            value=new_hidden, num_or_size_splits=4, axis=self._conv_ndims + 1)
+            value=new_hidden, num_or_size_splits=4, axis=3)
 
         input_gate, new_input, forget_gate, output_gate = gates
         new_cell = math_ops.sigmoid(forget_gate + self._forget_bias) * cell
@@ -145,7 +143,9 @@ class Conv2DLSTMCell(rnn_cell_impl.RNNCell):
         if self._skip_connection:
             output = array_ops.concat([output, inputs], axis=-1)
         new_state = rnn_cell_impl.LSTMStateTuple(new_cell, output)
-        if self.output_dy_adj:
+        if self.output_dy_adj>0:
+            print(output.get_shape().as_list())
+            print(dy_f.get_shape().as_list())
             output = tf.concat([output, dy_f], axis=-1)
         return output, new_state
 
@@ -214,7 +214,7 @@ class Conv2DLSTMCell(rnn_cell_impl.RNNCell):
                  filter_size[1]))
             filter_local_expand = tf.transpose(filter_local_expand, (2, 3, 1, 0))
             # filter_local_expand: [s, s, input_channel, input_channel*s*s]
-            input_local_expanded = conv_op(inputs, filter_local_expand, strides, padding='SAME')
+            input_local_expanded = tf.nn.conv2d(inputs, filter_local_expand, strides, padding='SAME')
             # input_local_expanded: [batch_size, row, col, input_channel*s*s]
             input_local_all = tf.tile(tf.expand_dims(input_local_expanded, 3), (1, 1, 1, num_features, 1))
             # input_local_all: [batch_size, row, col, output_channel, input_channel*s*s]
@@ -228,8 +228,8 @@ class Conv2DLSTMCell(rnn_cell_impl.RNNCell):
             #
             if self.dy_filter > 0:
                 f_input_dim = dy_f.get_shape().as_list()[-1]
-                dy_gen_f = tf.nn.conv2d(dy_f, [filter_size[0], filter_size[1], f_input_dim,
-                                               filter_size[0] * filter_size[1]], strides=strides, padding='SAME')
+                dy_filter_kernel = tf.get_variable("dy_filter_kernel", filter_size + [f_input_dim, filter_size[0]*filter_size[1]], dtype=dtype, initializer=self.weight_initializer)
+                dy_gen_f = tf.nn.conv2d(dy_f, dy_filter_kernel, strides=strides, padding='SAME')
                 reshape_dy_f = tf.reshape(dy_gen_f, (-1, filter_size[0], filter_size[1]))
             else:
                 dy_f = tf.reshape(dy_f,
@@ -247,7 +247,9 @@ class Conv2DLSTMCell(rnn_cell_impl.RNNCell):
             res = tf.reshape(tf.reduce_sum(input_local_all * dy_kernel, -1),
                              (-1, self._input_shape[0], self._input_shape[1], num_features))
         else:
-            kernel = vs.get_variable("kernel", filter_size + [total_arg_size_depth, num_features], dtype=dtype)
+            kernel = tf.get_variable("kernel", filter_size + [total_arg_size_depth, num_features], 
+                                     dtype=dtype, initializer=self.weight_initializer)
+            #res = tf.nn.conv2d(inputs, kernel, strides, padding='SAME')
             res = conv_op(inputs, kernel, strides, padding='SAME')
 
         '''

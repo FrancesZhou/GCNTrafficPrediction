@@ -19,6 +19,7 @@ class DataLoader_graph():
         # f_data: [num, {num_station, num_station}]
         self.input_steps = input_steps
         self.num_station = num_station
+        self.d_data_shape = self.d_data.shape[1:]
         self.num_data = len(self.d_data)
         self.data_index = np.arange(self.num_data - self.input_steps)
         if flow_format == 'rowcol':
@@ -117,6 +118,7 @@ class DataLoader_map():
         d_data_shape = self.d_data.shape
         self.map_size = d_data_shape[1:-1]
         self.input_dim = d_data_shape[-1]
+        self.d_data_shape = d_data_shape[1:]
         self.num_data = d_data_shape[0]
         f_data_shape = self.f_data.shape
         self.f_input_dim = f_data_shape[-1]
@@ -146,6 +148,14 @@ class DataLoader_map():
     def get_flow_map_identity(self, f_list):
         return f_list
 
+    def _num_batches(self, batch_size, use_all_data=False):
+        if use_all_data:
+            #print(self.num_data)
+            #print((self.num_data - self.input_steps - self.output_steps + 1)/batch_size)
+            return math.ceil((self.num_data - self.input_steps)/batch_size)
+        else:
+            return (self.num_data - self.input_steps)//batch_size
+    
     def next_batch_for_train(self, start, end):
         if end > self.num_data-self.input_steps:
             return None
@@ -187,7 +197,7 @@ class DataLoader_map():
             batch_x = np.concatenate((np.array(batch_x), np.zeros((padding_len, self.input_steps, self.map_size[0], self.map_size[1], self.input_dim))), axis=0)
             batch_y = np.concatenate((np.array(batch_y), np.zeros((padding_len, self.input_steps, self.map_size[0], self.map_size[1], self.input_dim))), axis=0)
             batch_f = np.concatenate((np.array(batch_f), np.zeros((padding_len, self.input_steps, self.map_size[0], self.map_size[1], self.f_input_dim))), axis=0)
-        return batch_x, batch_f, batch_y, batch_index, padding_len
+        return np.array(batch_x), np.array(batch_f), np.array(batch_y), np.array(batch_index), padding_len
 
     def reset_data(self):
         np.random.shuffle(self.data_index)
