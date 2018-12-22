@@ -217,11 +217,11 @@ class Dy_Conv2DGRUCell(rnn_cell_impl.RNNCell):
                  filter_size[1]))
             filter_local_expand = tf.transpose(filter_local_expand, (2, 3, 1, 0))
             # filter_local_expand: [s, s, input_channel, input_channel*s*s]
-            input_local_expanded = tf.nn.conv2d(inputs, filter_local_expand, strides, padding='SAME')
+            filter_local_expand = tf.nn.conv2d(inputs, filter_local_expand, strides, padding='SAME')
             # input_local_expanded: [batch_size, row, col, input_channel*s*s]
-            input_local_all = tf.tile(tf.expand_dims(input_local_expanded, 3), (1, 1, 1, num_features, 1))
+            filter_local_expand = tf.tile(tf.expand_dims(filter_local_expand, 3), (1, 1, 1, num_features, 1))
             # input_local_all: [batch_size, row, col, output_channel, input_channel*s*s]
-            input_local_all = tf.reshape(input_local_all,
+            filter_local_expand = tf.reshape(filter_local_expand,
                                          (-1, num_features, total_arg_size_depth * filter_size[0] * filter_size[1]))
             # input_local_all: [batch_size*row*col, output_channel, input_channel*s*s]
             #####
@@ -247,7 +247,7 @@ class Dy_Conv2DGRUCell(rnn_cell_impl.RNNCell):
             dy_kernel = tf.reshape(dy_kernel,
                                    (-1, num_features, total_arg_size_depth * filter_size[0] * filter_size[1]))
             # dy_kernel: [batch_size*row*col, output_channel, input_channel*s*s]
-            res = tf.reshape(tf.reduce_sum(input_local_all * dy_kernel, -1),
+            res = tf.reshape(tf.reduce_sum(filter_local_expand * dy_kernel, -1),
                              (-1, self._input_shape[0], self._input_shape[1], num_features))
         else:
             kernel = tf.get_variable("kernel", filter_size + [total_arg_size_depth, num_features], 
