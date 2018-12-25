@@ -147,8 +147,8 @@ class Dy_Conv2DGRUCell(rnn_cell_impl.RNNCell):
             output = array_ops.concat([output, inputs], axis=-1)
         #new_state = rnn_cell_impl.LSTMStateTuple(new_cell, output)
         if self.output_dy_adj>0:
-            print(output.get_shape().as_list())
-            print(dy_f.get_shape().as_list())
+            #print(output.get_shape().as_list())
+            #print(dy_f.get_shape().as_list())
             output = tf.concat([output, dy_f], axis=-1)
         return output, new_state
 
