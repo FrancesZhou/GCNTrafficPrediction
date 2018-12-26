@@ -36,7 +36,7 @@ class GCN():
         self.cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=self.max_diffusion_step,
                               num_nodes=self.num_station, num_proj=None,
                               input_dim=self.num_station*2, dy_adj=self.dy_adj, 
-                              dy_filter=self.dy_filter, output_dy_adj=True,
+                              dy_filter=self.dy_filter, output_dy_adj=self.dy_adj,
                               reuse=tf.AUTO_REUSE, filter_type=self.filter_type)
         self.cell_with_projection = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=max_diffusion_step,
                                               num_nodes=self.num_station, num_proj=2,
