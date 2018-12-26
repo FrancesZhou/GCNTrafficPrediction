@@ -16,8 +16,8 @@ def main():
     parse = argparse.ArgumentParser()
     # ---------- environment setting: which gpu -------
     parse.add_argument('-gpu', '--gpu', type=str, default='0', help='which gpu to use: 0 or 1')
-    parse.add_argument('-folder_name', '--folder_name', type=str, default='datasets/citibike-data/graph-data/')
-    parse.add_argument('-output_folder_name', '--output_folder_name', type=str, default='output/citibike-data/graph-data/')
+    parse.add_argument('-folder_name', '--folder_name', type=str, default='datasets/taxi-data/graph-data/')
+    parse.add_argument('-output_folder_name', '--output_folder_name', type=str, default='output/taxi-data/graph-data/')
     parse.add_argument('-if_minus_mean', '--if_minus_mean', type=int, default=0,
                        help='use MinMaxNormalize01 or MinMaxNormalize01_minus_mean')
     # ---------- input/output settings -------
@@ -87,13 +87,13 @@ def main():
     #
     train_loader = DataLoader_graph(train_data, train_f_data,
                               args.input_steps,
-                              num_station)
+                              num_station, flow_format='identity')
     val_loader = DataLoader_graph(val_data, val_f_data,
                               args.input_steps,
-                              num_station)
+                              num_station, flow_format='identity')
     test_loader = DataLoader_graph(test_data, test_f_data,
                             args.input_steps,
-                            num_station)
+                            num_station, flow_format='identity')
     # f_adj_mx = None
     if os.path.isfile(args.folder_name + 'f_adj_mx.npy'):
         f_adj_mx = np.load(args.folder_name + 'f_adj_mx.npy')
