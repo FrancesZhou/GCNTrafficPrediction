@@ -151,8 +151,8 @@ class DCGRUCell(RNNCell):
                     output = tf.reshape(new_state, shape=(-1, self._num_units))
                     output = tf.reshape(tf.matmul(output, w), shape=(batch_size, self.output_size))
         if self.output_dy_adj:
-            print(output)
-            print(dy_adj_mx)
+            #print(output)
+            #print(dy_adj_mx)
             output = tf.concat([output, dy_adj_mx], axis=-1)
         return output, new_state
 
@@ -184,7 +184,7 @@ class DCGRUCell(RNNCell):
         d_inv = tf.where(tf.greater(d, tf.zeros_like(d)) , tf.reciprocal(d), tf.zeros_like(d))
         d_mat_inv = tf.matrix_diag(d_inv)
         random_walk_mx = tf.matmul(d_mat_inv, adj_mx)
-        return random_walk_mx
+        return tf.cast(random_walk_mx, dtype=tf.float32)
 
     def calculate_random_walk_matrix_2d(self, adj_mx):
         # adj_mx: [num_nodes, num_nodes]
@@ -270,8 +270,8 @@ class DCGRUCell(RNNCell):
                     # x0: [batch_size, num_nodes, total_arg_size]
                     # support: [batch_size, num_nodes, num_nodes]
                     #x1 = tf.sparse_tensor_dense_matmul(support, x0)
-                    print(support.dtype)
-                    print(x0.dtype)
+                    #print(support.dtype)
+                    #print(x0.dtype)
                     x1 = tf.matmul(support, x0)
                     x = self._concat(x, x1)
 

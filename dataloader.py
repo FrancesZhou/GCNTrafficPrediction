@@ -42,6 +42,14 @@ class DataLoader_graph():
             f_adj_mx = f_adj_mx + f_map
         return f_adj_mx
 
+    def _num_batches(self, batch_size, use_all_data=False):
+        if use_all_data:
+            #print(self.num_data)
+            #print((self.num_data - self.input_steps - self.output_steps + 1)/batch_size)
+            return math.ceil((self.num_data - self.input_steps)/batch_size)
+        else:
+            return (self.num_data - self.input_steps)//batch_size
+    
     def get_flow_map_from_list_index(self, f_list):
         f_map = np.zeros((self.num_station, self.num_station), dtype=np.float32)
         data, indices, indptr = f_list
@@ -77,7 +85,7 @@ class DataLoader_graph():
                 f_map = [self.get_flow_map_from_list(self.f_data[j]) for j in range(i, i + self.input_steps)]
                 batch_f.append(f_map)
                 batch_index.append(np.arange(i+1, i+self.input_steps+1))
-            return np.array(batch_x), np.array(batch_f), np.array(batch_y), np.array(batch_index)
+            return np.array(batch_x,dtype=np.float32), np.array(batch_f,dtype=np.float32), np.array(batch_y), np.array(batch_index)
 
     def next_batch_for_test(self, start, end):
         padding_len = 0
@@ -101,7 +109,7 @@ class DataLoader_graph():
             batch_x = np.concatenate((np.array(batch_x), np.zeros((padding_len, self.input_steps, self.num_station, 2))), axis=0)
             batch_y = np.concatenate((np.array(batch_y), np.zeros((padding_len, self.input_steps, self.num_station, 2))), axis=0)
             batch_f = np.concatenate((np.array(batch_f), np.zeros((padding_len, self.input_steps, self.num_station, self.num_station))), axis=0)
-        return np.array(batch_x), np.array(batch_f), np.array(batch_y), np.array(batch_index), padding_len
+        return np.array(batch_x,dtype=np.float32), np.array(batch_f,dtype=np.float32), np.array(batch_y), np.array(batch_index), padding_len
 
     def reset_data(self):
         np.random.shuffle(self.data_index)

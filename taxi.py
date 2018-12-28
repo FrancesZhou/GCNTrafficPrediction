@@ -18,8 +18,8 @@ def main():
     parse = argparse.ArgumentParser()
     # ---------- environment setting: which gpu -------
     parse.add_argument('-gpu', '--gpu', type=str, default='0', help='which gpu to use: 0 or 1')
-    parse.add_argument('-folder_name', '--folder_name', type=str, default='datasets/taxi-data/data/')
-    parse.add_argument('-output_folder_name', '--output_folder_name', type=str, default='output/taxi-data/data/')
+    parse.add_argument('-folder_name', '--folder_name', type=str, default='datasets/taxi-data/graph-data/')
+    parse.add_argument('-output_folder_name', '--output_folder_name', type=str, default='output/taxi-data/graph-data/')
     parse.add_argument('-if_minus_mean', '--if_minus_mean', type=int, default=0,
                        help='use MinMaxNormalize01 or MinMaxNormalize01_minus_mean')
     # ---------- input/output settings -------
@@ -32,9 +32,9 @@ def main():
     parse.add_argument('-model', '--model', type=str, default='ConvLSTM', help='model: ConvLSTM, GCN')
     parse.add_argument('-kernel_size', '--kernel_size', type=int, default=3, help='kernel size in convolutional operations')
     #parse.add_argument('-f_kernel_size', '--f_kernel_size', type=int, default=3, help='number of flow input channel')
-    parse.add_argument('-dynamic_adj', '--dynamic_adj', type=int, default=1,
+    parse.add_argument('-dynamic_adj', '--dynamic_adj', type=int, default=0,
                        help='whether to use dynamic adjacent matrix for lower feature extraction layer')
-    parse.add_argument('-dynamic_filter', '--dynamic_filter', type=int, default=1,
+    parse.add_argument('-dynamic_filter', '--dynamic_filter', type=int, default=0,
                        help='whether to use dynamic filter generate region-specific filter ')
     parse.add_argument('-model_save', '--model_save', type=str, default='gcn', help='folder name to save model')
     parse.add_argument('-pretrained_model', '--pretrained_model_path', type=str, default=None,
@@ -68,12 +68,16 @@ def main():
     data, train_data, val_data, test_data = load_npy_data(filename=[args.folder_name+'nyc_taxi_data.npy'], split=split)
     #
     print(data.shape)
-    h_range = np.arange(12,32)
-    w_range = np.arange(5,15)
-    data = data[:,h_range][:,:,w_range,:]
-    train_data = train_data[:,h_range][:,:, w_range,:]
-    val_data = val_data[:,h_range][:,:, w_range, :]
-    test_data = test_data[:, h_range][:,:, w_range,:]
+    data = np.reshape(data, (-1, 20,10,2))
+    train_data = np.reshape(train_data, (-1, 20, 10,2))
+    val_data = np.reshape(val_data, (-1, 20, 10,2))
+    test_data = np.reshape(test_data, (-1, 20, 10,2))
+#     h_range = np.arange(12,32)
+#     w_range = np.arange(5,15)
+#     data = data[:,h_range][:,:,w_range,:]
+#     train_data = train_data[:,h_range][:,:, w_range,:]
+#     val_data = val_data[:,h_range][:,:, w_range, :]
+#     test_data = test_data[:, h_range][:,:, w_range,:]
     #
     map_size = data.shape[1:-1]
     input_dim = data.shape[-1]
