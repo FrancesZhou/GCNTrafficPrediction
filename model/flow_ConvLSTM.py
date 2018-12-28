@@ -10,20 +10,14 @@ from model.convlstm_cell import Dy_Conv2DLSTMCell
 
 
 class flow_ConvLSTM():
-    def __init__(self, input_shape=[48,32,2], input_steps=6,
+    def __init__(self, input_shape=[20,10,2], input_steps=6,
                  num_layers=3, num_units=32, kernel_shape=[3,3],
-                 f_input_dim=9,
-                 dy_adj=0,
-                 dy_filter=0,
                  batch_size=32):
         self.input_shape = input_shape
         self.input_steps = input_steps
         self.num_layers = num_layers
         self.num_units = num_units
         self.kernel_shape = kernel_shape
-        self.f_input_dim = f_input_dim
-        self.dy_adj = dy_adj
-        self.dy_filter = dy_filter
 
         self.batch_size = batch_size
 
@@ -34,16 +28,16 @@ class flow_ConvLSTM():
         first_cell = Dy_Conv2DLSTMCell(input_shape=self.input_shape,
                                     output_channels=self.num_units,
                                     kernel_shape=self.kernel_shape,
-                                    input_dim=self.input_shape[-1], dy_adj=self.dy_adj, dy_filter=self.dy_filter, output_dy_adj=self.dy_adj)
+                                    input_dim=self.input_shape[-1], dy_adj=0, dy_filter=0, output_dy_adj=0)
         cell = Dy_Conv2DLSTMCell(input_shape=[self.input_shape[0], self.input_shape[1], self.num_units],
                               output_channels=self.num_units,
                               kernel_shape=self.kernel_shape,
-                              input_dim=self.num_units, dy_adj=self.dy_adj, dy_filter=self.dy_filter, output_dy_adj=self.dy_adj)
+                              input_dim=self.num_units, dy_adj=0, dy_filter=0, output_dy_adj=0)
         # graph - gcn
         g_first_cell = DCGRUCell(num_units=self.num_units, adj_mx=None, max_diffusion_step=2, num_nodes=self.input_shape[0]*self.input_shape[1],
-                                 input_dim=self.input_shape[-1], dy_adj=1, dy_filter=0, output_dy_adj=True)
+                                 input_dim=self.input_shape[-1], dy_adj=1, dy_filter=0, output_dy_adj=1)
         g_cell = DCGRUCell(num_units=self.num_units, adj_mx=None, max_diffusion_step=2, num_nodes=self.input_shape[0]*self.input_shape[1],
-                           input_dim=self.num_units, dy_adj=1, dy_filter=0, output_dy_adj=False)
+                           input_dim=self.num_units, dy_adj=1, dy_filter=0, output_dy_adj=0)
         # concate two blocks
 
 
@@ -58,9 +52,9 @@ class flow_ConvLSTM():
         self.cells = tf.contrib.rnn.MultiRNNCell(cells, state_is_tuple=True)
         self.g_cells = tf.contrib.rnn.MultiRNNCell(g_cells, state_is_tuple=True)
 
-        self.x = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.input_shape[0], self.input_shape[1], self.input_shape[2]])
+        self.x = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.input_shape[0]*self.input_shape[1], self.input_shape[2]])
         self.f = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.input_shape[0]*self.input_shape[1], self.input_shape[0]*self.input_shape[1]])
-        self.y = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.input_shape[0], self.input_shape[1], self.input_shape[2]])
+        self.y = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.input_shape[0]*self.input_shape[1], self.input_shape[2]])
 
 
     def build_easy_model(self):
@@ -77,7 +71,7 @@ class flow_ConvLSTM():
         outputs = tf.stack(outputs)
         #
         # graph convolutional network for flow information
-        graph_x = tf.transpose(tf.reshape(self.x, (self.batch_size, self.input_steps, self.input_shape[0]*self.input_shape[1], -1)), [1, 0, 2, 3])
+        graph_x = tf.transpose(self.x, [1, 0, 2, 3])
         graph_f_all = tf.transpose(self.f, [1, 0, 2, 3])
         g_inputs = tf.concat([graph_x, graph_f_all], axis=-1)
         g_inputs = tf.unstack(g_inputs, axis=0)
@@ -90,8 +84,8 @@ class flow_ConvLSTM():
         output_concat = tf.concat([outputs, g_outputs], axis=-1)
         final_outputs = tf.layers.dense(output_concat, units=self.input_shape[-1], activation=tf.nn.relu)
         #
-        final_outputs = tf.reshape(final_outputs, (self.input_steps, self.batch_size, self.input_shape[0], self.input_shape[1], -1))
-        final_outputs = tf.transpose(final_outputs, [1, 0, 2, 3, 4])
+        final_outputs = tf.reshape(final_outputs, (self.input_steps, self.batch_size, self.input_shape[0]*self.input_shape[1], -1))
+        final_outputs = tf.transpose(final_outputs, [1, 0, 2, 3])
         loss = 2 * tf.nn.l2_loss(self.y - final_outputs)
         return final_outputs, loss
 

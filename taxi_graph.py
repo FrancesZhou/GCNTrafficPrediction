@@ -5,6 +5,7 @@ import tensorflow as tf
 #from gensim.models import Word2Vec
 from model.AttGCN import AttGCN
 from model.GCN import GCN
+from model.flow_ConvLSTM import flow_ConvLSTM
 from solver import ModelSolver
 from preprocessing import *
 from utils import *
@@ -107,12 +108,9 @@ def main():
                     dy_filter=args.dynamic_filter,
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size)
-    if args.model == 'AttGCN':
-        model = AttGCN(num_station, args.input_steps,
-                    dy_adj=args.dynamic_adj,
-                    f_adj_mx=f_adj_mx,
-                    batch_size=args.batch_size,
-                    att_dy_adj=args.att_dynamic_adj)
+    if args.model == 'flow_ConvLSTM':
+        model = flow_ConvLSTM(input_shape=[20,10,2], input_steps=args.input_steps,
+                              batch_size=args.batch_size)
     #
     model_path = os.path.join(args.output_folder_name, 'model_save', args.model_save)
     if not os.path.exists(model_path):
