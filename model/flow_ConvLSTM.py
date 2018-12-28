@@ -11,7 +11,7 @@ from model.convlstm_cell import Dy_Conv2DLSTMCell
 
 class flow_ConvLSTM():
     def __init__(self, input_shape=[20,10,2], input_steps=6,
-                 num_layers=3, num_units=32, kernel_shape=[3,3],
+                 num_layers=2, num_units=32, kernel_shape=[3,3],
                  f_adj_mx=None,
                  batch_size=32):
         self.input_shape = input_shape
@@ -35,20 +35,24 @@ class flow_ConvLSTM():
                               kernel_shape=self.kernel_shape,
                               input_dim=self.num_units, dy_adj=0, dy_filter=0, output_dy_adj=0)
         # graph - gcn
-        g_first_cell = DCGRUCell(num_units=self.num_units, adj_mx=f_adj_mx, max_diffusion_step=2, num_nodes=self.input_shape[0]*self.input_shape[1],
+        g_first_cell = DCGRUCell(num_units=self.num_units, max_diffusion_step=2, num_nodes=self.input_shape[0]*self.input_shape[1],
                                  input_dim=self.input_shape[0]*self.input_shape[1]*self.input_shape[-1], dy_adj=1, dy_filter=0, output_dy_adj=1)
         g_cell = DCGRUCell(num_units=self.num_units, adj_mx=f_adj_mx, max_diffusion_step=2, num_nodes=self.input_shape[0]*self.input_shape[1],
-                           input_dim=self.input_shape[0]*self.input_shape[1]*self.num_units, dy_adj=1, dy_filter=0, output_dy_adj=0)
+                           input_dim=self.input_shape[0]*self.input_shape[1]*self.num_units, dy_adj=1, dy_filter=0, output_dy_adj=1)
+        g_last_cell = DCGRUCell(num_units=self.num_units, max_diffusion_step=2,
+                           num_nodes=self.input_shape[0] * self.input_shape[1],
+                           input_dim=self.input_shape[0] * self.input_shape[1] * self.num_units, dy_adj=1, dy_filter=0,
+                           output_dy_adj=0)
         # concate two blocks
 
 
 
         if num_layers > 2:
-            cells = [first_cell] + [cell] * (num_layers-2)
-            g_cells = [g_first_cell] + [g_cell] * (num_layers-2)
+            cells = [first_cell] + [cell] * (num_layers-1)
+            g_cells = [g_first_cell] + [g_cell] * (num_layers-2) + [g_last_cell]
         else:
             cells = [first_cell, cell]
-            g_cells = [g_first_cell, g_cell]
+            g_cells = [g_first_cell, g_last_cell]
 
         self.cells = tf.contrib.rnn.MultiRNNCell(cells, state_is_tuple=True)
         self.g_cells = tf.contrib.rnn.MultiRNNCell(g_cells, state_is_tuple=True)
