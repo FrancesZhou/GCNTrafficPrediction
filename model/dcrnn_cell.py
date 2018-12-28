@@ -309,7 +309,7 @@ class DCGRUCell(RNNCell):
             else:
                 x = tf.reshape(x, shape=[batch_size, self._num_nodes, input_size*num_matrices])
                 x = tf.expand_dims(x, axis=2)
-                filters = self.graph_conv(dy_adj_mx, self._num_nodes,
+                filters = self.graph_conv(inputs, self._num_nodes,
                                           output_size=input_size*output_size*num_matrices, max_degree=2)
                 filters = tf.reshape(filters, shape=[batch_size, self._num_nodes, output_size, input_size*num_matrices])
                 x = tf.multiply(x, filters)
