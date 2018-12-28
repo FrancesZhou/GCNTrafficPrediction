@@ -12,6 +12,7 @@ from model.convlstm_cell import Dy_Conv2DLSTMCell
 class flow_ConvLSTM():
     def __init__(self, input_shape=[20,10,2], input_steps=6,
                  num_layers=3, num_units=32, kernel_shape=[3,3],
+                 f_adj_mx=None,
                  batch_size=32):
         self.input_shape = input_shape
         self.input_steps = input_steps
@@ -34,10 +35,10 @@ class flow_ConvLSTM():
                               kernel_shape=self.kernel_shape,
                               input_dim=self.num_units, dy_adj=0, dy_filter=0, output_dy_adj=0)
         # graph - gcn
-        g_first_cell = DCGRUCell(num_units=self.num_units, adj_mx=None, max_diffusion_step=2, num_nodes=self.input_shape[0]*self.input_shape[1],
-                                 input_dim=self.input_shape[-1], dy_adj=1, dy_filter=0, output_dy_adj=1)
-        g_cell = DCGRUCell(num_units=self.num_units, adj_mx=None, max_diffusion_step=2, num_nodes=self.input_shape[0]*self.input_shape[1],
-                           input_dim=self.num_units, dy_adj=1, dy_filter=0, output_dy_adj=0)
+        g_first_cell = DCGRUCell(num_units=self.num_units, adj_mx=f_adj_mx, max_diffusion_step=2, num_nodes=self.input_shape[0]*self.input_shape[1],
+                                 input_dim=self.input_shape[0]*self.input_shape[1]*self.input_shape[-1], dy_adj=1, dy_filter=0, output_dy_adj=1)
+        g_cell = DCGRUCell(num_units=self.num_units, adj_mx=f_adj_mx, max_diffusion_step=2, num_nodes=self.input_shape[0]*self.input_shape[1],
+                           input_dim=self.input_shape[0]*self.input_shape[1]*self.num_units, dy_adj=1, dy_filter=0, output_dy_adj=0)
         # concate two blocks
 
 
@@ -58,12 +59,8 @@ class flow_ConvLSTM():
 
 
     def build_easy_model(self):
-        # x = tf.unstack(tf.reshape(self.x, (self.batch_size, self.input_steps, self.num_station*2)), axis=1)
-        # f_all = tf.unstack(tf.reshape(self.f, (self.batch_size, self.input_steps, self.num_station*self.num_station)), axis=1)
         x = tf.transpose(tf.reshape(self.x, (self.batch_size, self.input_steps, self.input_shape[0], self.input_shape[1], -1)), [1, 0, 2, 3, 4])
         f_all = tf.transpose(tf.reshape(self.f, (self.batch_size, self.input_steps, self.input_shape[0], self.input_shape[1], self.input_shape[0]*self.input_shape[1])), [1, 0, 2, 3, 4])
-        # x: [input_steps, batch_size, num_station*2]
-        # f_all: [input_steps, batch_size, num_station*num_station]
         inputs = tf.concat([x, f_all], axis=-1)
         inputs = tf.unstack(inputs, axis=0)
         #
@@ -71,8 +68,8 @@ class flow_ConvLSTM():
         outputs = tf.stack(outputs)
         #
         # graph convolutional network for flow information
-        graph_x = tf.transpose(self.x, [1, 0, 2, 3])
-        graph_f_all = tf.transpose(self.f, [1, 0, 2, 3])
+        graph_x = tf.transpose(tf.reshape(self.x, (self.batch_size, self.input_steps, -1)), [1, 0, 2])
+        graph_f_all = tf.transpose(tf.reshape(self.f, (self.batch_size, self.input_steps, -1)), [1, 0, 2])
         g_inputs = tf.concat([graph_x, graph_f_all], axis=-1)
         g_inputs = tf.unstack(g_inputs, axis=0)
         #

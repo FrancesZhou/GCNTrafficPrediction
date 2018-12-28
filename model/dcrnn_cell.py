@@ -25,7 +25,7 @@ class DCGRUCell(RNNCell):
     def __init__(self, num_units, adj_mx, max_diffusion_step, num_nodes, num_proj=None,
                  input_dim=None, dy_adj=1, dy_filter=0, output_dy_adj=False,
                  add_att_context=False, att_inputs=[], att_hidden_dim=64,
-                 activation=tf.nn.tanh, reuse=None, filter_type="laplacian", use_gc_for_ru=True):
+                 activation=tf.nn.tanh, reuse=None, filter_type="dual_random_walk", use_gc_for_ru=True):
         """
 
         :param num_units:
@@ -69,13 +69,13 @@ class DCGRUCell(RNNCell):
             self._len_supports = 2
         else:
             self._len_supports = 1
-        #if self.dy_adj==0 and adj_mx is not None:
-        # for fixed adjacent matrix
-        if self.filter_type == "random_walk":
-            self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
-        elif self.filter_type == "dual_random_walk":
-            self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
-            self._supports.append(tf.transpose(self.calculate_random_walk_matrix(tf.transpose(adj_mx))))
+        if self.dy_adj==0 and adj_mx is not None:
+            # for fixed adjacent matrix
+            if self.filter_type == "random_walk":
+                self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
+            elif self.filter_type == "dual_random_walk":
+                self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
+                self._supports.append(tf.transpose(self.calculate_random_walk_matrix(tf.transpose(adj_mx))))
 
 
     @staticmethod
@@ -232,6 +232,7 @@ class DCGRUCell(RNNCell):
         
         if self.dy_adj>0:
             if dy_adj_mx is not None:
+                #print('dy_adj_mx is right.')
                 dy_adj_mx = tf.reshape(dy_adj_mx, (batch_size, self._num_nodes, -1))
             else:
                 print('No dynamic flow input to generate dynamic adjacent matrix.')
@@ -258,11 +259,14 @@ class DCGRUCell(RNNCell):
                 # get dynamic adj_mx
                 if self.dy_adj==0:
                     dy_supports = self._supports
+                    #print(dy_supports)
                     x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)
                     x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
                     x = tf.expand_dims(x0, axis=0)
                 else:
+                    #print(dy_adj_mx)
                     dy_supports = self.get_supports(dy_adj_mx)
+                    #print(dy_supports)
                     x0 = x
                     x = tf.expand_dims(x0, axis=0)
                 #

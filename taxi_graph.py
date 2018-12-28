@@ -109,7 +109,7 @@ def main():
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size)
     if args.model == 'flow_ConvLSTM':
-        model = flow_ConvLSTM(input_shape=[20,10,2], input_steps=args.input_steps,
+        model = flow_ConvLSTM(input_shape=[20,10,2], input_steps=args.input_steps, f_adj_mx=f_adj_mx,
                               batch_size=args.batch_size)
     #
     model_path = os.path.join(args.output_folder_name, 'model_save', args.model_save)
