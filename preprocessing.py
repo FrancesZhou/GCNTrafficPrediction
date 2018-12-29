@@ -37,7 +37,8 @@ class MinMaxNormalization01_minus_mean(object):
         print("min: ", self._min, "max:", self._max)
         #
         d_shape = np.array(data).shape
-        self._mean = np.zeros((self.period, d_shape[1], d_shape[2]))
+        #self._mean = np.zeros((self.period, d_shape[1], d_shape[2]))
+        self._mean = np.zeros([self.period] + list(d_shape[1:]))
         index = np.arange(d_shape[0]//self.period)
         for i in range(self.period):
             self._mean[i] = np.mean(data[self.period*index+i], axis=0)
@@ -60,6 +61,11 @@ class MinMaxNormalization01_minus_mean(object):
         else:
             inverse_norm_data = 1. * data * (self._max - self._min) + self._min
         return inverse_norm_data
+    
+    def real_loss(self, loss):
+        # loss is rmse
+        return loss*(self._max - self._min)
+        #return real_loss
 
 class MinMaxNormalization01_by_axis(object):
     def __init__(self):

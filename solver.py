@@ -197,8 +197,8 @@ class ModelSolver(object):
                                  }
                     _, l, y_out = sess.run([train_op, loss, y_], feed_dict)
                     '''
-                    y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, :, :], index[:, -1]))
-                    y = np.round(self.preprocessing.inverse_transform(y[:, -1, :, :], index[:, -1]))
+                    y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1,...], index[:, -1]))
+                    y = np.round(self.preprocessing.inverse_transform(y[:, -1,...], index[:, -1]))
                     y = np.clip(y, 0, None)
                     y_out = np.clip(y_out, 0, None)
                     '''
@@ -234,8 +234,8 @@ class ModelSolver(object):
                                          self.model.y: np.array(y)
                                          }
                             y_out, l = sess.run([y_test, loss_test], feed_dict)
-                            y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, :, :], index[:, -1] + train_loader.num_data))
-                            y = np.round(self.preprocessing.inverse_transform(y[:, -1, :, :], index[:, -1] + train_loader.num_data))
+                            y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, ...], index[:, -1] + train_loader.num_data))
+                            y = np.round(self.preprocessing.inverse_transform(y[:, -1, ...], index[:, -1] + train_loader.num_data))
                             y = np.clip(y, 0, None)
                             y_out = np.clip(y_out, 0, None)
                             #
@@ -252,8 +252,8 @@ class ModelSolver(object):
                         # compute counts of all regions
                         t_count = num_val_batches*self.batch_size*(val_loader.input_steps * np.prod(val_loader.d_data_shape))
                         val_loss = np.sqrt(val_l2_loss / t_count)
-                        val_rmse = np.sqrt(np.sum(np.square(val_target-val_prediction))/np.prod(val_target.shape))
-                        val_rmlse = np.sqrt(np.sum(np.square(np.log(val_target+1)-np.log(val_prediction+1)))/np.prod(val_target.shape))
+                        val_rmse = np.sqrt(np.mean(np.square(val_target-val_prediction)))
+                        val_rmlse = np.sqrt(np.mean(np.square(np.log(val_target+1)-np.log(val_prediction+1))))
                         w_text_2 = 'at epoch %d, val loss is %s, validate prediction rmse/rmlse is %s/%s \n' % (e, val_loss, val_rmse, val_rmlse)
                         o_file.write(w_text_2)
                     else:
@@ -261,6 +261,7 @@ class ModelSolver(object):
                     # ================================ test =====================================
                     #print('test for test data...')
                     test_l2_loss = 0
+                    test_metric_loss = np.zeros(6)
                     #print('number of test_data batches: %d' % num_test_batches)
                     widgets = ['Test: ', Percentage(), ' ', Bar('*'), ' ', ETA()]
                     pbar = ProgressBar(widgets=widgets, maxval=num_test_batches).start()
@@ -275,8 +276,8 @@ class ModelSolver(object):
                                      self.model.y: np.array(y)
                                      }
                         y_out, l = sess.run([y_test, loss_test], feed_dict)
-                        y_out = self.preprocessing.inverse_transform(y_out, index + train_loader.num_data)
-                        y = self.preprocessing.inverse_transform(y, index + train_loader.num_data)
+                        y_out = self.preprocessing.inverse_transform(y_out[:,-1,...], index[:,-1] + train_loader.num_data+val_loader.num_data)
+                        y = self.preprocessing.inverse_transform(y[:,-1,...], index[:,-1] + train_loader.num_data + val_loader.num_data)
                         y = np.clip(y, 0, None)
                         y_out = np.clip(y_out, 0, None)
                         #
@@ -286,6 +287,8 @@ class ModelSolver(object):
                         test_prediction.append(y_out)
                         test_target.append(y)
                         test_l2_loss += l
+                        metric_loss = get_loss_by_batch(y, y_out)
+                        test_metric_loss += metric_loss
                     pbar.finish()
                     test_target = np.concatenate(np.array(test_target), axis=0)
                     test_prediction = np.concatenate(np.array(test_prediction), axis=0)
@@ -293,24 +296,32 @@ class ModelSolver(object):
                     # compute counts of all regions
                     t_count = num_test_batches * self.batch_size * (test_loader.input_steps * np.prod(test_loader.d_data_shape))
                     test_loss = np.sqrt(test_l2_loss / t_count)
-                    test_rmse = np.sqrt(np.sum(np.square(test_target - test_prediction)) / np.prod(test_target.shape))
-                    test_rmlse = np.sqrt(np.sum(np.square(np.log(test_target+1) - np.log(test_prediction+1))) / np.prod(test_target.shape))
+                    test_rmse = np.sqrt(np.mean(np.square(test_target - test_prediction)))
+                    test_rmlse = np.sqrt(np.mean(np.square(np.log(test_target+1) - np.log(test_prediction+1))))
                     w_text_3 = 'at epoch %d, test loss is %.6f, test prediction rmse/rmlse is %.6f/%.6f \n' % (e, test_loss, test_rmse, test_rmlse)
                     o_file.write(w_text_3)
                     print(w_text_1)
                     print(w_text_2)
                     print(w_text_3)
                     print("model-%s saved." % (e + 1))
+                    test_metric_loss = test_metric_loss / test_loader.num_data
+                    w_text = 'test in/out rmse is %.6f/%.6f \n' \
+                             'test in/out rmlse is %.6f/%.6f\n' \
+                             'test in/out er is %.6f/%.6f' % \
+                             (test_metric_loss[0], test_metric_loss[1],
+                              test_metric_loss[2], test_metric_loss[3],
+                              test_metric_loss[4], test_metric_loss[5])
+                    print(w_text)
             return np.array(test_target), np.array(test_prediction)
 
 
     def test(self):
         test_loader = self.test_data
         # build graphs
-        #y_, loss = self.model.build_model()
-        with tf.name_scope('Test'):
-            with tf.variable_scope('DCRNN', reuse=tf.AUTO_REUSE):
-                y_test, loss_test = self.model.build_easy_model(is_training=False)
+        y_, loss = self.model.build_easy_model()
+#         with tf.name_scope('Test'):
+#             with tf.variable_scope('DCRNN', reuse=tf.AUTO_REUSE):
+#                 y_test, loss_test = self.model.build_easy_model(is_training=False)
         gpu_options = tf.GPUOptions(allow_growth=True)
         tf.get_variable_scope().reuse_variables()
         with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
@@ -356,9 +367,8 @@ class ModelSolver(object):
                 # compute counts of all regions
                 t_count = num_test_batches * self.batch_size * (test_loader.input_steps * test_loader.num_station * 2)
                 test_loss = np.sqrt(test_l2_loss / t_count)
-                test_rmse = np.sqrt(np.sum(np.square(test_target - test_prediction)) / np.prod(test_target.shape))
-                test_rmlse = np.sqrt(np.sum(np.square(np.log(test_target + 1) - np.log(test_prediction + 1))) / np.prod(
-                    test_target.shape))
+                test_rmse = np.sqrt(np.mean(np.square(test_target - test_prediction)))
+                test_rmlse = np.sqrt(np.mean(np.square(np.log(test_target + 1) - np.log(test_prediction + 1))))
                 w_text_3 = 'test loss is %.6f, test prediction rmse/rmlse is %.6f/%.6f \n' % (test_loss, test_rmse, test_rmlse)
                 print(w_text_3)
                 return np.array(test_target), np.array(test_prediction)

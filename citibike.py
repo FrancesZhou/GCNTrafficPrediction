@@ -56,11 +56,11 @@ def main():
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     print('load train, test data...')
-    # split = [3912, 480]
     # train: 20140401 - 20140831
     # validate: 20140901 - 20140910
     # test: 20140911 - 20140930
-    split = [3672, 240, 480]
+    #split = [3672, 240, 480]
+    split = [3912, 480]
     data, train_data, val_data, test_data = load_npy_data(
         filename=[args.folder_name+'d_station.npy', args.folder_name+'p_station.npy'], split=split)
     # data: [num, station_num, 2]
@@ -77,8 +77,8 @@ def main():
     if args.if_minus_mean:
         pre_process = MinMaxNormalization01_minus_mean()
     else:
-        #pre_process = MinMaxNormalization01()
-        pre_process = StandardScaler()
+        pre_process = MinMaxNormalization01()
+        #pre_process = StandardScaler()
     pre_process.fit(train_data)
     train_data = pre_process.transform(train_data)
     val_data = pre_process.transform(val_data)

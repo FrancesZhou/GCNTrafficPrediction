@@ -109,7 +109,8 @@ class DataLoader_graph():
             batch_x = np.concatenate((np.array(batch_x), np.zeros((padding_len, self.input_steps, self.num_station, 2))), axis=0)
             batch_y = np.concatenate((np.array(batch_y), np.zeros((padding_len, self.input_steps, self.num_station, 2))), axis=0)
             batch_f = np.concatenate((np.array(batch_f), np.zeros((padding_len, self.input_steps, self.num_station, self.num_station))), axis=0)
-        return np.array(batch_x,dtype=np.float32), np.array(batch_f,dtype=np.float32), np.array(batch_y), np.array(batch_index), padding_len
+            batch_index = np.concatenate((np.array(batch_index), np.zeros((padding_len, self.input_steps))), axis=0)
+        return np.array(batch_x,dtype=np.float32), np.array(batch_f,dtype=np.float32), np.array(batch_y), np.array(batch_index, dtype=np.int32), padding_len
 
     def reset_data(self):
         np.random.shuffle(self.data_index)
@@ -206,7 +207,8 @@ class DataLoader_map():
             batch_x = np.concatenate((np.array(batch_x), np.zeros((padding_len, self.input_steps, self.map_size[0], self.map_size[1], self.input_dim))), axis=0)
             batch_y = np.concatenate((np.array(batch_y), np.zeros((padding_len, self.input_steps, self.map_size[0], self.map_size[1], self.input_dim))), axis=0)
             batch_f = np.concatenate((np.array(batch_f), np.zeros((padding_len, self.input_steps, self.map_size[0], self.map_size[1], self.f_input_dim))), axis=0)
-        return np.array(batch_x), np.array(batch_f), np.array(batch_y), np.array(batch_index), padding_len
+            batch_index = np.concatenate((np.array(batch_index), np.zeros((padding_len, self.input_steps))), axis=0)
+        return np.array(batch_x), np.array(batch_f), np.array(batch_y), np.array(batch_index, dtype=np.int32), padding_len
 
     def reset_data(self):
         np.random.shuffle(self.data_index)
