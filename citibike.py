@@ -81,7 +81,8 @@ def main():
         #pre_process = StandardScaler()
     pre_process.fit(train_data)
     train_data = pre_process.transform(train_data)
-    val_data = pre_process.transform(val_data)
+    if val_data is not None:
+        val_data = pre_process.transform(val_data)
     test_data = pre_process.transform(test_data)
     #
     num_station = data.shape[1]
@@ -90,9 +91,12 @@ def main():
     train_loader = DataLoader_graph(train_data, train_f_data,
                               args.input_steps,
                               num_station)
-    val_loader = DataLoader_graph(val_data, val_f_data,
-                              args.input_steps,
-                              num_station)
+    if val_data is not None:
+        val_loader = DataLoader_graph(val_data, val_f_data,
+                                  args.input_steps,
+                                  num_station)
+    else:
+        val_loader = None
     test_loader = DataLoader_graph(test_data, test_f_data,
                             args.input_steps,
                             num_station)

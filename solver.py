@@ -260,6 +260,10 @@ class ModelSolver(object):
                         w_text_2 = ''
                     # ================================ test =====================================
                     #print('test for test data...')
+                    if val_loader is not None:
+                        test_pre_index = train_loader.num_data + val_loader.num_data
+                    else:
+                        test_pre_index = train_loader.num_data
                     test_l2_loss = 0
                     test_metric_loss = np.zeros(6)
                     #print('number of test_data batches: %d' % num_test_batches)
@@ -276,8 +280,8 @@ class ModelSolver(object):
                                      self.model.y: np.array(y)
                                      }
                         y_out, l = sess.run([y_test, loss_test], feed_dict)
-                        y_out = self.preprocessing.inverse_transform(y_out[:,-1,...], index[:,-1] + train_loader.num_data+val_loader.num_data)
-                        y = self.preprocessing.inverse_transform(y[:,-1,...], index[:,-1] + train_loader.num_data + val_loader.num_data)
+                        y_out = self.preprocessing.inverse_transform(y_out[:,-1,...], index[:,-1] + test_pre_index)
+                        y = self.preprocessing.inverse_transform(y[:,-1,...], index[:,-1] + test_pre_index)
                         y = np.clip(y, 0, None)
                         y_out = np.clip(y_out, 0, None)
                         #

@@ -88,9 +88,9 @@ def main():
         f_data, train_f_data, val_f_data, test_f_data = load_npy_data([args.folder_name + 'nyc_taxi_flow.npy'], split=split)
         print(len(f_data))
         #f_data = f_data[:,h_range, w_range, :]
-        train_f_data = train_f_data[:,h_range][:,:, w_range,:]
-        val_f_data = val_f_data[:,h_range][:,:,w_range,:]
-        test_f_data = test_f_data[:,h_range][:,:,w_range,:]
+        # train_f_data = train_f_data[:,h_range][:,:, w_range,:]
+        # val_f_data = val_f_data[:,h_range][:,:,w_range,:]
+        # test_f_data = test_f_data[:,h_range][:,:,w_range,:]
         if args.dynamic_filter == 0:
             indices = get_subarea_index(args.kernel_size, 7)
             #f_data = f_data[:,:,:, indices]
