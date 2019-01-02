@@ -135,12 +135,12 @@ class ModelSolver(object):
         # train op
         with tf.name_scope('optimizer'):
             optimizer = self.optimizer(learning_rate=self.learning_rate)
-            grads = tf.gradients(loss, tf.trainable_variables())
-            grads_and_vars = list(zip(grads, tf.trainable_variables()))
-            train_op = optimizer.apply_gradients(grads_and_vars=grads_and_vars)
-            # gvs = optimizer.compute_gradients(loss)
-            # capped_gvs = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gvs if grad is not None]
-            # train_op = optimizer.apply_gradients(capped_gvs)
+            # grads = tf.gradients(loss, tf.trainable_variables())
+            # grads_and_vars = list(zip(grads, tf.trainable_variables()))
+            # train_op = optimizer.apply_gradients(grads_and_vars=grads_and_vars)
+            gvs = optimizer.compute_gradients(loss)
+            capped_gvs = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gvs if grad is not None]
+            train_op = optimizer.apply_gradients(capped_gvs)
 
         gpu_options = tf.GPUOptions(allow_growth=True)
         tf.get_variable_scope().reuse_variables()
@@ -209,7 +209,7 @@ class ModelSolver(object):
                 pbar.finish()
                 # compute counts of all regions
                 t_count = num_train_batches*self.batch_size*train_loader.input_steps*np.prod(train_loader.d_data_shape)
-                train_loss = self.preprocessing.real_loss(np.sqrt(train_l2_loss / t_count))
+                train_loss = np.sqrt(train_l2_loss / t_count)
                 w_text_1 = 'at epoch %d, train l2 loss is %.6f \n' % (e, train_loss)
                 o_file.write(w_text_1)
                 # save model
@@ -234,14 +234,14 @@ class ModelSolver(object):
                                          self.model.y: np.array(y)
                                          }
                             y_out, l = sess.run([y_test, loss_test], feed_dict)
+                            if padding_len > 0:
+                                y_out = y_out[:-padding_len]
+                                y = y[:-padding_len]
                             y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, ...], index[:, -1] + train_loader.num_data))
                             y = np.round(self.preprocessing.inverse_transform(y[:, -1, ...], index[:, -1] + train_loader.num_data))
                             y = np.clip(y, 0, None)
                             y_out = np.clip(y_out, 0, None)
                             #
-                            if padding_len > 0:
-                                y_out = y_out[:-padding_len]
-                                y = y[:-padding_len]
                             val_prediction.append(y_out)
                             val_target.append(y)
                             val_l2_loss += l
@@ -280,14 +280,14 @@ class ModelSolver(object):
                                      self.model.y: np.array(y)
                                      }
                         y_out, l = sess.run([y_test, loss_test], feed_dict)
+                        if padding_len > 0:
+                            y_out = y_out[:-padding_len]
+                            y = y[:-padding_len]
                         y_out = self.preprocessing.inverse_transform(y_out[:,-1,...], index[:,-1] + test_pre_index)
                         y = self.preprocessing.inverse_transform(y[:,-1,...], index[:,-1] + test_pre_index)
                         y = np.clip(y, 0, None)
                         y_out = np.clip(y_out, 0, None)
                         #
-                        if padding_len > 0:
-                            y_out = y_out[:-padding_len]
-                            y = y[:-padding_len]
                         test_prediction.append(y_out)
                         test_target.append(y)
                         test_l2_loss += l
