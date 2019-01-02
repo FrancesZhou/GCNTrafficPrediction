@@ -234,13 +234,15 @@ class ModelSolver(object):
                                          self.model.y: np.array(y)
                                          }
                             y_out, l = sess.run([y_test, loss_test], feed_dict)
-                            if padding_len > 0:
-                                y_out = y_out[:-padding_len]
-                                y = y[:-padding_len]
+                            #
                             y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, ...], index[:, -1] + train_loader.num_data))
                             y = np.round(self.preprocessing.inverse_transform(y[:, -1, ...], index[:, -1] + train_loader.num_data))
                             y = np.clip(y, 0, None)
                             y_out = np.clip(y_out, 0, None)
+                            #
+                            if padding_len > 0:
+                                y_out = y_out[:-padding_len]
+                                y = y[:-padding_len]
                             #
                             val_prediction.append(y_out)
                             val_target.append(y)
@@ -280,13 +282,15 @@ class ModelSolver(object):
                                      self.model.y: np.array(y)
                                      }
                         y_out, l = sess.run([y_test, loss_test], feed_dict)
-                        if padding_len > 0:
-                            y_out = y_out[:-padding_len]
-                            y = y[:-padding_len]
+                        #
                         y_out = self.preprocessing.inverse_transform(y_out[:,-1,...], index[:,-1] + test_pre_index)
                         y = self.preprocessing.inverse_transform(y[:,-1,...], index[:,-1] + test_pre_index)
                         y = np.clip(y, 0, None)
                         y_out = np.clip(y_out, 0, None)
+                        #
+                        if padding_len > 0:
+                            y_out = y_out[:-padding_len]
+                            y = y[:-padding_len]
                         #
                         test_prediction.append(y_out)
                         test_target.append(y)
