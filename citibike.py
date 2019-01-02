@@ -64,7 +64,7 @@ def main():
     data, train_data, val_data, test_data = load_npy_data(
         filename=[args.folder_name+'d_station.npy', args.folder_name+'p_station.npy'], split=split)
     # data: [num, station_num, 2]
-    f_data, train_f_data, val_f_data, test_f_data = load_npy_data(filename=[args.folder_name + 'citibike_flow_data.npy'], split=split)
+    f_data, train_f_data, val_f_data, test_f_data = load_pkl_data(args.folder_name + 'f_data_list.pkl', split=split)
     print(len(f_data))
     #print('preprocess train/val/test flow data...')
     #f_preprocessing = StandardScaler()
@@ -76,30 +76,38 @@ def main():
     #pre_process = MinMaxNormalization01_by_axis()
     if args.if_minus_mean:
         pre_process = MinMaxNormalization01_minus_mean()
+        pre_process.fit(train_data)
+        norm_mean_data = pre_process.transform(data)
+        train_data = norm_mean_data[:split[0]]
+        if len(split) > 2:
+            val_data = norm_mean_data[split[0]:split[0]+split[1]]
+            test_data = norm_mean_data[split[0]+split[1]:]
+        else:
+            test_data = norm_mean_data[split[0]:]
     else:
         pre_process = MinMaxNormalization01()
         #pre_process = StandardScaler()
-    pre_process.fit(train_data)
-    train_data = pre_process.transform(train_data)
-    if val_data is not None:
-        val_data = pre_process.transform(val_data)
-    test_data = pre_process.transform(test_data)
+        pre_process.fit(train_data)
+        train_data = pre_process.transform(train_data)
+        if val_data is not None:
+            val_data = pre_process.transform(val_data)
+        test_data = pre_process.transform(test_data)
     #
     num_station = data.shape[1]
     print('number of station: %d' % num_station)
     #
     train_loader = DataLoader_graph(train_data, train_f_data,
                               args.input_steps,
-                              num_station, flow_format='identity')
+                              num_station, flow_format='rowcol')
     if val_data is not None:
         val_loader = DataLoader_graph(val_data, val_f_data,
                                   args.input_steps,
-                                  num_station, flow_format='identity')
+                                  num_station, flow_format='rowcol')
     else:
         val_loader = None
     test_loader = DataLoader_graph(test_data, test_f_data,
                             args.input_steps,
-                            num_station, flow_format='identity')
+                            num_station, flow_format='rowcol')
     # f_adj_mx = None
     if os.path.isfile(args.folder_name + 'f_adj_mx.npy'):
         f_adj_mx = np.load(args.folder_name + 'f_adj_mx.npy')
