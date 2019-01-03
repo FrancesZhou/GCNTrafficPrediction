@@ -59,8 +59,8 @@ def main():
     # train: 20140401 - 20140831
     # validate: 20140901 - 20140910
     # test: 20140911 - 20140930
-    #split = [3672, 240, 480]
-    split = [3912, 480]
+    split = [3672, 240, 480]
+    #split = [3912, 480]
     data, train_data, val_data, test_data = load_npy_data(
         filename=[args.folder_name+'d_station.npy', args.folder_name+'p_station.npy'], split=split)
     # data: [num, station_num, 2]
