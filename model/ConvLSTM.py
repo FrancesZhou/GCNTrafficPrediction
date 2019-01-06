@@ -10,7 +10,7 @@ from model.convlstm_cell import Dy_Conv2DLSTMCell
 
 
 class ConvLSTM():
-    def __init__(self, input_shape=[48,32,2], input_steps=6,
+    def __init__(self, input_shape=[20,10,2], input_steps=6,
                  num_layers=3, num_units=32, kernel_shape=[3,3],
                  f_input_dim=9,
                  dy_adj=0,
