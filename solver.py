@@ -228,15 +228,15 @@ class ModelSolver(object):
                         val_target = []
                         for i in range(num_val_batches):
                             pbar.update(i)
-                            x, f, y, index, padding_len = val_loader.next_batch_for_test(i * self.batch_size,(i + 1) * self.batch_size)
+                            x, f, y, _, padding_len = val_loader.next_batch_for_test(i * self.batch_size,(i + 1) * self.batch_size)
                             feed_dict = {self.model.x: np.array(x),
                                          self.model.f: np.array(f),
                                          self.model.y: np.array(y)
                                          }
                             y_out, l = sess.run([y_test, loss_test], feed_dict)
                             #
-                            y_out = np.round(self.preprocessing.inverse_transform(y_out[:, -1, ...], index[:, -1] + train_loader.num_data))
-                            y = np.round(self.preprocessing.inverse_transform(y[:, -1, ...], index[:, -1] + train_loader.num_data))
+                            y_out = self.preprocessing.inverse_transform(y_out[:, -1, ...])
+                            y = self.preprocessing.inverse_transform(y[:, -1, ...])
                             y = np.clip(y, 0, None)
                             y_out = np.clip(y_out, 0, None)
                             #
@@ -261,13 +261,14 @@ class ModelSolver(object):
                     else:
                         w_text_2 = ''
                     # ================================ test =====================================
-                    #print('test for test data...')
-                    if val_loader is not None:
-                        test_pre_index = train_loader.num_data + val_loader.num_data
-                    else:
-                        test_pre_index = train_loader.num_data
+                    # print('test for test data...')
                     test_l2_loss = 0
-                    test_metric_loss = np.zeros(6)
+                    # if val_loader is not None:
+                    #     test_pre_index = train_loader.num_data + val_loader.num_data
+                    # else:
+                    #     test_pre_index = train_loader.num_data
+                    #
+                    # test_metric_loss = np.zeros(6)
                     #print('number of test_data batches: %d' % num_test_batches)
                     widgets = ['Test: ', Percentage(), ' ', Bar('*'), ' ', ETA()]
                     pbar = ProgressBar(widgets=widgets, maxval=num_test_batches).start()
@@ -275,16 +276,15 @@ class ModelSolver(object):
                     test_target = []
                     for i in range(num_test_batches):
                         pbar.update(i)
-                        x, f, y, index, padding_len = test_loader.next_batch_for_test(i * self.batch_size,
-                                                                                         (i + 1) * self.batch_size)
+                        x, f, y, _, padding_len = test_loader.next_batch_for_test(i * self.batch_size, (i + 1) * self.batch_size)
                         feed_dict = {self.model.x: np.array(x),
                                      self.model.f: np.array(f),
                                      self.model.y: np.array(y)
                                      }
                         y_out, l = sess.run([y_test, loss_test], feed_dict)
                         #
-                        y_out = self.preprocessing.inverse_transform(y_out[:,-1,...], index[:,-1] + test_pre_index)
-                        y = self.preprocessing.inverse_transform(y[:,-1,...], index[:,-1] + test_pre_index)
+                        y_out = self.preprocessing.inverse_transform(y_out[:,-1,...])
+                        y = self.preprocessing.inverse_transform(y[:,-1,...])
                         y = np.clip(y, 0, None)
                         y_out = np.clip(y_out, 0, None)
                         #
@@ -295,8 +295,8 @@ class ModelSolver(object):
                         test_prediction.append(y_out)
                         test_target.append(y)
                         test_l2_loss += l
-                        metric_loss = get_loss_by_batch(y, y_out)
-                        test_metric_loss += metric_loss
+                        #metric_loss = get_loss_by_batch(y, y_out)
+                        #test_metric_loss += metric_loss
                     pbar.finish()
                     test_target = np.concatenate(np.array(test_target), axis=0)
                     test_prediction = np.concatenate(np.array(test_prediction), axis=0)
@@ -312,14 +312,14 @@ class ModelSolver(object):
                     print(w_text_2)
                     print(w_text_3)
                     print("model-%s saved." % (e + 1))
-                    test_metric_loss = test_metric_loss / test_loader.num_data
-                    w_text = 'test in/out rmse is %.6f/%.6f \n' \
-                             'test in/out rmlse is %.6f/%.6f\n' \
-                             'test in/out er is %.6f/%.6f' % \
-                             (test_metric_loss[0], test_metric_loss[1],
-                              test_metric_loss[2], test_metric_loss[3],
-                              test_metric_loss[4], test_metric_loss[5])
-                    print(w_text)
+                    # test_metric_loss = test_metric_loss / test_loader.num_data
+                    # w_text = 'test in/out rmse is %.6f/%.6f \n' \
+                    #          'test in/out rmlse is %.6f/%.6f\n' \
+                    #          'test in/out er is %.6f/%.6f' % \
+                    #          (test_metric_loss[0], test_metric_loss[1],
+                    #           test_metric_loss[2], test_metric_loss[3],
+                    #           test_metric_loss[4], test_metric_loss[5])
+                    # print(w_text)
             return np.array(test_target), np.array(test_prediction)
 
 

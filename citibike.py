@@ -19,8 +19,6 @@ def main():
     parse.add_argument('-gpu', '--gpu', type=str, default='0', help='which gpu to use: 0 or 1')
     parse.add_argument('-folder_name', '--folder_name', type=str, default='datasets/citibike-data/data/')
     parse.add_argument('-output_folder_name', '--output_folder_name', type=str, default='output/citibike-data/data/')
-    parse.add_argument('-if_minus_mean', '--if_minus_mean', type=int, default=0,
-                       help='use MinMaxNormalize01 or MinMaxNormalize01_minus_mean')
     # ---------- input/output settings -------
     parse.add_argument('-input_steps', '--input_steps', type=int, default=6,
                        help='number of input steps')
@@ -76,25 +74,13 @@ def main():
         val_f_data = f_preprocessing.transform(val_f_data)
     test_f_data = f_preprocessing.transform(test_f_data)
     print('preprocess train/val/test data...')
-    #pre_process = MinMaxNormalization01_by_axis()
-    if args.if_minus_mean:
-        pre_process = MinMaxNormalization01_minus_mean()
-        pre_process.fit(train_data)
-        norm_mean_data = pre_process.transform(data)
-        train_data = norm_mean_data[:split[0]]
-        if len(split) > 2:
-            val_data = norm_mean_data[split[0]:split[0]+split[1]]
-            test_data = norm_mean_data[split[0]+split[1]:]
-        else:
-            test_data = norm_mean_data[split[0]:]
-    else:
-        pre_process = MinMaxNormalization01()
-        #pre_process = StandardScaler()
-        pre_process.fit(train_data)
-        train_data = pre_process.transform(train_data)
-        if val_data is not None:
-            val_data = pre_process.transform(val_data)
-        test_data = pre_process.transform(test_data)
+    pre_process = MinMaxNormalization01()
+    #pre_process = StandardScaler()
+    pre_process.fit(train_data)
+    train_data = pre_process.transform(train_data)
+    if val_data is not None:
+        val_data = pre_process.transform(val_data)
+    test_data = pre_process.transform(test_data)
     #
     num_station = data.shape[1]
     print('number of station: %d' % num_station)

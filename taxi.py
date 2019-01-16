@@ -20,8 +20,6 @@ def main():
     parse.add_argument('-gpu', '--gpu', type=str, default='0', help='which gpu to use: 0 or 1')
     parse.add_argument('-folder_name', '--folder_name', type=str, default='datasets/taxi-data/graph-data/')
     parse.add_argument('-output_folder_name', '--output_folder_name', type=str, default='output/taxi-data/graph-data/')
-    parse.add_argument('-if_minus_mean', '--if_minus_mean', type=int, default=0,
-                       help='use MinMaxNormalize01 or MinMaxNormalize01_minus_mean')
     # ---------- input/output settings -------
     parse.add_argument('-input_steps', '--input_steps', type=int, default=6,
                        help='number of input steps')
@@ -111,12 +109,8 @@ def main():
         test_f_data = np.zeros((split[2], map_size[0], map_size[1], args.kernel_size * args.kernel_size), dtype=np.float32)
     f_input_dim = train_f_data.shape[-1]
     print('preprocess train/val/test data...')
-    #pre_process = MinMaxNormalization01_by_axis()
-    if args.if_minus_mean:
-        pre_process = MinMaxNormalization01_minus_mean()
-    else:
-        pre_process = MinMaxNormalization01()
-        #pre_process = StandardScaler()
+    pre_process = MinMaxNormalization01()
+    #pre_process = StandardScaler()
     pre_process.fit(train_data)
     train_data = pre_process.transform(train_data)
     val_data = pre_process.transform(val_data)
