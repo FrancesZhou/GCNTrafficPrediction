@@ -67,6 +67,7 @@ def main():
     split = [11640, 744, 720]
     data, train_data, val_data, test_data = load_npy_data(filename=[args.folder_name+'nyc_taxi_data.npy'], split=split)
     #
+    # data: [num, weight, height, 2]
     print(data.shape)
     data = np.reshape(data, (-1, 20,10,2))
     train_data = np.reshape(train_data, (-1, 20, 10,2))
