@@ -11,14 +11,13 @@ import random
 class DataLoader_graph():
     def __init__(self, d_data, f_data,
                  input_steps,
-                 num_station,
                  flow_format='identity'):
         self.d_data = d_data
         self.f_data = f_data
         # d_data: [num, num_station, 2]
         # f_data: [num, {num_station, num_station}]
         self.input_steps = input_steps
-        self.num_station = num_station
+        self.num_station = np.prod(self.d_data.shape[1:-1])
         self.d_data_shape = self.d_data.shape[1:]
         self.num_data = len(self.d_data)
         self.data_index = np.arange(self.num_data - self.input_steps)

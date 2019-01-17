@@ -25,12 +25,13 @@ def main():
                        help='number of input steps')
     # ---------- model ----------
     parse.add_argument('-model', '--model', type=str, default='GCN', help='model: GCN, ConvLSTM, flow_ConvLSTM')
+    parse.add_argument('-kernel_size', '--kernel_size', type=int, default=3, help='kernel size in convolutional operations')
     #
     parse.add_argument('-dynamic_adj', '--dynamic_adj', type=int, default=1,
                        help='whether to use dynamic adjacent matrix for lower feature extraction layer')
-    parse.add_argument('-dynamic_filter', '--dynamic_filter', type=int, default=1,
+    parse.add_argument('-dynamic_filter', '--dynamic_filter', type=int, default=0,
                        help='whether to use dynamic filter generate region-specific filter ')
-    parse.add_argument('-att_dynamic_adj', '--att_dynamic_adj', type=int, default=1, help='whether to use dynamic adjacent matrix in attention parts')
+    parse.add_argument('-att_dynamic_adj', '--att_dynamic_adj', type=int, default=0, help='whether to use dynamic adjacent matrix in attention parts')
     #
     parse.add_argument('-model_save', '--model_save', type=str, default='gcn', help='folder name to save model')
     parse.add_argument('-pretrained_model', '--pretrained_model_path', type=str, default=None,
@@ -102,14 +103,11 @@ def main():
     print('number of station: %d' % num_station)
     #
     train_loader = dataloader(train_data, train_f_data,
-                              args.input_steps,
-                              num_station, flow_format='identity')
+                              args.input_steps, flow_format='identity')
     val_loader = dataloader(val_data, val_f_data,
-                              args.input_steps,
-                              num_station, flow_format='identity')
+                              args.input_steps, flow_format='identity')
     test_loader = dataloader(test_data, test_f_data,
-                            args.input_steps,
-                            num_station, flow_format='identity')
+                            args.input_steps, flow_format='identity')
     # f_adj_mx = None
     if os.path.isfile(args.folder_name + 'f_adj_mx.npy'):
         f_adj_mx = np.load(args.folder_name + 'f_adj_mx.npy')
