@@ -12,7 +12,7 @@ class DataLoader_graph():
     def __init__(self, d_data, f_data,
                  input_steps,
                  num_station,
-                 flow_format='index'):
+                 flow_format='identity'):
         self.d_data = d_data
         self.f_data = f_data
         # d_data: [num, num_station, 2]

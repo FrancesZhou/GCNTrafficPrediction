@@ -5,6 +5,7 @@ import tensorflow as tf
 #from gensim.models import Word2Vec
 from model.AttGCN import AttGCN
 from model.GCN import GCN
+from model.ConvLSTM import ConvLSTM
 from model.flow_ConvLSTM import flow_ConvLSTM
 from solver import ModelSolver
 from preprocessing import *
@@ -19,18 +20,18 @@ def main():
     parse.add_argument('-gpu', '--gpu', type=str, default='0', help='which gpu to use: 0 or 1')
     parse.add_argument('-folder_name', '--folder_name', type=str, default='datasets/taxi-data/graph-data/')
     parse.add_argument('-output_folder_name', '--output_folder_name', type=str, default='output/taxi-data/graph-data/')
-    parse.add_argument('-if_minus_mean', '--if_minus_mean', type=int, default=0,
-                       help='use MinMaxNormalize01 or MinMaxNormalize01_minus_mean')
     # ---------- input/output settings -------
     parse.add_argument('-input_steps', '--input_steps', type=int, default=6,
                        help='number of input steps')
     # ---------- model ----------
-    parse.add_argument('-model', '--model', type=str, default='GCN', help='model: DyST, GCN, AttGCN')
+    parse.add_argument('-model', '--model', type=str, default='GCN', help='model: GCN, ConvLSTM, flow_ConvLSTM')
+    #
     parse.add_argument('-dynamic_adj', '--dynamic_adj', type=int, default=1,
                        help='whether to use dynamic adjacent matrix for lower feature extraction layer')
     parse.add_argument('-dynamic_filter', '--dynamic_filter', type=int, default=1,
                        help='whether to use dynamic filter generate region-specific filter ')
     parse.add_argument('-att_dynamic_adj', '--att_dynamic_adj', type=int, default=1, help='whether to use dynamic adjacent matrix in attention parts')
+    #
     parse.add_argument('-model_save', '--model_save', type=str, default='gcn', help='folder name to save model')
     parse.add_argument('-pretrained_model', '--pretrained_model_path', type=str, default=None,
                        help='path to the pretrained model')
@@ -62,6 +63,24 @@ def main():
     split = [11640, 744, 720]
     data, train_data, val_data, test_data = load_npy_data(filename=[args.folder_name + 'nyc_taxi_data.npy'], split=split)
     # data: [num, station_num, 2]
+    print(data.shape)
+    #
+    if 'ConvLSTM' == args.model:
+        data = np.reshape(data, (-1, 20, 10, 2))
+        train_data = np.reshape(train_data, (-1, 20, 10, 2))
+        val_data = np.reshape(val_data, (-1, 20, 10, 2))
+        test_data = np.reshape(test_data, (-1, 20, 10, 2))
+        # data: [num, height, width, 2]
+        print(data.shape)
+        #
+        dataloader = DataLoader_map
+    else:
+        dataloader = DataLoader_graph
+    #
+    map_size = data.shape[1:-1]
+    input_dim = data.shape[-1]
+    num_station = np.prod(data.shape[1:-1])
+    #
     f_data, train_f_data, val_f_data, test_f_data = load_npy_data([args.folder_name + 'nyc_taxi_flow_in.npy'], split=split)
     print(len(f_data))
     print('preprocess train/val/test flow data...')
@@ -72,27 +91,23 @@ def main():
     val_f_data = f_preprocessing.transform(val_f_data)
     test_f_data = f_preprocessing.transform(test_f_data)
     print('preprocess train/val/test data...')
-    #pre_process = MinMaxNormalization01_by_axis()
-    if args.if_minus_mean:
-        pre_process = MinMaxNormalization01_minus_mean()
-    else:
-        pre_process = MinMaxNormalization01()
-        #pre_process = StandardScaler()
+    # pre_process = StandardScaler()
+    pre_process = MinMaxNormalization01()
     pre_process.fit(train_data)
     train_data = pre_process.transform(train_data)
     val_data = pre_process.transform(val_data)
     test_data = pre_process.transform(test_data)
     #
-    num_station = data.shape[1]
+
     print('number of station: %d' % num_station)
     #
-    train_loader = DataLoader_graph(train_data, train_f_data,
+    train_loader = dataloader(train_data, train_f_data,
                               args.input_steps,
                               num_station, flow_format='identity')
-    val_loader = DataLoader_graph(val_data, val_f_data,
+    val_loader = dataloader(val_data, val_f_data,
                               args.input_steps,
                               num_station, flow_format='identity')
-    test_loader = DataLoader_graph(test_data, test_f_data,
+    test_loader = dataloader(test_data, test_f_data,
                             args.input_steps,
                             num_station, flow_format='identity')
     # f_adj_mx = None
@@ -108,8 +123,13 @@ def main():
                     dy_filter=args.dynamic_filter,
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size)
+    if args.model == 'ConvLSTM':
+        model = ConvLSTM(input_shape=[map_size[0], map_size[1], input_dim], input_steps=args.input_steps,
+                         num_layers=3, num_units=32, kernel_shape=[args.kernel_size, args.kernel_size],
+                         batch_size=args.batch_size)
     if args.model == 'flow_ConvLSTM':
-        model = flow_ConvLSTM(input_shape=[20,10,2], input_steps=args.input_steps, f_adj_mx=f_adj_mx,
+        model = flow_ConvLSTM(input_shape=[map_size[0],map_size[1], input_dim], input_steps=args.input_steps,
+                              f_adj_mx=f_adj_mx,
                               batch_size=args.batch_size)
     #
     model_path = os.path.join(args.output_folder_name, 'model_save', args.model_save)
