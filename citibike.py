@@ -24,6 +24,7 @@ def main():
                        help='number of input steps')
     # ---------- model ----------
     parse.add_argument('-model', '--model', type=str, default='GCN', help='model: DyST, GCN, AttGCN')
+    parse.add_argument('-num_units', '--num_units', type=int, default=64, help='dim of hidden states')
     parse.add_argument('-dynamic_adj', '--dynamic_adj', type=int, default=1,
                        help='whether to use dynamic adjacent matrix for lower feature extraction layer')
     parse.add_argument('-dynamic_filter', '--dynamic_filter', type=int, default=1,
@@ -102,13 +103,13 @@ def main():
         np.save(args.folder_name + 'f_adj_mx.npy', f_adj_mx)
 
     if args.model == 'GCN':
-        model = GCN(num_station, args.input_steps,
+        model = GCN(num_station, args.input_steps, num_units=args.num_units,
                     dy_adj=args.dynamic_adj,
                     dy_filter=args.dynamic_filter,
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size)
     if args.model == 'flow_GCN':
-        model = flow_GCN(num_station, args.input_steps, num_layers=2, num_units=32,
+        model = flow_GCN(num_station, args.input_steps, num_layers=2, num_units=args.num_units,
                          f_adj_mx=f_adj_mx, batch_size=args.batch_size)
     #
     model_path = os.path.join(args.output_folder_name, 'model_save', args.model_save)

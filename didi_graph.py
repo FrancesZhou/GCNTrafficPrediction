@@ -83,7 +83,7 @@ def main():
     input_dim = data.shape[-1]
     num_station = np.prod(data.shape[1:-1])
     #
-    f_data, train_f_data, val_f_data, test_f_data = load_npy_data([args.folder_name + 'nyc_taxi_flow_in.npy'], split=split)
+    f_data, train_f_data, val_f_data, test_f_data = load_npy_data([args.folder_name + 'cd_didi_flow_in.npy'], split=split)
     print(len(f_data))
     print('preprocess train/val/test flow data...')
     #f_preprocessing = StandardScaler()
