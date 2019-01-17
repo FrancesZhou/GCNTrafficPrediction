@@ -18,7 +18,7 @@ class DataLoader_graph():
         # f_data: [num, {num_station, num_station}]
         self.input_steps = input_steps
         self.num_station = np.prod(self.d_data.shape[1:-1])
-        self.d_data_shape = self.d_data.shape[1:]
+        #self.d_data_shape = self.d_data.shape[1:]
         self.num_data = len(self.d_data)
         self.data_index = np.arange(self.num_data - self.input_steps)
         if flow_format == 'rowcol':
@@ -122,15 +122,16 @@ class DataLoader_map():
         self.d_data = d_data
         self.f_data = f_data
         # d_data: [num, height, width, 2]
-        # f_data: [num, height, width, nb_size*nb_size]
+        # f_data: [num, height*width, height*width]
         self.input_steps = input_steps
+        #
         d_data_shape = self.d_data.shape
         self.map_size = d_data_shape[1:-1]
         self.input_dim = d_data_shape[-1]
-        self.d_data_shape = d_data_shape[1:]
+        #self.d_data_shape = d_data_shape[1:]
         self.num_data = d_data_shape[0]
-        f_data_shape = self.f_data.shape
-        self.f_input_dim = f_data_shape[-1]
+        #
+        self.f_data_shape = self.f_data.shape
         self.data_index = np.arange(self.num_data - self.input_steps)
         if flow_format == 'rowcol':
             self.get_flow_map_from_list = self.get_flow_map_from_list_rowcol
@@ -205,7 +206,7 @@ class DataLoader_map():
         if padding_len > 0:
             batch_x = np.concatenate((np.array(batch_x), np.zeros((padding_len, self.input_steps, self.map_size[0], self.map_size[1], self.input_dim))), axis=0)
             batch_y = np.concatenate((np.array(batch_y), np.zeros((padding_len, self.input_steps, self.map_size[0], self.map_size[1], self.input_dim))), axis=0)
-            batch_f = np.concatenate((np.array(batch_f), np.zeros((padding_len, self.input_steps, self.map_size[0], self.map_size[1], self.f_input_dim))), axis=0)
+            batch_f = np.concatenate((np.array(batch_f), np.zeros((padding_len, self.input_steps, self.f_data_shape[1], self.f_data_shape[-1]))), axis=0)
             batch_index = np.concatenate((np.array(batch_index), np.zeros((padding_len, self.input_steps))), axis=0)
         return np.array(batch_x), np.array(batch_f), np.array(batch_y), np.array(batch_index, dtype=np.int32), padding_len
 
