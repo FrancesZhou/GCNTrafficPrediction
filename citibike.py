@@ -86,17 +86,14 @@ def main():
     print('number of station: %d' % num_station)
     #
     train_loader = DataLoader_graph(train_data, train_f_data,
-                              args.input_steps,
-                              num_station, flow_format='identity')
+                              args.input_steps, flow_format='identity')
     if val_data is not None:
         val_loader = DataLoader_graph(val_data, val_f_data,
-                                  args.input_steps,
-                                  num_station, flow_format='identity')
+                                  args.input_steps, flow_format='identity')
     else:
         val_loader = None
     test_loader = DataLoader_graph(test_data, test_f_data,
-                            args.input_steps,
-                            num_station, flow_format='identity')
+                            args.input_steps, flow_format='identity')
     # f_adj_mx = None
     if os.path.isfile(args.folder_name + 'f_adj_mx.npy'):
         f_adj_mx = np.load(args.folder_name + 'f_adj_mx.npy')
