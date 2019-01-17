@@ -18,7 +18,7 @@ class DataLoader_graph():
         # f_data: [num, {num_station, num_station}]
         self.input_steps = input_steps
         self.num_station = np.prod(self.d_data.shape[1:-1])
-        #self.d_data_shape = self.d_data.shape[1:]
+        self.d_data_shape = self.d_data.shape[1:]
         self.num_data = len(self.d_data)
         self.data_index = np.arange(self.num_data - self.input_steps)
         if flow_format == 'rowcol':
@@ -128,7 +128,7 @@ class DataLoader_map():
         d_data_shape = self.d_data.shape
         self.map_size = d_data_shape[1:-1]
         self.input_dim = d_data_shape[-1]
-        #self.d_data_shape = d_data_shape[1:]
+        self.d_data_shape = d_data_shape[1:]
         self.num_data = d_data_shape[0]
         #
         self.f_data_shape = self.f_data.shape

@@ -126,7 +126,7 @@ def main():
                          num_layers=3, num_units=32, kernel_shape=[args.kernel_size, args.kernel_size],
                          batch_size=args.batch_size)
     if args.model == 'flow_ConvLSTM':
-        model = flow_ConvLSTM(input_shape=[map_size[0],map_size[1], input_dim], input_steps=args.input_steps,
+        model = flow_ConvLSTM(input_shape=[20, 10, input_dim], input_steps=args.input_steps,
                               f_adj_mx=f_adj_mx,
                               batch_size=args.batch_size)
     #
