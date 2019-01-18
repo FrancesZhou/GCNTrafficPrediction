@@ -25,11 +25,11 @@ def main():
     # ---------- model ----------
     parse.add_argument('-model', '--model', type=str, default='GCN', help='model: DyST, GCN, AttGCN')
     parse.add_argument('-num_units', '--num_units', type=int, default=64, help='dim of hidden states')
-    parse.add_argument('-dynamic_adj', '--dynamic_adj', type=int, default=1,
+    parse.add_argument('-dy_adj', '--dy_adj', type=int, default=1,
                        help='whether to use dynamic adjacent matrix for lower feature extraction layer')
-    parse.add_argument('-dynamic_filter', '--dynamic_filter', type=int, default=1,
+    parse.add_argument('-dy_filter', '--dy_filter', type=int, default=0,
                        help='whether to use dynamic filter generate region-specific filter ')
-    parse.add_argument('-att_dynamic_adj', '--att_dynamic_adj', type=int, default=1, help='whether to use dynamic adjacent matrix in attention parts')
+    #parse.add_argument('-att_dynamic_adj', '--att_dynamic_adj', type=int, default=1, help='whether to use dynamic adjacent matrix in attention parts')
     parse.add_argument('-model_save', '--model_save', type=str, default='gcn', help='folder name to save model')
     parse.add_argument('-pretrained_model', '--pretrained_model_path', type=str, default=None,
                        help='path to the pretrained model')
@@ -104,8 +104,8 @@ def main():
 
     if args.model == 'GCN':
         model = GCN(num_station, args.input_steps, num_units=args.num_units,
-                    dy_adj=args.dynamic_adj,
-                    dy_filter=args.dynamic_filter,
+                    dy_adj=args.dy_adj,
+                    dy_filter=args.dy_filter,
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size)
     if args.model == 'flow_GCN':

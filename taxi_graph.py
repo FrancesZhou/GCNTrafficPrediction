@@ -25,13 +25,14 @@ def main():
                        help='number of input steps')
     # ---------- model ----------
     parse.add_argument('-model', '--model', type=str, default='GCN', help='model: GCN, ConvLSTM, flow_ConvLSTM')
+    parse.add_argument('-num_units', '--num_units', type=int, default=64, help='dim of hidden states')
     parse.add_argument('-kernel_size', '--kernel_size', type=int, default=3, help='kernel size in convolutional operations')
     #
-    parse.add_argument('-dynamic_adj', '--dynamic_adj', type=int, default=1,
+    parse.add_argument('-dy_adj', '--dynamic_adj', type=int, default=1,
                        help='whether to use dynamic adjacent matrix for lower feature extraction layer')
-    parse.add_argument('-dynamic_filter', '--dynamic_filter', type=int, default=0,
+    parse.add_argument('-dy_filter', '--dynamic_filter', type=int, default=0,
                        help='whether to use dynamic filter generate region-specific filter ')
-    parse.add_argument('-att_dynamic_adj', '--att_dynamic_adj', type=int, default=0, help='whether to use dynamic adjacent matrix in attention parts')
+    #parse.add_argument('-att_dynamic_adj', '--att_dynamic_adj', type=int, default=0, help='whether to use dynamic adjacent matrix in attention parts')
     #
     parse.add_argument('-model_save', '--model_save', type=str, default='gcn', help='folder name to save model')
     parse.add_argument('-pretrained_model', '--pretrained_model_path', type=str, default=None,
@@ -116,17 +117,18 @@ def main():
         np.save(args.folder_name + 'f_adj_mx.npy', f_adj_mx)
 
     if args.model == 'GCN':
-        model = GCN(num_station, args.input_steps,
-                    dy_adj=args.dynamic_adj,
-                    dy_filter=args.dynamic_filter,
+        model = GCN(num_station, args.input_steps, num_units=args.num_units,
+                    dy_adj=args.dy_adj,
+                    dy_filter=args.dy_filter,
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size)
     if args.model == 'ConvLSTM':
         model = ConvLSTM(input_shape=[map_size[0], map_size[1], input_dim], input_steps=args.input_steps,
-                         num_layers=3, num_units=32, kernel_shape=[args.kernel_size, args.kernel_size],
+                         num_layers=3, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
                          batch_size=args.batch_size)
     if args.model == 'flow_ConvLSTM':
         model = flow_ConvLSTM(input_shape=[20, 10, input_dim], input_steps=args.input_steps,
+                              num_layers=2, num_units=args.num_units,kernel_shape=[args.kernel_size, args.kernel_size],
                               f_adj_mx=f_adj_mx,
                               batch_size=args.batch_size)
     #
