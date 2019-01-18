@@ -326,7 +326,7 @@ class ModelSolver(object):
     def test(self):
         test_loader = self.test_data
         # build graphs
-        y_, loss = self.model.build_easy_model()
+        y_test, loss_test = self.model.build_easy_model()
 #         with tf.name_scope('Test'):
 #             with tf.variable_scope('DCRNN', reuse=tf.AUTO_REUSE):
 #                 y_test, loss_test = self.model.build_easy_model(is_training=False)
@@ -339,11 +339,14 @@ class ModelSolver(object):
                 print("Start training with pretrained model...")
                 saver.restore(sess, os.path.join(self.model_path, self.pretrained_model))
                 #
-                #num_test_batches = test_loader._num_batches(self.batch_size, use_all_data=True)
-                num_test_batches = 1
-                print('number of test_data batches: %d' % num_test_batches)
-                # print('test for test data...')
+                num_test_batches = test_loader._num_batches(self.batch_size, use_all_data=True)
                 test_l2_loss = 0
+                # if val_loader is not None:
+                #     test_pre_index = train_loader.num_data + val_loader.num_data
+                # else:
+                #     test_pre_index = train_loader.num_data
+                #
+                # test_metric_loss = np.zeros(6)
                 # print('number of test_data batches: %d' % num_test_batches)
                 widgets = ['Test: ', Percentage(), ' ', Bar('*'), ' ', ETA()]
                 pbar = ProgressBar(widgets=widgets, maxval=num_test_batches).start()
@@ -351,33 +354,39 @@ class ModelSolver(object):
                 test_target = []
                 for i in range(num_test_batches):
                     pbar.update(i)
-                    x, f, y, index, padding_len = test_loader.next_batch_for_final_test(self.batch_size)
+                    x, f, y, _, padding_len = test_loader.next_batch_for_test(i * self.batch_size,
+                                                                              (i + 1) * self.batch_size)
                     feed_dict = {self.model.x: np.array(x),
                                  self.model.f: np.array(f),
                                  self.model.y: np.array(y)
                                  }
                     y_out, l = sess.run([y_test, loss_test], feed_dict)
-                    y_out = self.preprocessing.inverse_transform(y_out, index + self.train_data.num_data)
-                    y = self.preprocessing.inverse_transform(y, index + self.train_data.num_data)
+                    #
+                    y_out = self.preprocessing.inverse_transform(y_out[:, -1, ...])
+                    y = self.preprocessing.inverse_transform(y[:, -1, ...])
                     y = np.clip(y, 0, None)
                     y_out = np.clip(y_out, 0, None)
                     #
                     if padding_len > 0:
                         y_out = y_out[:-padding_len]
                         y = y[:-padding_len]
+                    #
                     test_prediction.append(y_out)
                     test_target.append(y)
                     test_l2_loss += l
+                    # metric_loss = get_loss_by_batch(y, y_out)
+                    # test_metric_loss += metric_loss
                 pbar.finish()
                 test_target = np.concatenate(np.array(test_target), axis=0)
                 test_prediction = np.concatenate(np.array(test_prediction), axis=0)
                 # print(test_target.shape)
                 # compute counts of all regions
-                t_count = num_test_batches * self.batch_size * (test_loader.input_steps * test_loader.num_station * 2)
+                t_count = num_test_batches * self.batch_size * (test_loader.input_steps * np.prod(test_loader.d_data_shape))
                 test_loss = np.sqrt(test_l2_loss / t_count)
                 test_rmse = np.sqrt(np.mean(np.square(test_target - test_prediction)))
                 test_rmlse = np.sqrt(np.mean(np.square(np.log(test_target + 1) - np.log(test_prediction + 1))))
-                w_text_3 = 'test loss is %.6f, test prediction rmse/rmlse is %.6f/%.6f \n' % (test_loss, test_rmse, test_rmlse)
+                w_text_3 = 'test loss is %.6f, test prediction rmse/rmlse is %.6f/%.6f \n' % (
+                test_loss, test_rmse, test_rmlse)
                 print(w_text_3)
                 return np.array(test_target), np.array(test_prediction)
 
