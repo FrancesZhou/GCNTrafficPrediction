@@ -28,9 +28,9 @@ def main():
     parse.add_argument('-num_units', '--num_units', type=int, default=64, help='dim of hidden states')
     parse.add_argument('-kernel_size', '--kernel_size', type=int, default=3, help='kernel size in convolutional operations')
     #
-    parse.add_argument('-dy_adj', '--dynamic_adj', type=int, default=1,
+    parse.add_argument('-dy_adj', '--dy_adj', type=int, default=1,
                        help='whether to use dynamic adjacent matrix for lower feature extraction layer')
-    parse.add_argument('-dy_filter', '--dynamic_filter', type=int, default=0,
+    parse.add_argument('-dy_filter', '--dy_filter', type=int, default=0,
                        help='whether to use dynamic filter generate region-specific filter ')
     #parse.add_argument('-att_dynamic_adj', '--att_dynamic_adj', type=int, default=0, help='whether to use dynamic adjacent matrix in attention parts')
     #
