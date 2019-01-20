@@ -41,16 +41,22 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import init_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import nn_ops
-from tensorflow.python.ops import rnn_cell_impl
+#from tensorflow.python.ops import rnn_cell_impl
 from tensorflow.python.ops import variable_scope as vs
 
-from model.dcrnn_cell import DCGRUCell
+from tensorflow.contrib.rnn import RNNCell
+#from model.dcrnn_cell import DCGRUCell
 
-class Coupled_Conv2DLSTMCell(rnn_cell_impl.RNNCell):
-    """Convolutional LSTM recurrent network cell.
+#class Coupled_Conv2DLSTMCell(rnn_cell_impl.RNNCell):
+class Coupled_Conv2DLSTMCell(RNNCell):
+    '''
+    Coupled ConvLSTM
+    '''
+    def call(self, inputs, **kwargs):
+        pass
 
-    https://arxiv.org/pdf/1506.04214v1.pdf
-    """
+    def compute_output_shape(self, input_shape):
+        pass
 
     def __init__(self,
                  input_shape,
