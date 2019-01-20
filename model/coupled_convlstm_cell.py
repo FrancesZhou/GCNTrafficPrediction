@@ -92,8 +92,9 @@ class Coupled_Conv2DLSTMCell(rnn_cell_impl.RNNCell):
         self.output_dy_adj = output_dy_adj
 
         # for coupled flow-gcn module
-        self.flow_gcn = DCGRUCell(output_channels, adj_mx=None, max_diffusion_step=2, num_nodes=input_shape[0]*input_shape[1],
-                                  input_dim=input_dim, dy_adj=1, dy_filter=0, output_dy_adj=output_dy_adj)
+        self._num_nodes = input_shape[0]*input_shape[1]
+        # self.flow_gcn = DCGRUCell(output_channels, adj_mx=None, max_diffusion_step=2, num_nodes=input_shape[0]*input_shape[1],
+        #                           input_dim=input_dim, dy_adj=1, dy_filter=0, output_dy_adj=output_dy_adj)
         #
 
         self._use_bias = use_bias
@@ -142,7 +143,7 @@ class Coupled_Conv2DLSTMCell(rnn_cell_impl.RNNCell):
         input_gate, new_input, forget_gate, output_gate = gates
         #
         # ------ flow-gcn --------
-        f_new_hidden = self.flow_gcn._gconv(inputs=inputs, state=hidden, dy_adj_mx=dy_f,
+        f_new_hidden = self._gconv(inputs=inputs, state=hidden, dy_adj_mx=dy_f,
                                             output_size=4*self._output_channels)
         f_new_hidden = tf.reshape(f_new_hidden, [-1, self.input_shape[0], self.input_shape[1], 4*self._output_channels])
         f_gates = array_ops.split(values=f_new_hidden, num_or_size_splits=4, axis=-1)
@@ -239,3 +240,116 @@ class Coupled_Conv2DLSTMCell(rnn_cell_impl.RNNCell):
             dtype=dtype,
             initializer=init_ops.constant_initializer(bias_start, dtype=dtype))
         return res + bias_term
+
+    def _gconv(self, inputs, state, dy_adj_mx, output_size, bias_start=0.0):
+        """Graph convolution between input and the graph matrix.
+
+        :param args: a 2D Tensor or a list of 2D, batch x n, Tensors.
+        :param output_size:
+        :param bias:
+        :param bias_start:
+        :param scope:
+        :return:
+        """
+        # Reshape input and state to (batch_size, num_nodes, input_dim/state_dim)
+        batch_size = inputs.get_shape()[0].value
+        inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
+        state = tf.reshape(state, (batch_size, self._num_nodes, -1))
+        #
+        if dy_adj_mx is not None:
+            # print('dy_adj_mx is right.')
+            dy_adj_mx = tf.reshape(dy_adj_mx, (batch_size, self._num_nodes, -1))
+        else:
+            print('No dynamic flow input to generate dynamic adjacent matrix.')
+            dy_adj_mx = None
+
+        inputs_and_state = tf.concat([inputs, state], axis=2)
+        input_size = inputs_and_state.get_shape()[2].value
+        dtype = inputs.dtype
+
+        x = inputs_and_state
+        # x0 = x
+        # x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)
+        # x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
+        # x = tf.expand_dims(x0, axis=0)
+        scope = tf.get_variable_scope()
+        # dy_supports = []
+        with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
+            if self._max_diffusion_step == 0:
+                pass
+            else:
+                # get dynamic adj_mx
+                if self.dy_adj == 0:
+                    dy_supports = self._supports
+                    # print(dy_supports)
+                    x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)
+                    x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
+                    x = tf.expand_dims(x0, axis=0)
+                else:
+                    # print(dy_adj_mx)
+                    dy_supports = self.get_supports(dy_adj_mx)
+                    # print(dy_supports)
+                    x0 = x
+                    x = tf.expand_dims(x0, axis=0)
+                #
+                for support in dy_supports:
+                    # x0: [batch_size, num_nodes, total_arg_size]
+                    # support: [batch_size, num_nodes, num_nodes]
+                    # x1 = tf.sparse_tensor_dense_matmul(support, x0)
+                    # print(support.dtype)
+                    # print(x0.dtype)
+                    x1 = tf.matmul(support, x0)
+                    x = self._concat(x, x1)
+
+                    for k in range(2, self._max_diffusion_step + 1):
+                        # x2 = 2 * tf.sparse_tensor_dense_matmul(support, x1) - x0
+                        x2 = 2 * tf.matmul(support, x1) - x0
+                        x = self._concat(x, x2)
+                        x1, x0 = x2, x1
+
+            # num_matrices = len(dy_supports) * self._max_diffusion_step + 1  # Adds for x itself.
+            num_matrices = self._len_supports * self._max_diffusion_step + 1  # Adds for x itself.
+            #
+            x = tf.reshape(x, shape=[num_matrices, batch_size, self._num_nodes, input_size])
+            x = tf.transpose(x, perm=[1, 2, 3, 0])  # (batch_size, num_nodes, input_size, order)
+            x = tf.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])
+
+            weights = tf.get_variable(
+                'weights', [input_size * num_matrices, output_size], dtype=dtype,
+                initializer=tf.contrib.layers.xavier_initializer())
+            x = tf.matmul(x, weights)  # (batch_size * self._num_nodes, output_size)
+
+            biases = tf.get_variable("biases", [output_size], dtype=dtype,
+                                     initializer=tf.constant_initializer(bias_start, dtype=dtype))
+            x = tf.nn.bias_add(x, biases)
+
+        # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
+        return tf.reshape(x, [batch_size, self._num_nodes * output_size])
+
+
+    def calculate_random_walk_matrix(self, adj_mx):
+        # adj_mx: [batch_size, num_nodes, num_nodes]
+        # d = tf.sparse_tensor_to_dense(tf.sparse_reduce_sum(adj_mx, 1))
+        d = tf.reduce_sum(adj_mx, -1)
+        d_inv = tf.where(tf.greater(d, tf.zeros_like(d)) , tf.reciprocal(d), tf.zeros_like(d))
+        d_mat_inv = tf.matrix_diag(d_inv)
+        random_walk_mx = tf.matmul(d_mat_inv, adj_mx)
+        return tf.cast(random_walk_mx, dtype=tf.float32)
+
+
+    def get_supports(self, adj_mx):
+        supports = []
+        if self.filter_type == "random_walk":
+            supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx), (0, 2, 1)))
+        elif self.filter_type == "dual_random_walk":
+            supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx), (0, 2, 1)))
+            supports.append(tf.transpose(self.calculate_random_walk_matrix(tf.transpose(adj_mx, (0, 2, 1))), (0, 2, 1)))
+        else:
+            return None
+        '''
+        dy_supports = []
+        for support in supports:
+            dy_supports.append(self._build_sparse_matrix(support))
+        return dy_supports
+        '''
+        return supports
