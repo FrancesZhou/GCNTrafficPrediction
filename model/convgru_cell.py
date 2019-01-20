@@ -130,15 +130,18 @@ class Dy_Conv2DGRUCell(rnn_cell_impl.RNNCell):
             dy_f = None
         #
         hidden = state
-        new_hidden = self._conv(args=[inputs, hidden], filter_size=self._kernel_shape,
-                           num_features=2 * self._output_channels, bias=self._use_bias, bias_start=0,
-                           dy_f=dy_f)
-        new_hidden = tf.nn.sigmoid(new_hidden)
-        gates = array_ops.split(value=new_hidden, num_or_size_splits=2, axis=3)
-        r, u = gates
-        c = self._conv(args=[inputs, r*hidden], filter_size=self._kernel_shape,
-                       num_features=self._output_channels, bias=self._use_bias, bias_start=0,
-                       dy_f=dy_f)
+        with tf.variable_scope('gru_ru', reuse=tf.AUTO_REUSE):
+            new_hidden = self._conv(args=[inputs, hidden],
+                                    filter_size=self._kernel_shape,
+                                    num_features=2 * self._output_channels,
+                                    bias=self._use_bias, bias_start=0, dy_f=dy_f)
+            new_hidden = tf.nn.sigmoid(new_hidden)
+            gates = array_ops.split(value=new_hidden, num_or_size_splits=2, axis=3)
+            r, u = gates
+        with tf.variable_scope('gru_c', reuse=tf.AUTO_REUSE):
+            c = self._conv(args=[inputs, r*hidden], filter_size=self._kernel_shape,
+                           num_features=self._output_channels, 
+                           bias=self._use_bias, bias_start=0,dy_f=dy_f)
         output = new_state = u * state + (1 - u) * c
         #input_gate, new_input, forget_gate, output_gate = gates
         #new_cell = math_ops.sigmoid(forget_gate + self._forget_bias) * cell
