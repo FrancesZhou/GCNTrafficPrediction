@@ -330,10 +330,12 @@ class Coupled_Conv2DLSTMCell(rnn_cell_impl.RNNCell):
             biases = tf.get_variable("biases", [output_size], dtype=dtype,
                                      initializer=tf.constant_initializer(bias_start, dtype=dtype))
             x = tf.nn.bias_add(x, biases)
+            #
+            x = tf.reshape(x, [batch_size, self.input_shape[0], self.input_shape[1], output_size])
 
         # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
         #return tf.reshape(x, [batch_size, self._num_nodes * output_size])
-        return tf.reshape(x, (batch_size, self.input_shape[0], self.input_shape[1], output_size))
+        return x
 
 
     def calculate_random_walk_matrix(self, adj_mx):
