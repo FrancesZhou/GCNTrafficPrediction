@@ -137,7 +137,7 @@ class Coupled_Conv2DLSTMCell(rnn_cell_impl.RNNCell):
         x_ = tf.expand_dims(x_, 0)
         return tf.concat([x, x_], axis=0)
     
-    def call(self, inputs, state, scope=None):
+    def __call__(self, inputs, state, scope=None):
         if self._input_dim is not None:
             whole_input_dim = inputs.get_shape().as_list()
             dy_f_dim = whole_input_dim[-1] - self._input_dim
