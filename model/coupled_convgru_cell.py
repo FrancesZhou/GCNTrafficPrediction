@@ -10,6 +10,7 @@ from tensorflow.contrib.rnn import RNNCell
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import nn_ops
 from tensorflow.python.ops import variable_scope as vs
+from tensorflow.python.framework import tensor_shape
 
 import utils
 
@@ -108,9 +109,9 @@ class Coupled_Conv2DGRUCell(RNNCell):
         """
         if self._input_dim is not None:
             whole_input_dim = inputs.get_shape().as_list()
-            dy_adj_dim = whole_input_dim[-1] - self._input_dim
+            dy_adj_dim = whole_input_dim[-1] - self._input_dim * self._num_nodes
             if dy_adj_dim>0:
-                _input, dy_adj_mx = tf.split(inputs, num_or_size_splits=[self._input_dim, dy_adj_dim], axis=-1)
+                _input, dy_adj_mx = tf.split(inputs, num_or_size_splits=[self._input_dim*self._num_nodes, dy_adj_dim], axis=-1)
                 inputs = _input
             else:
                 #print('There is no input dynamic flow to generate dynamic adjacent matrix.')
@@ -161,6 +162,7 @@ class Coupled_Conv2DGRUCell(RNNCell):
                 w = tf.get_variable('w', shape=(self._num_units, self._num_proj))
                 batch_size = inputs.get_shape()[0].value
                 output = tf.reshape(new_state, shape=(-1, self._num_units))
+                #output = tf.reshape(tf.matmul(output, w), shape=(batch_size, self.output_size))
                 output = tf.reshape(tf.matmul(output, w), shape=(batch_size, self.output_size))
         if self.output_dy_adj:
             #print(output)
@@ -240,15 +242,11 @@ class Coupled_Conv2DGRUCell(RNNCell):
         batch_size = inputs.get_shape()[0].value
         inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
         state = tf.reshape(state, (batch_size, self._num_nodes, -1))
-        
-        if self.dy_adj>0:
-            if dy_adj_mx is not None:
-                #print('dy_adj_mx is right.')
-                dy_adj_mx = tf.reshape(dy_adj_mx, (batch_size, self._num_nodes, -1))
-            else:
-                print('No dynamic flow input to generate dynamic adjacent matrix.')
-                dy_adj_mx = None
+        if dy_adj_mx is not None:
+            #print('dy_adj_mx is right.')
+            dy_adj_mx = tf.reshape(dy_adj_mx, (batch_size, self._num_nodes, -1))
         else:
+            print('No dynamic flow input to generate dynamic adjacent matrix.')
             dy_adj_mx = None
         
         inputs_and_state = tf.concat([inputs, state], axis=2)
@@ -268,18 +266,11 @@ class Coupled_Conv2DGRUCell(RNNCell):
                 pass
             else:
                 # get dynamic adj_mx
-                if self.dy_adj==0:
-                    dy_supports = self._supports
-                    #print(dy_supports)
-                    x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)
-                    x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
-                    x = tf.expand_dims(x0, axis=0)
-                else:
-                    #print(dy_adj_mx)
-                    dy_supports = self.get_supports(dy_adj_mx)
-                    #print(dy_supports)
-                    x0 = x
-                    x = tf.expand_dims(x0, axis=0)
+                #print(dy_adj_mx)
+                dy_supports = self.get_supports(dy_adj_mx)
+                #print(dy_supports)
+                x0 = x
+                x = tf.expand_dims(x0, axis=0)
                 #
                 for support in dy_supports:
                     # x0: [batch_size, num_nodes, total_arg_size]
@@ -289,47 +280,23 @@ class Coupled_Conv2DGRUCell(RNNCell):
                     #print(x0.dtype)
                     x1 = tf.matmul(support, x0)
                     x = self._concat(x, x1)
-
                     for k in range(2, self._max_diffusion_step + 1):
                         #x2 = 2 * tf.sparse_tensor_dense_matmul(support, x1) - x0
                         x2 = 2 * tf.matmul(support, x1) - x0
                         x = self._concat(x, x2)
                         x1, x0 = x2, x1
 
-            #num_matrices = len(dy_supports) * self._max_diffusion_step + 1  # Adds for x itself.
             num_matrices = self._len_supports * self._max_diffusion_step + 1  # Adds for x itself.
-            '''
-            x = tf.reshape(x, shape=[num_matrices, self._num_nodes, input_size, batch_size])
-            x = tf.transpose(x, perm=[3, 1, 2, 0])  # (batch_size, num_nodes, input_size, order)
+            x = tf.reshape(x, shape=[num_matrices, batch_size, self._num_nodes, input_size])
+            x = tf.transpose(x, perm=[1, 2, 3, 0])  # (batch_size, num_nodes, input_size, order)
             x = tf.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])
-            '''
-            if self.dy_adj==0:
-                x = tf.reshape(x, shape=[num_matrices, self._num_nodes, input_size, batch_size])
-                x = tf.transpose(x, perm=[3, 1, 2, 0])  # (batch_size, num_nodes, input_size, order)
-            else:
-                x = tf.reshape(x, shape=[num_matrices, batch_size, self._num_nodes, input_size])
-                x = tf.transpose(x, perm=[1, 2, 3, 0])  # (batch_size, num_nodes, input_size, order)
-
-            if self.dy_filter==0:
-                x = tf.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])
-
-                weights = tf.get_variable(
-                    'weights', [input_size * num_matrices, output_size], dtype=dtype,
-                    initializer=tf.contrib.layers.xavier_initializer())
-                x = tf.matmul(x, weights)  # (batch_size * self._num_nodes, output_size)
-
-                biases = tf.get_variable("biases", [output_size], dtype=dtype,
-                                         initializer=tf.constant_initializer(bias_start, dtype=dtype))
-                x = tf.nn.bias_add(x, biases)
-            else:
-                x = tf.reshape(x, shape=[batch_size, self._num_nodes, input_size*num_matrices])
-                x = tf.expand_dims(x, axis=2)
-                filters = self.graph_conv(inputs, self._num_nodes,
-                                          output_size=input_size*output_size*num_matrices, max_degree=2)
-                filters = tf.reshape(filters, shape=[batch_size, self._num_nodes, output_size, input_size*num_matrices])
-                x = tf.multiply(x, filters)
-                x = tf.reduce_sum(x, axis=-1)
-
+            weights = tf.get_variable(
+                'weights', [input_size * num_matrices, output_size], dtype=dtype,
+                initializer=tf.contrib.layers.xavier_initializer())
+            x = tf.matmul(x, weights)  # (batch_size * self._num_nodes, output_size)
+            biases = tf.get_variable("biases", [output_size], dtype=dtype,
+                                     initializer=tf.constant_initializer(bias_start, dtype=dtype))
+            x = tf.nn.bias_add(x, biases)
         # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
         return tf.reshape(x, [batch_size, self._num_nodes * output_size])
 

@@ -58,9 +58,9 @@ class flow_ConvLSTM():
         self.cells = tf.contrib.rnn.MultiRNNCell(cells, state_is_tuple=True)
         self.g_cells = tf.contrib.rnn.MultiRNNCell(g_cells, state_is_tuple=True)
 
-        self.x = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.input_shape[0]*self.input_shape[1], self.input_shape[2]])
+        self.x = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.input_shape[0], self.input_shape[1], self.input_shape[2]])
         self.f = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.input_shape[0]*self.input_shape[1], self.input_shape[0]*self.input_shape[1]])
-        self.y = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.input_shape[0]*self.input_shape[1], self.input_shape[2]])
+        self.y = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.input_shape[0], self.input_shape[1], self.input_shape[2]])
 
 
     def build_easy_model(self):
@@ -86,8 +86,8 @@ class flow_ConvLSTM():
         output_concat = tf.concat([outputs, g_outputs], axis=-1)
         final_outputs = tf.layers.dense(output_concat, units=self.input_shape[-1], activation=tf.nn.relu)
         #
-        final_outputs = tf.reshape(final_outputs, (self.input_steps, self.batch_size, self.input_shape[0]*self.input_shape[1], -1))
-        final_outputs = tf.transpose(final_outputs, [1, 0, 2, 3])
+        final_outputs = tf.reshape(final_outputs, (self.input_steps, self.batch_size, self.input_shape[0], self.input_shape[1], -1))
+        final_outputs = tf.transpose(final_outputs, [1, 0, 2, 3, 4])
         loss = 2 * tf.nn.l2_loss(self.y - final_outputs)
         return final_outputs, loss
 

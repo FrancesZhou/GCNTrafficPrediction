@@ -68,7 +68,9 @@ def main():
     # data: [num, station_num, 2]
     print(data.shape)
     #
-    if 'ConvLSTM' == args.model:
+    if 'GCN' in args.model:
+        dataloader = DataLoader_graph
+    else:
         data = np.reshape(data, (-1, 20, 10, 2))
         train_data = np.reshape(train_data, (-1, 20, 10, 2))
         val_data = np.reshape(val_data, (-1, 20, 10, 2))
@@ -77,8 +79,6 @@ def main():
         print(data.shape)
         #
         dataloader = DataLoader_map
-    else:
-        dataloader = DataLoader_graph
     #
     map_size = data.shape[1:-1]
     input_dim = data.shape[-1]

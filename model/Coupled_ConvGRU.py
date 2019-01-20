@@ -21,6 +21,8 @@ class CoupledConvGRU():
         self.num_layers = num_layers
         self.num_units = num_units
         self.kernel_shape = kernel_shape
+        #
+        self.num_nodes = np.prod(self.input_shape[:-1])
         # self.dy_adj = dy_adj
         # self.dy_filter = dy_filter
 
@@ -37,15 +39,15 @@ class CoupledConvGRU():
         first_cell = Coupled_Conv2DGRUCell(num_units=self.num_units, input_shape=self.input_shape,
                                            kernel_shape=self.kernel_shape,
                                            num_proj=None,
-                                           input_dim=self.input_shape[-1], output_dy_adj=1)
+input_dim=self.input_shape[-1], output_dy_adj=1)
         cell = Coupled_Conv2DGRUCell(num_units=self.num_units, input_shape=[self.input_shape[0], self.input_shape[1], self.num_units],
                                      kernel_shape=self.kernel_shape,
-                                     num_proj=None,
-                                     input_dim=self.num_units, output_dy_adj=1)
+num_proj=None,input_dim=self.num_units, 
+                                     output_dy_adj=1)
         last_cell = Coupled_Conv2DGRUCell(num_units=self.input_shape[-1], input_shape=[self.input_shape[0], self.input_shape[1], self.num_units],
                                           kernel_shape=self.kernel_shape,
-                                          num_proj=None,
-                                          input_dim=self.num_units, output_dy_adj=0)
+                                          num_proj=None, input_dim=self.num_units,
+                                          output_dy_adj=0)
 
         if num_layers > 2:
             cells = [first_cell] + [cell] * (num_layers-2) + [last_cell]
@@ -62,9 +64,9 @@ class CoupledConvGRU():
 
 
     def build_easy_model(self):
-        x = tf.transpose(tf.reshape(self.x, (self.batch_size, self.input_steps, self.input_shape[0]*self.input_shape[1], -1)), [1, 0, 2, 3])
+        x = tf.transpose(tf.reshape(self.x, (self.batch_size, self.input_steps, -1)), [1, 0, 2])
         #inputs = tf.unstack(x, axis=0)
-        f_all = tf.transpose(tf.reshape(self.f, (self.batch_size, self.input_steps, self.input_shape[0]*self.input_shape[1], self.input_shape[0] * self.input_shape[1])), [1, 0, 2, 3])
+        f_all = tf.transpose(tf.reshape(self.f, (self.batch_size, self.input_steps, -1)), [1, 0, 2])
         inputs = tf.concat([x, f_all], axis=-1)
         inputs = tf.unstack(inputs, axis=0)
         #
