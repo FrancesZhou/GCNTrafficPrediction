@@ -57,7 +57,7 @@ class Coupled_Conv2DLSTMCell(rnn_cell_impl.RNNCell):
                  output_channels,
                  kernel_shape,
                  input_dim=None, dy_adj=0, dy_filter=0, output_dy_adj=0,
-                 max_diffusion_step=2,
+                 max_diffusion_step=2, filter_type="dual_random_walk",
                  use_bias=True,
                  skip_connection=False,
                  forget_bias=1.0,
@@ -91,9 +91,17 @@ class Coupled_Conv2DLSTMCell(rnn_cell_impl.RNNCell):
         # self.dy_adj = dy_adj
         # self.dy_filter = dy_filter
         self.output_dy_adj = output_dy_adj
+        
+        self.weight_initializer = tf.contrib.layers.xavier_initializer()
+        self.const_initializer = tf.constant_initializer()
 
         # for coupled flow-gcn module
         self._max_diffusion_step = max_diffusion_step
+        self.filter_type = filter_type
+        if self.filter_type == "dual_random_walk":
+            self._len_supports = 2
+        else:
+            self._len_supports = 1
         self._num_nodes = input_shape[0]*input_shape[1]
         # self.flow_gcn = DCGRUCell(output_channels, adj_mx=None, max_diffusion_step=2, num_nodes=input_shape[0]*input_shape[1],
         #                           input_dim=input_dim, dy_adj=1, dy_filter=0, output_dy_adj=output_dy_adj)
@@ -124,6 +132,11 @@ class Coupled_Conv2DLSTMCell(rnn_cell_impl.RNNCell):
     def state_size(self):
         return self._state_size
 
+    @staticmethod
+    def _concat(x, x_):
+        x_ = tf.expand_dims(x_, 0)
+        return tf.concat([x, x_], axis=0)
+    
     def call(self, inputs, state, scope=None):
         if self._input_dim is not None:
             whole_input_dim = inputs.get_shape().as_list()
@@ -147,7 +160,7 @@ class Coupled_Conv2DLSTMCell(rnn_cell_impl.RNNCell):
         # ------ flow-gcn --------
         f_new_hidden = self._gconv(inputs=inputs, state=hidden, dy_adj_mx=dy_f,
                                             output_size=4*self._output_channels)
-        f_new_hidden = tf.reshape(f_new_hidden, [-1, self.input_shape[0], self.input_shape[1], 4*self._output_channels])
+        #f_new_hidden = tf.reshape(f_new_hidden, [-1, self.input_shape[0], self.input_shape[1], 4*self._output_channels])
         f_gates = array_ops.split(values=f_new_hidden, num_or_size_splits=4, axis=-1)
         f_input_gate, f_new_input, f_forget_gate, f_output_gate = f_gates
         # ------ couple convlstm and flow-gcn -------
@@ -319,7 +332,8 @@ class Coupled_Conv2DLSTMCell(rnn_cell_impl.RNNCell):
             x = tf.nn.bias_add(x, biases)
 
         # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
-        return tf.reshape(x, [batch_size, self._num_nodes * output_size])
+        #return tf.reshape(x, [batch_size, self._num_nodes * output_size])
+        return tf.reshape(x, (batch_size, self.input_shape[0], self.input_shape[1], output_size))
 
 
     def calculate_random_walk_matrix(self, adj_mx):
