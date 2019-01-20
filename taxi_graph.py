@@ -3,7 +3,6 @@ import argparse
 import numpy as np
 import tensorflow as tf
 #from gensim.models import Word2Vec
-from model.AttGCN import AttGCN
 from model.GCN import GCN
 from model.ConvLSTM import ConvLSTM
 from model.flow_ConvLSTM import flow_ConvLSTM
