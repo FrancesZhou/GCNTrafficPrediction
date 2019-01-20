@@ -5,8 +5,9 @@ import tensorflow as tf
 #from gensim.models import Word2Vec
 from model.GCN import GCN
 from model.ConvLSTM import ConvLSTM
+from model.ConvGRU import ConvGRU
 from model.flow_ConvLSTM import flow_ConvLSTM
-from model.Coupled_ConvLSTM import CoupledConvLSTM
+from model.Coupled_ConvGRU import CoupledConvGRU
 from solver import ModelSolver
 from preprocessing import *
 from utils import *
@@ -126,13 +127,17 @@ def main():
         model = ConvLSTM(input_shape=[map_size[0], map_size[1], input_dim], input_steps=args.input_steps,
                          num_layers=3, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
                          batch_size=args.batch_size)
+    if args.model == 'ConvGRU':
+        model = ConvGRU(input_shape=[map_size[0], map_size[1], input_dim], input_steps=args.input_steps,
+                        num_layers=3, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
+                        batch_size=args.batch_size)
     if args.model == 'flow_ConvLSTM':
         model = flow_ConvLSTM(input_shape=[20, 10, input_dim], input_steps=args.input_steps,
                               num_layers=2, num_units=args.num_units,kernel_shape=[args.kernel_size, args.kernel_size],
                               f_adj_mx=f_adj_mx,
                               batch_size=args.batch_size)
-    if args.model == 'Coupled_ConvLSTM':
-        model = CoupledConvLSTM(input_shape=[20, 10, input_dim], input_steps=args.input_steps,
+    if args.model == 'Coupled_ConvGRU':
+        model = CoupledConvGRU(input_shape=[20, 10, input_dim], input_steps=args.input_steps,
                                 num_layers=2, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
                                 batch_size=args.batch_size)
     #
