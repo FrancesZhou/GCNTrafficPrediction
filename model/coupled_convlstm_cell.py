@@ -57,6 +57,7 @@ class Coupled_Conv2DLSTMCell(rnn_cell_impl.RNNCell):
                  output_channels,
                  kernel_shape,
                  input_dim=None, dy_adj=0, dy_filter=0, output_dy_adj=0,
+                 max_diffusion_step=2,
                  use_bias=True,
                  skip_connection=False,
                  forget_bias=1.0,
@@ -92,6 +93,7 @@ class Coupled_Conv2DLSTMCell(rnn_cell_impl.RNNCell):
         self.output_dy_adj = output_dy_adj
 
         # for coupled flow-gcn module
+        self._max_diffusion_step = max_diffusion_step
         self._num_nodes = input_shape[0]*input_shape[1]
         # self.flow_gcn = DCGRUCell(output_channels, adj_mx=None, max_diffusion_step=2, num_nodes=input_shape[0]*input_shape[1],
         #                           input_dim=input_dim, dy_adj=1, dy_filter=0, output_dy_adj=output_dy_adj)
@@ -279,18 +281,11 @@ class Coupled_Conv2DLSTMCell(rnn_cell_impl.RNNCell):
                 pass
             else:
                 # get dynamic adj_mx
-                if self.dy_adj == 0:
-                    dy_supports = self._supports
-                    # print(dy_supports)
-                    x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)
-                    x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
-                    x = tf.expand_dims(x0, axis=0)
-                else:
-                    # print(dy_adj_mx)
-                    dy_supports = self.get_supports(dy_adj_mx)
-                    # print(dy_supports)
-                    x0 = x
-                    x = tf.expand_dims(x0, axis=0)
+                # print(dy_adj_mx)
+                dy_supports = self.get_supports(dy_adj_mx)
+                # print(dy_supports)
+                x0 = x
+                x = tf.expand_dims(x0, axis=0)
                 #
                 for support in dy_supports:
                     # x0: [batch_size, num_nodes, total_arg_size]
