@@ -6,6 +6,7 @@ import tensorflow as tf
 from model.GCN import GCN
 from model.ConvLSTM import ConvLSTM
 from model.flow_ConvLSTM import flow_ConvLSTM
+from model.Coupled_ConvLSTM import CoupledConvLSTM
 from solver import ModelSolver
 from preprocessing import *
 from utils import *
@@ -130,6 +131,10 @@ def main():
                               num_layers=2, num_units=args.num_units,kernel_shape=[args.kernel_size, args.kernel_size],
                               f_adj_mx=f_adj_mx,
                               batch_size=args.batch_size)
+    if args.model == 'Coupled_ConvLSTM':
+        model = CoupledConvLSTM(input_shape=[20, 10, input_dim], input_steps=args.input_steps,
+                                num_layers=2, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
+                                batch_size=args.batch_size)
     #
     model_path = os.path.join(args.output_folder_name, 'model_save', args.model_save)
     if not os.path.exists(model_path):
