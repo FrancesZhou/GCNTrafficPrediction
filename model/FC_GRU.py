@@ -7,7 +7,7 @@ sys.path.append('./util/')
 from utils import *
 
 
-class FC_LSTM():
+class FC_GRU():
     def __init__(self, num_station, input_steps,
                  num_layers=2, num_units=64,
                  max_diffusion_step=2,
@@ -32,7 +32,7 @@ class FC_LSTM():
         self.const_initializer = tf.constant_initializer()
 
 
-        cells = [tf.contrib.rnn.BasicLSTMCell(self.num_units, forget_bias=1.0, name='lstm_{0}'.format(i)) for i in range(num_layers)]
+        cells = [tf.contrib.rnn.GRUCell(self.num_units, forget_bias=1.0, name='lstm_{0}'.format(i)) for i in range(num_layers)]
         # cell_with_projection = tf.contrib.rnn.BasicLSTMCell(self.num_station*2, forget_bias=1.0)
         # cells = [cell] * num_layers
         self.cells = tf.contrib.rnn.MultiRNNCell(cells, state_is_tuple=True)
