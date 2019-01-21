@@ -115,7 +115,7 @@ class DCGRUCell(RNNCell):
             dy_adj_dim = whole_input_dim[-1] - self._input_dim*self._num_nodes
             #print(dy_adj_dim)
             if dy_adj_dim>0:
-                _input, dy_adj_mx = tf.split(inputs, num_or_size_splits=[self._input_dim, dy_adj_dim], axis=-1)
+                _input, dy_adj_mx = tf.split(inputs, num_or_size_splits=[self._input_dim*self._num_nodes, dy_adj_dim], axis=-1)
                 inputs = _input
             else:
                 #print('There is no input dynamic flow to generate dynamic adjacent matrix.')
