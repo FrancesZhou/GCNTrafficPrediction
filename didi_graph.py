@@ -5,6 +5,7 @@ import tensorflow as tf
 #from gensim.models import Word2Vec
 #from model.AttGCN import AttGCN
 from model.FC_LSTM import FC_LSTM
+from model.FC_GRU import FC_GRU
 from model.GCN import GCN
 from model.ConvGRU import ConvGRU
 from model.flow_ConvGRU import flow_ConvGRU
@@ -122,6 +123,10 @@ def main():
     #
     if args.model == 'FC_LSTM':
         model = FC_LSTM(num_station, args.input_steps,
+                        num_layers=args.num_layers, num_units=args.num_units,
+                        batch_size=args.batch_size)
+    if args.model == 'FC_GRU':
+        model = FC_GRU(num_station, args.input_steps,
                         num_layers=args.num_layers, num_units=args.num_units,
                         batch_size=args.batch_size)
     if args.model == 'GCN':
