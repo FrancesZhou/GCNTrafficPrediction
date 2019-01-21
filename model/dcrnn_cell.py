@@ -109,7 +109,7 @@ class DCGRUCell(RNNCell):
         - New state: Either a single `2-D` tensor, or a tuple of tensors matching
             the arity and shapes of `state`
         """
-        if self._input_dim is not None:
+        if self.dy_adj and self._input_dim is not None:
             whole_input_dim = inputs.get_shape().as_list()
             #print(whole_input_dim)
             dy_adj_dim = whole_input_dim[-1] - self._input_dim*self._num_nodes
