@@ -117,7 +117,7 @@ class Dy_Conv2DGRUCell(rnn_cell_impl.RNNCell):
         #return self._state_size
 
     def call(self, inputs, state, scope=None):
-        if self._input_dim is not None:
+        if self.dy_adj and self._input_dim is not None:
             whole_input_dim = inputs.get_shape().as_list()
             dy_f_dim = whole_input_dim[-1] - self._input_dim
             if dy_f_dim > 0:

@@ -6,13 +6,12 @@ import tensorflow as tf
 sys.path.append('./util/')
 from utils import *
 from model.dcrnn_cell import DCGRUCell
-from model.convlstm_cell import Dy_Conv2DLSTMCell
 from model.convgru_cell import Dy_Conv2DGRUCell
 
 
 class ConvGRU():
     def __init__(self, input_shape=[20, 10, 2], input_steps=6,
-                 num_layers=3, num_units=64, kernel_shape=[3,3],
+                 num_layers=2, num_units=64, kernel_shape=[3,3],
                  dy_adj=0,
                  dy_filter=0,
                  batch_size=32):
@@ -43,7 +42,7 @@ class ConvGRU():
                               kernel_shape=self.kernel_shape,
                               input_dim=self.num_units, dy_adj=self.dy_adj, dy_filter=self.dy_filter, output_dy_adj=self.dy_adj)
         last_cell = Dy_Conv2DGRUCell(input_shape=[self.input_shape[0], self.input_shape[1], self.num_units],
-                                   output_channels=self.input_shape[-1],
+                                   output_channels=self.num_units,
                                    kernel_shape=self.kernel_shape,
                                    input_dim=self.num_units, dy_adj=self.dy_adj, dy_filter=self.dy_filter, output_dy_adj=0)
 
@@ -51,6 +50,8 @@ class ConvGRU():
             cells = [first_cell] + [cell] * (num_layers-2) + [last_cell]
         else:
             cells = [first_cell, last_cell]
+
+        #cells = [first_cell] + [cell] * (num_layers - 1)
 
         self.cells = tf.contrib.rnn.MultiRNNCell(cells, state_is_tuple=True)
 
@@ -74,6 +75,11 @@ class ConvGRU():
         #
         outputs, _ = tf.contrib.rnn.static_rnn(self.cells, inputs, dtype=tf.float32)
         outputs = tf.stack(outputs)
+        #
+        # projection
+        outputs = tf.layers.dense(tf.reshape(outputs, (-1, self.num_units)), units=self.input_shape[-1],
+                                  activation=tf.nn.relu, kernel_initializer=self.weight_initializer)
+        #
         outputs = tf.reshape(outputs, (self.input_steps, self.batch_size, self.input_shape[0], self.input_shape[1], -1))
         outputs = tf.transpose(outputs, [1, 0, 2, 3, 4])
         loss = 2 * tf.nn.l2_loss(self.y - outputs)

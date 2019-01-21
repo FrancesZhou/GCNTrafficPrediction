@@ -8,14 +8,11 @@ import tensorflow as tf
 
 from tensorflow.contrib.rnn import RNNCell
 from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import nn_ops
-from tensorflow.python.ops import variable_scope as vs
-from tensorflow.python.framework import tensor_shape
 
 import utils
 
 
-class Coupled_Conv2DGRUCell(RNNCell):
+class Coupled_DCGRUCell(RNNCell):
     """Graph Convolution Gated Recurrent Unit cell.
     """
 
@@ -25,8 +22,7 @@ class Coupled_Conv2DGRUCell(RNNCell):
     def compute_output_shape(self, input_shape):
         pass
 
-    def __init__(self, num_units, input_shape, kernel_shape,
-                 adj_mx=None, max_diffusion_step=2, num_nodes=0, num_proj=None,
+    def __init__(self, num_units, adj_mx, max_diffusion_step, num_nodes, num_proj=None,
                  input_dim=None, dy_adj=1, dy_filter=0, output_dy_adj=False,
                  activation=tf.nn.tanh, reuse=None, filter_type="dual_random_walk", use_gc_for_ru=True):
         """
@@ -47,21 +43,16 @@ class Coupled_Conv2DGRUCell(RNNCell):
         :param filter_type: "laplacian", "random_walk", "dual_random_walk".
         :param use_gc_for_ru: whether to use Graph convolution to calculate the reset and update gates.
         """
-        super(Coupled_Conv2DGRUCell, self).__init__(_reuse=reuse)
+        super(Coupled_DCGRUCell, self).__init__(_reuse=reuse)
         self._activation = activation
-
-        self._num_units = num_units
-        self._input_shape = input_shape
-        self._kernel_shape = kernel_shape
+        self.filter_type = filter_type
         # self.dy_adj = dy_adj
         # self.dy_filter = dy_filter
-        self.filter_type = filter_type
         self.output_dy_adj = output_dy_adj
-
-        self._num_nodes = input_shape[0]*input_shape[1]
+        self._num_nodes = num_nodes
         self._input_dim = input_dim
         self._num_proj = num_proj
-
+        self._num_units = num_units
         self._max_diffusion_step = max_diffusion_step
         self._use_gc_for_ru = use_gc_for_ru
         self._supports = []
@@ -74,6 +65,14 @@ class Coupled_Conv2DGRUCell(RNNCell):
             self._len_supports = 2
         else:
             self._len_supports = 1
+
+        if adj_mx is not None:
+            # for fixed adjacent matrix
+            if self.filter_type == "random_walk":
+                self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
+            elif self.filter_type == "dual_random_walk":
+                self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
+                self._supports.append(tf.transpose(self.calculate_random_walk_matrix(tf.transpose(adj_mx))))
 
 
     @staticmethod
@@ -111,7 +110,7 @@ class Coupled_Conv2DGRUCell(RNNCell):
             whole_input_dim = inputs.get_shape().as_list()
             dy_adj_dim = whole_input_dim[-1] - self._input_dim * self._num_nodes
             if dy_adj_dim>0:
-                _input, dy_adj_mx = tf.split(inputs, num_or_size_splits=[self._input_dim*self._num_nodes, dy_adj_dim], axis=-1)
+                _input, dy_adj_mx = tf.split(inputs, num_or_size_splits=[self._input_dim, dy_adj_dim], axis=-1)
                 inputs = _input
             else:
                 #print('There is no input dynamic flow to generate dynamic adjacent matrix.')
@@ -119,50 +118,43 @@ class Coupled_Conv2DGRUCell(RNNCell):
         else:
             dy_adj_mx = None
         #
-        # ------ convgru --------
-        with tf.variable_scope('convgru', reuse=tf.AUTO_REUSE):
-            inputs_4d = tf.reshape(inputs, (-1, self._input_shape[0], self._input_shape[1], self._input_dim))
-            state_4d = tf.reshape(state, (-1, self._input_shape[0], self._input_shape[1], self._num_units))
-            new_hidden = self._conv(args=[inputs_4d, state_4d],
-                                    filter_size=self._kernel_shape,
-                                    num_features=2 * self._num_units,
-                                    bias=False, bias_start=0)
-            gates = tf.split(value=new_hidden, num_or_size_splits=2, axis=-1)
-            r, u = gates
-            r = tf.reshape(r, (-1, self._num_nodes * self._num_units))
-            u = tf.reshape(u, (-1, self._num_nodes * self._num_units))
-        #
-        # ------ flow-gcn --------
+        # ------- dcgru ------
+        with tf.variable_scope('dcgru', reuse=tf.AUTO_REUSE):
+            with tf.variable_scope('gates', reuse=tf.AUTO_REUSE):
+                value = self._gconv(inputs=inputs, state=state, dy_adj_mx=None,
+                                    output_size=2*self._num_units)
+                value = tf.reshape(value, (-1, self._num_nodes, 2*self._num_units))
+                r, u = tf.split(value=value, num_or_size_splits=2, axis=-1)
+                r = tf.reshape(r, (-1, self._num_nodes * self._num_units))
+                u = tf.reshape(u, (-1, self._num_nodes * self._num_units))
+        # ------- flow-gcn --------
         with tf.variable_scope('flow-gcn', reuse=tf.AUTO_REUSE):
             with tf.variable_scope('gates', reuse=tf.AUTO_REUSE):
-                value = self._gconv(inputs=inputs, state=state, dy_adj_mx=dy_adj_mx,
-                                           output_size=2 * self._num_units)
-                value = tf.reshape(value, (-1, self._num_nodes, 2*self._num_units))
-                f_r, f_u = tf.split(value=value, num_or_size_splits=2, axis=-1)
+                f_value = self._gconv(inputs=inputs, state=state, dy_adj_mx=dy_adj_mx,
+                                      output_size=2*self._num_units, bias=False)
+                f_value = tf.reshape(f_value, (-1, self._num_nodes, 2*self._num_units))
+                f_r, f_u = tf.split(value=f_value, num_or_size_splits=2, axis=-1)
                 f_r = tf.reshape(f_r, (-1, self._num_nodes * self._num_units))
                 f_u = tf.reshape(f_u, (-1, self._num_nodes * self._num_units))
         #
         couple_r = tf.nn.sigmoid(r + f_r)
         couple_u = tf.nn.sigmoid(u + f_u)
         with tf.variable_scope('candidate', reuse=tf.AUTO_REUSE):
-            c_state_4d = tf.reshape(couple_r * state, (-1, self._input_shape[0], self._input_shape[1], self._num_units))
-            c = self._conv(args=[inputs_4d, c_state_4d], filter_size=self._kernel_shape,
-                           num_features=self._num_units, bias=False, bias_start=0)
-            c = tf.reshape(c, (-1, self._num_nodes * self._num_units))
-            #
-            f_c = self._gconv(inputs, couple_r * state, dy_adj_mx, self._num_units)
+            c = self._gconv(inputs=inputs, state=couple_r * state, dy_adj_mx=None,
+                            output_size=self._num_units)
+            f_c = self._gconv(inputs=inputs, state=couple_r * state, dy_adj_mx=dy_adj_mx,
+                              output_size=self._num_units)
         if self._activation is not None:
-            couple_c = self._activation(f_c + c)
+            couple_c = self._activation(c + f_c)
         else:
-            couple_c = f_c + c
-        # ------ coupled convgru and flow-gcn -------
+            couple_c = c + f_c
+        # -------- coupled dcgru and flow-gcn -------
         output = new_state = couple_u * state + (1 - couple_u) * couple_c
         if self._num_proj is not None:
             with tf.variable_scope("projection", reuse=tf.AUTO_REUSE):
                 w = tf.get_variable('w', shape=(self._num_units, self._num_proj))
                 batch_size = inputs.get_shape()[0].value
                 output = tf.reshape(new_state, shape=(-1, self._num_units))
-                #output = tf.reshape(tf.matmul(output, w), shape=(batch_size, self.output_size))
                 output = tf.reshape(tf.matmul(output, w), shape=(batch_size, self.output_size))
         if self.output_dy_adj:
             #print(output)
@@ -175,7 +167,7 @@ class Coupled_Conv2DGRUCell(RNNCell):
         x_ = tf.expand_dims(x_, 0)
         return tf.concat([x, x_], axis=0)
 
-    def _fc(self, inputs, state, dy_adj_max, output_size, bias_start=0.0):
+    def _fc(self, inputs, state, dy_adj_mx, output_size, bias_start=0.0):
         dtype = inputs.dtype
         batch_size = inputs.get_shape()[0].value
         inputs = tf.reshape(inputs, (batch_size * self._num_nodes, -1))
@@ -228,7 +220,7 @@ class Coupled_Conv2DGRUCell(RNNCell):
         '''
         return supports
 
-    def _gconv(self, inputs, state, dy_adj_mx, output_size, bias_start=0.0):
+    def _gconv(self, inputs, state, dy_adj_mx, output_size, bias=True, bias_start=0.0):
         """Graph convolution between input and the graph matrix.
 
         :param args: a 2D Tensor or a list of 2D, batch x n, Tensors.
@@ -242,6 +234,7 @@ class Coupled_Conv2DGRUCell(RNNCell):
         batch_size = inputs.get_shape()[0].value
         inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
         state = tf.reshape(state, (batch_size, self._num_nodes, -1))
+
         if dy_adj_mx is not None:
             #print('dy_adj_mx is right.')
             dy_adj_mx = tf.reshape(dy_adj_mx, (batch_size, self._num_nodes, -1))
@@ -254,11 +247,7 @@ class Coupled_Conv2DGRUCell(RNNCell):
         dtype = inputs.dtype
 
         x = inputs_and_state
-        #x0 = x
-        #x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)
-        #x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
-        #x = tf.expand_dims(x0, axis=0)
-
+        #
         scope = tf.get_variable_scope()
         #dy_supports = []
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
@@ -266,11 +255,18 @@ class Coupled_Conv2DGRUCell(RNNCell):
                 pass
             else:
                 # get dynamic adj_mx
-                #print(dy_adj_mx)
-                dy_supports = self.get_supports(dy_adj_mx)
-                #print(dy_supports)
-                x0 = x
-                x = tf.expand_dims(x0, axis=0)
+                if dy_adj_mx is None:
+                    dy_supports = self._supports
+                    #print(dy_supports)
+                    x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)
+                    x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
+                    x = tf.expand_dims(x0, axis=0)
+                else:
+                    #print(dy_adj_mx)
+                    dy_supports = self.get_supports(dy_adj_mx)
+                    #print(dy_supports)
+                    x0 = x
+                    x = tf.expand_dims(x0, axis=0)
                 #
                 for support in dy_supports:
                     # x0: [batch_size, num_nodes, total_arg_size]
@@ -280,54 +276,33 @@ class Coupled_Conv2DGRUCell(RNNCell):
                     #print(x0.dtype)
                     x1 = tf.matmul(support, x0)
                     x = self._concat(x, x1)
+
                     for k in range(2, self._max_diffusion_step + 1):
                         #x2 = 2 * tf.sparse_tensor_dense_matmul(support, x1) - x0
                         x2 = 2 * tf.matmul(support, x1) - x0
                         x = self._concat(x, x2)
                         x1, x0 = x2, x1
 
+            #num_matrices = len(dy_supports) * self._max_diffusion_step + 1  # Adds for x itself.
             num_matrices = self._len_supports * self._max_diffusion_step + 1  # Adds for x itself.
-            x = tf.reshape(x, shape=[num_matrices, batch_size, self._num_nodes, input_size])
-            x = tf.transpose(x, perm=[1, 2, 3, 0])  # (batch_size, num_nodes, input_size, order)
+            #
+            if dy_adj_mx is None:
+                x = tf.reshape(x, shape=[num_matrices, self._num_nodes, input_size, batch_size])
+                x = tf.transpose(x, perm=[3, 1, 2, 0])  # (batch_size, num_nodes, input_size, order)
+            else:
+                x = tf.reshape(x, shape=[num_matrices, batch_size, self._num_nodes, input_size])
+                x = tf.transpose(x, perm=[1, 2, 3, 0])  # (batch_size, num_nodes, input_size, order)
+            #
             x = tf.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])
+
             weights = tf.get_variable(
                 'weights', [input_size * num_matrices, output_size], dtype=dtype,
                 initializer=tf.contrib.layers.xavier_initializer())
             x = tf.matmul(x, weights)  # (batch_size * self._num_nodes, output_size)
-            biases = tf.get_variable("biases", [output_size], dtype=dtype,
-                                     initializer=tf.constant_initializer(bias_start, dtype=dtype))
-            x = tf.nn.bias_add(x, biases)
+            if bias:
+                biases = tf.get_variable("biases", [output_size], dtype=dtype,
+                                         initializer=tf.constant_initializer(bias_start, dtype=dtype))
+                x = tf.nn.bias_add(x, biases)
+
         # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
         return tf.reshape(x, [batch_size, self._num_nodes * output_size])
-
-    def _conv(self, args, filter_size, num_features, bias, bias_start=0.0):
-        # Calculate the total size of arguments on dimension 1.
-        total_arg_size_depth = 0
-        shapes = [a.get_shape().as_list() for a in args]
-        shape_length = len(shapes[0])
-        for shape in shapes:
-            total_arg_size_depth += shape[-1]
-        dtype = [a.dtype for a in args][0]
-        strides = shape_length * [1]
-
-        if len(args) == 1:
-            inputs = args[0]
-        else:
-            inputs = array_ops.concat(axis=shape_length - 1, values=args)
-        # Now the computation.
-        # kernel = vs.get_variable(
-        #     "kernel", filter_size + [total_arg_size_depth, num_features], dtype=dtype)
-        kernel = tf.get_variable("kernel", filter_size + [total_arg_size_depth, num_features],
-                                 dtype=dtype, initializer=self.weight_initializer)
-        res = tf.nn.conv2d(inputs, kernel, strides, padding='SAME')
-        #res = nn_ops.conv2d(inputs, kernel, strides, padding='SAME')
-        #
-        if not bias:
-            return res
-        bias_term = vs.get_variable(
-            "biases", [num_features],
-            dtype=dtype,
-            initializer=self.constant_initializer(bias_start, dtype=dtype))
-        return res + bias_term
-    
-    

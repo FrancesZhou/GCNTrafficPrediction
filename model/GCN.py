@@ -9,7 +9,7 @@ from model.dcrnn_cell import DCGRUCell
 
 class GCN():
     def __init__(self, num_station, input_steps,
-                 num_units=64,
+                 num_layers=2, num_units=64,
                  max_diffusion_step=2,
                  dy_adj=1,
                  dy_filter=0,
@@ -33,17 +33,28 @@ class GCN():
 
 
         adj_mx = self.f_adj_mx
-        self.cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=self.max_diffusion_step,
-                              num_nodes=self.num_station, num_proj=None,
-                              input_dim=self.num_station*2, dy_adj=self.dy_adj, 
-                              dy_filter=self.dy_filter, output_dy_adj=self.dy_adj,
-                              reuse=tf.AUTO_REUSE, filter_type=self.filter_type)
-        self.cell_with_projection = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=max_diffusion_step,
-                                              num_nodes=self.num_station, num_proj=2,
-                                              input_dim=self.num_station*self.num_units, 
-                                              dy_adj=self.dy_adj, dy_filter=0, output_dy_adj=False,
-                                              reuse=tf.AUTO_REUSE, filter_type=self.filter_type)
+        first_cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=self.max_diffusion_step,
+                               num_nodes=self.num_station, num_proj=None,
+                               input_dim=2,
+                               dy_adj=self.dy_adj, dy_filter=self.dy_filter,
+                               output_dy_adj=self.dy_adj)
+        cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=max_diffusion_step,
+                         num_nodes=self.num_station, num_proj=None,
+                         input_dim=self.num_units,
+                         dy_adj=self.dy_adj, dy_filter=0,
+                         output_dy_adj=self.dy_adj)
+        cell_with_projection = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=max_diffusion_step,
+                                         num_nodes=self.num_station, num_proj=2,
+                                         input_dim=self.num_units,
+                                         dy_adj=self.dy_adj, dy_filter=0,
+                                         output_dy_adj=False)
+        if num_layers > 2:
+            cells = [first_cell] + [cell] * (num_layers-2) + [cell_with_projection]
+        else:
+            cells = [first_cell, cell_with_projection]
 
+        self.cells = tf.contrib.rnn.MultiRNNCell(cells, state_is_tuple=True)
+        #
         self.x = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, 2])
         self.f = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, self.num_station])
         self.y = tf.placeholder(tf.float32, [self.batch_size, self.input_steps, self.num_station, 2])
@@ -92,12 +103,11 @@ class GCN():
         #inputs = list(zip(*(x, f_all)))
         #elems = (x, f_all)
         #inputs = tf.map_fn(lambda x: tf.tuple([x[0], x[1]]), elems, dtype=[tf.float32, tf.float32])
-        self.cells = tf.contrib.rnn.MultiRNNCell([self.cell, self.cell_with_projection], state_is_tuple=True)
         outputs, _ = tf.contrib.rnn.static_rnn(self.cells, inputs, dtype=tf.float32)
         outputs = tf.stack(outputs)
         outputs = tf.reshape(outputs, (self.input_steps, self.batch_size, self.num_station, -1))
         outputs = tf.transpose(outputs, [1, 0, 2, 3])
-        outputs = outputs + self.x
+        #outputs = outputs + self.x
         loss = 2*tf.nn.l2_loss(self.y - outputs)
         return outputs, loss
     

@@ -3,10 +3,10 @@ import argparse
 import numpy as np
 import tensorflow as tf
 #from gensim.models import Word2Vec
+from model.FC_LSTM import FC_LSTM
 from model.GCN import GCN
-from model.ConvLSTM import ConvLSTM
 from model.ConvGRU import ConvGRU
-from model.flow_ConvLSTM import flow_ConvLSTM
+from model.flow_ConvGRU import flow_ConvGRU
 from model.Coupled_ConvGRU import CoupledConvGRU
 from solver import ModelSolver
 from preprocessing import *
@@ -26,6 +26,7 @@ def main():
                        help='number of input steps')
     # ---------- model ----------
     parse.add_argument('-model', '--model', type=str, default='GCN', help='model: GCN, ConvLSTM, flow_ConvLSTM')
+    parse.add_argument('-num_layers', '--num_layers', type=int, default=2, help='number of layers in model')
     parse.add_argument('-num_units', '--num_units', type=int, default=64, help='dim of hidden states')
     parse.add_argument('-kernel_size', '--kernel_size', type=int, default=3, help='kernel size in convolutional operations')
     #
@@ -117,28 +118,28 @@ def main():
         f_adj_mx = train_loader.get_flow_adj_mx()
         np.save(args.folder_name + 'f_adj_mx.npy', f_adj_mx)
 
+    if args.model == 'FC-LSTM':
+        model = FC_LSTM(num_station, args.input_steps,
+                        num_layers=args.num_layers, num_units=args.num_units,
+                        batch_size=args.batch_size)
     if args.model == 'GCN':
-        model = GCN(num_station, args.input_steps, num_units=args.num_units,
-                    dy_adj=args.dy_adj,
-                    dy_filter=args.dy_filter,
+        model = GCN(num_station, args.input_steps,
+                    num_layers=args.num_layers, num_units=args.num_units,
+                    dy_adj=args.dy_adj, dy_filter=args.dy_filter,
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size)
-    if args.model == 'ConvLSTM':
-        model = ConvLSTM(input_shape=[map_size[0], map_size[1], input_dim], input_steps=args.input_steps,
-                         num_layers=3, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
-                         batch_size=args.batch_size)
     if args.model == 'ConvGRU':
         model = ConvGRU(input_shape=[map_size[0], map_size[1], input_dim], input_steps=args.input_steps,
-                        num_layers=3, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
+                        num_layers=args.num_layers, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
                         batch_size=args.batch_size)
-    if args.model == 'flow_ConvLSTM':
-        model = flow_ConvLSTM(input_shape=[20, 10, input_dim], input_steps=args.input_steps,
-                              num_layers=2, num_units=args.num_units,kernel_shape=[args.kernel_size, args.kernel_size],
+    if args.model == 'flow_ConvGRU':
+        model = flow_ConvGRU(input_shape=[20, 10, input_dim], input_steps=args.input_steps,
+                              num_layers=args.num_layers, num_units=args.num_units,kernel_shape=[args.kernel_size, args.kernel_size],
                               f_adj_mx=f_adj_mx,
                               batch_size=args.batch_size)
     if args.model == 'Coupled_ConvGRU':
         model = CoupledConvGRU(input_shape=[20, 10, input_dim], input_steps=args.input_steps,
-                                num_layers=2, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
+                                num_layers=args.num_layers, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
                                 batch_size=args.batch_size)
     #
     model_path = os.path.join(args.output_folder_name, 'model_save', args.model_save)

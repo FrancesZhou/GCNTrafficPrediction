@@ -3,7 +3,9 @@ import argparse
 import numpy as np
 import tensorflow as tf
 #from gensim.models import Word2Vec
+from model.FC_LSTM import FC_LSTM
 from model.GCN import GCN
+from model.Coupled_GCN import Coupled_GCN
 from model.flow_GCN import flow_GCN
 from solver import ModelSolver
 from preprocessing import *
@@ -23,6 +25,7 @@ def main():
                        help='number of input steps')
     # ---------- model ----------
     parse.add_argument('-model', '--model', type=str, default='GCN', help='model: DyST, GCN, AttGCN')
+    parse.add_argument('-num_layers', '--num_layers', type=int, default=2, help='number of layers in model')
     parse.add_argument('-num_units', '--num_units', type=int, default=64, help='dim of hidden states')
     parse.add_argument('-dy_adj', '--dy_adj', type=int, default=1,
                        help='whether to use dynamic adjacent matrix for lower feature extraction layer')
@@ -101,15 +104,24 @@ def main():
         f_adj_mx = train_loader.get_flow_adj_mx()
         np.save(args.folder_name + 'f_adj_mx.npy', f_adj_mx)
 
+    if args.model == 'FC-LSTM':
+        model = FC_LSTM(num_station, args.input_steps,
+                        num_layers=args.num_layers, num_units=args.num_units,
+                        batch_size=args.batch_size)
     if args.model == 'GCN':
-        model = GCN(num_station, args.input_steps, num_units=args.num_units,
-                    dy_adj=args.dy_adj,
-                    dy_filter=args.dy_filter,
+        model = GCN(num_station, args.input_steps,
+                    num_layers=args.num_layers, num_units=args.num_units,
+                    dy_adj=args.dy_adj, dy_filter=args.dy_filter,
                     f_adj_mx=f_adj_mx,
                     batch_size=args.batch_size)
     if args.model == 'flow_GCN':
-        model = flow_GCN(num_station, args.input_steps, num_layers=2, num_units=args.num_units,
+        model = flow_GCN(num_station, args.input_steps,
+                         num_layers=args.num_layers, num_units=args.num_units,
                          f_adj_mx=f_adj_mx, batch_size=args.batch_size)
+    if args.model == 'Coupled_GCN':
+        model = Coupled_GCN(num_station, args.input_steps,
+                            num_layers=args.num_layers, num_units=args.num_units,
+                            f_adj_mx=f_adj_mx, batch_size=args.batch_size)
     #
     model_path = os.path.join(args.output_folder_name, 'model_save', args.model_save)
     if not os.path.exists(model_path):

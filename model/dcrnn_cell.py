@@ -25,7 +25,7 @@ class DCGRUCell(RNNCell):
     def __init__(self, num_units, adj_mx, max_diffusion_step, num_nodes, num_proj=None,
                  input_dim=None, dy_adj=1, dy_filter=0, output_dy_adj=False,
                  add_att_context=False, att_inputs=[], att_hidden_dim=64,
-                 activation=tf.nn.tanh, reuse=None, filter_type="dual_random_walk", use_gc_for_ru=True):
+                 activation=tf.nn.tanh, reuse=tf.AUTO_REUSE, filter_type="dual_random_walk", use_gc_for_ru=True):
         """
 
         :param num_units:
@@ -112,7 +112,7 @@ class DCGRUCell(RNNCell):
         if self._input_dim is not None:
             whole_input_dim = inputs.get_shape().as_list()
             #print(whole_input_dim)
-            dy_adj_dim = whole_input_dim[-1] - self._input_dim
+            dy_adj_dim = whole_input_dim[-1] - self._input_dim*self._num_nodes
             #print(dy_adj_dim)
             if dy_adj_dim>0:
                 _input, dy_adj_mx = tf.split(inputs, num_or_size_splits=[self._input_dim, dy_adj_dim], axis=-1)

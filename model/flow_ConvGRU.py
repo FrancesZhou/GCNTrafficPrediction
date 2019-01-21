@@ -6,12 +6,12 @@ import tensorflow as tf
 sys.path.append('./util/')
 from utils import *
 from model.dcrnn_cell import DCGRUCell
-from model.convlstm_cell import Dy_Conv2DLSTMCell
+from model.ConvGRU import Dy_Conv2DGRUCell
 
 
-class flow_ConvLSTM():
+class flow_ConvGRU():
     def __init__(self, input_shape=[20,10,2], input_steps=6,
-                 num_layers=2, num_units=32, kernel_shape=[3,3],
+                 num_layers=2, num_units=64, kernel_shape=[3,3],
                  f_adj_mx=None,
                  batch_size=32):
         self.input_shape = input_shape
@@ -27,26 +27,29 @@ class flow_ConvLSTM():
         self.const_initializer = tf.constant_initializer()
 
         # map - convlstm
-        first_cell = Dy_Conv2DLSTMCell(input_shape=self.input_shape,
-                                    output_channels=self.num_units,
-                                    kernel_shape=self.kernel_shape,
-                                    input_dim=self.input_shape[-1], dy_adj=0, dy_filter=0, output_dy_adj=0)
-        cell = Dy_Conv2DLSTMCell(input_shape=[self.input_shape[0], self.input_shape[1], self.num_units],
-                              output_channels=self.num_units,
-                              kernel_shape=self.kernel_shape,
-                              input_dim=self.num_units, dy_adj=0, dy_filter=0, output_dy_adj=0)
+        first_cell = Dy_Conv2DGRUCell(input_shape=self.input_shape,
+                                      output_channels=self.num_units,
+                                      kernel_shape=self.kernel_shape,
+                                      input_dim=self.input_shape[-1],
+                                      dy_adj=0, dy_filter=0, output_dy_adj=0)
+        cell = Dy_Conv2DGRUCell(input_shape=[self.input_shape[0], self.input_shape[1], self.num_units],
+                                output_channels=self.num_units,
+                                kernel_shape=self.kernel_shape,
+                                input_dim=self.num_units, dy_adj=0, dy_filter=0, output_dy_adj=0)
         # graph - gcn
-        g_first_cell = DCGRUCell(num_units=self.num_units, adj_mx=self.f_adj_mx, max_diffusion_step=2, num_nodes=self.input_shape[0]*self.input_shape[1],
-                                 input_dim=self.input_shape[0]*self.input_shape[1]*self.input_shape[-1], dy_adj=1, dy_filter=0, output_dy_adj=1)
-        g_cell = DCGRUCell(num_units=self.num_units, adj_mx=self.f_adj_mx, max_diffusion_step=2, num_nodes=self.input_shape[0]*self.input_shape[1],
-                           input_dim=self.input_shape[0]*self.input_shape[1]*self.num_units, dy_adj=1, dy_filter=0, output_dy_adj=1)
+        g_first_cell = DCGRUCell(num_units=self.num_units, adj_mx=self.f_adj_mx, max_diffusion_step=2,
+                                 num_nodes=self.input_shape[0]*self.input_shape[1],
+                                 input_dim=self.input_shape[-1],
+                                 dy_adj=1, dy_filter=0, output_dy_adj=1)
+        g_cell = DCGRUCell(num_units=self.num_units, adj_mx=self.f_adj_mx, max_diffusion_step=2,
+                           num_nodes=self.input_shape[0]*self.input_shape[1],
+                           input_dim=self.num_units,
+                           dy_adj=1, dy_filter=0, output_dy_adj=1)
         g_last_cell = DCGRUCell(num_units=self.num_units, adj_mx=self.f_adj_mx, max_diffusion_step=2,
-                           num_nodes=self.input_shape[0] * self.input_shape[1],
-                           input_dim=self.input_shape[0] * self.input_shape[1] * self.num_units, dy_adj=1, dy_filter=0,
-                           output_dy_adj=0)
+                                num_nodes=self.input_shape[0] * self.input_shape[1],
+                                input_dim=self.num_units,
+                                dy_adj=1, dy_filter=0, output_dy_adj=0)
         # concate two blocks
-
-
 
         if num_layers > 2:
             cells = [first_cell] + [cell] * (num_layers-1)
@@ -84,7 +87,7 @@ class flow_ConvLSTM():
         outputs = tf.reshape(outputs, (-1, self.num_units))
         g_outputs = tf.reshape(g_outputs, (-1, self.num_units))
         output_concat = tf.concat([outputs, g_outputs], axis=-1)
-        final_outputs = tf.layers.dense(output_concat, units=self.input_shape[-1], activation=tf.nn.relu)
+        final_outputs = tf.layers.dense(output_concat, units=self.input_shape[-1], activation=tf.nn.relu, kernel_initializer=self.weight_initializer)
         #
         final_outputs = tf.reshape(final_outputs, (self.input_steps, self.batch_size, self.input_shape[0], self.input_shape[1], -1))
         final_outputs = tf.transpose(final_outputs, [1, 0, 2, 3, 4])
