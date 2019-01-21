@@ -106,7 +106,7 @@ class GCN():
         outputs, _ = tf.contrib.rnn.static_rnn(self.cells, inputs, dtype=tf.float32)
         outputs = tf.stack(outputs)
         #
-        outputs = tf.nn.relu(outputs)
+        #outputs = tf.nn.relu(outputs)
         #
         outputs = tf.reshape(outputs, (self.input_steps, self.batch_size, self.num_station, -1))
         outputs = tf.transpose(outputs, [1, 0, 2, 3])
