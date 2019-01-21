@@ -76,7 +76,7 @@ class CoupledConvGRU():
         #
         # projection
         outputs = tf.layers.dense(tf.reshape(outputs, (-1, self.num_units)), units=self.input_shape[-1],
-                                  activation=tf.nn.relu, kernel_initializer=self.weight_initializer)
+                                  activation=None, kernel_initializer=self.weight_initializer)
         #
         outputs = tf.reshape(outputs, (self.input_steps, self.batch_size, self.input_shape[0], self.input_shape[1], -1))
         outputs = tf.transpose(outputs, [1, 0, 2, 3, 4])

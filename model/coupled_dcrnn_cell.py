@@ -239,7 +239,7 @@ class Coupled_DCGRUCell(RNNCell):
             #print('dy_adj_mx is right.')
             dy_adj_mx = tf.reshape(dy_adj_mx, (batch_size, self._num_nodes, -1))
         else:
-            print('No dynamic flow input to generate dynamic adjacent matrix.')
+            #print('No dynamic flow input to generate dynamic adjacent matrix.')
             dy_adj_mx = None
         
         inputs_and_state = tf.concat([inputs, state], axis=2)

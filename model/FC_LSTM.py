@@ -54,7 +54,7 @@ class FC_LSTM():
         outputs, _ = tf.contrib.rnn.static_rnn(self.cells, inputs, dtype=tf.float32)
         outputs = tf.stack(outputs)
         # projection
-        outputs = tf.layers.dense(tf.reshape(outputs, (-1, self.num_units)), units=self.num_station*2, kernel_initializer=self.weight_initializer)
+        outputs = tf.layers.dense(tf.reshape(outputs, (-1, self.num_units)), units=self.num_station*2, activation=tf.nn.relu, kernel_initializer=self.weight_initializer)
         #
         outputs = tf.reshape(outputs, (self.input_steps, self.batch_size, self.num_station, -1))
         outputs = tf.transpose(outputs, [1, 0, 2, 3])

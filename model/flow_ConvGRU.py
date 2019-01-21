@@ -87,7 +87,7 @@ class flow_ConvGRU():
         outputs = tf.reshape(outputs, (-1, self.num_units))
         g_outputs = tf.reshape(g_outputs, (-1, self.num_units))
         output_concat = tf.concat([outputs, g_outputs], axis=-1)
-        final_outputs = tf.layers.dense(output_concat, units=self.input_shape[-1], activation=tf.nn.relu, kernel_initializer=self.weight_initializer)
+        final_outputs = tf.layers.dense(output_concat, units=self.input_shape[-1], activation=None, kernel_initializer=self.weight_initializer)
         #
         final_outputs = tf.reshape(final_outputs, (self.input_steps, self.batch_size, self.input_shape[0], self.input_shape[1], -1))
         final_outputs = tf.transpose(final_outputs, [1, 0, 2, 3, 4])

@@ -47,7 +47,7 @@ class Coupled_GCN():
                                  num_nodes=self.num_nodes, num_proj=None,
                                  input_dim=self.num_units,
                                  output_dy_adj=1)
-        last_cell = Coupled_DCGRUCell(num_units=self.num_nodes, adj_mx=f_adj_mx,
+        last_cell = Coupled_DCGRUCell(num_units=self.num_units, adj_mx=f_adj_mx,
                                       max_diffusion_step=self.max_diffusion_steps,
                                       num_nodes=self.num_nodes, num_proj=None,
                                       input_dim=self.num_units,
@@ -78,7 +78,7 @@ class Coupled_GCN():
         #
         # projection
         outputs = tf.layers.dense(tf.reshape(outputs, (-1, self.num_units)), units=2,
-                                  activation=tf.nn.relu, kernel_initializer=self.weight_initializer)
+                                  activation=None, kernel_initializer=self.weight_initializer)
         #
         outputs = tf.reshape(outputs, (self.input_steps, self.batch_size, self.num_nodes, -1))
         outputs = tf.transpose(outputs, [1, 0, 2, 3])
