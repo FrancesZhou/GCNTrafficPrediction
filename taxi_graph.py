@@ -69,7 +69,7 @@ def main():
     # data: [num, station_num, 2]
     print(data.shape)
     #
-    if 'GCN' in args.model:
+    if 'GCN' in args.model or 'FC' in args.model:
         dataloader = DataLoader_graph
     else:
         data = np.reshape(data, (-1, 20, 10, 2))
@@ -118,7 +118,7 @@ def main():
         f_adj_mx = train_loader.get_flow_adj_mx()
         np.save(args.folder_name + 'f_adj_mx.npy', f_adj_mx)
 
-    if args.model == 'FC-LSTM':
+    if args.model == 'FC_LSTM':
         model = FC_LSTM(num_station, args.input_steps,
                         num_layers=args.num_layers, num_units=args.num_units,
                         batch_size=args.batch_size)

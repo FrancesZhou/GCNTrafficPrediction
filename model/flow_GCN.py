@@ -86,7 +86,7 @@ class flow_GCN():
         outputs = tf.reshape(outputs, (-1, self.num_units))
         f_outputs = tf.reshape(f_outputs, (-1, self.num_units))
         output_concat = tf.concat([outputs, f_outputs], axis=-1)
-        final_outputs = tf.layers.dense(output_concat, units=2, activation=tf.nn.relu)
+        final_outputs = tf.layers.dense(output_concat, units=2, activation=tf.nn.relu, kernel_initializer=self.weight_initializer)
         #
         final_outputs = tf.reshape(final_outputs, (self.input_steps, self.batch_size, self.num_station, -1))
         final_outputs = tf.transpose(final_outputs, [1, 0, 2, 3])

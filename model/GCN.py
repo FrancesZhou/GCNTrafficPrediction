@@ -105,6 +105,9 @@ class GCN():
         #inputs = tf.map_fn(lambda x: tf.tuple([x[0], x[1]]), elems, dtype=[tf.float32, tf.float32])
         outputs, _ = tf.contrib.rnn.static_rnn(self.cells, inputs, dtype=tf.float32)
         outputs = tf.stack(outputs)
+        #
+        outputs = tf.nn.relu(outputs)
+        #
         outputs = tf.reshape(outputs, (self.input_steps, self.batch_size, self.num_station, -1))
         outputs = tf.transpose(outputs, [1, 0, 2, 3])
         #outputs = outputs + self.x
