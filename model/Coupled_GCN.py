@@ -16,7 +16,7 @@ class Coupled_GCN():
                  max_diffusion_step=2,
                  dy_adj=0,
                  dy_filter=0,
-                 f_adj_mx=None,
+                 f_adj_mx=None, trained_adj_mx=False,
                  filter_type='dual_random_walk',
                  batch_size=32):
         self.num_nodes = num_station
@@ -25,7 +25,7 @@ class Coupled_GCN():
         self.num_units = num_units
         #
         self.max_diffusion_steps = max_diffusion_step
-        self.f_adj_mx = f_adj_mx
+        #self.f_adj_mx = f_adj_mx
         self.filter_type = filter_type
         #
         # self.dy_adj = dy_adj
@@ -36,18 +36,24 @@ class Coupled_GCN():
         self.weight_initializer = tf.contrib.layers.xavier_initializer()
         self.const_initializer = tf.constant_initializer()
         #
-        
-        first_cell = Coupled_DCGRUCell(num_units=self.num_units, adj_mx=f_adj_mx,
+        if trained_adj_mx:
+            with tf.variable_scope('trained_adj_mx', reuse=tf.AUTO_REUSE):
+                adj_mx = tf.get_variable('adj_mx', [num_station, num_station], dtype=tf.float32,
+                                         initializer=self.weight_initializer)
+        else:
+            adj_mx = f_adj_mx
+
+        first_cell = Coupled_DCGRUCell(num_units=self.num_units, adj_mx=adj_mx,
                                        max_diffusion_step=self.max_diffusion_steps,
                                        num_nodes=self.num_nodes, num_proj=None,
                                        input_dim=2,
                                        output_dy_adj=1)
-        cell = Coupled_DCGRUCell(num_units=self.num_units, adj_mx=f_adj_mx,
+        cell = Coupled_DCGRUCell(num_units=self.num_units, adj_mx=adj_mx,
                                  max_diffusion_step=self.max_diffusion_steps,
                                  num_nodes=self.num_nodes, num_proj=None,
                                  input_dim=self.num_units,
                                  output_dy_adj=1)
-        last_cell = Coupled_DCGRUCell(num_units=self.num_units, adj_mx=f_adj_mx,
+        last_cell = Coupled_DCGRUCell(num_units=self.num_units, adj_mx=adj_mx,
                                       max_diffusion_step=self.max_diffusion_steps,
                                       num_nodes=self.num_nodes, num_proj=None,
                                       input_dim=self.num_units,

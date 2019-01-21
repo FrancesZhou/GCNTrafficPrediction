@@ -11,7 +11,7 @@ class flow_GCN():
     def __init__(self, num_station, input_steps,
                  num_layers=2, num_units=64,
                  max_diffusion_step=2,
-                 f_adj_mx=None,
+                 f_adj_mx=None, trained_adj_mx=False,
                  filter_type='dual_random_walk',
                  batch_size=32):
         self.num_station = num_station
@@ -29,7 +29,13 @@ class flow_GCN():
         self.const_initializer = tf.constant_initializer()
 
 
-        adj_mx = self.f_adj_mx
+        if trained_adj_mx:
+            with tf.variable_scope('trained_adj_mx', reuse=tf.AUTO_REUSE):
+                adj_mx = tf.get_variable('adj_mx', [self.num_station, self.num_station], dtype=tf.float32,
+                                         initializer=self.weight_initializer)
+        else:
+            adj_mx = self.f_adj_mx
+        #
         first_cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=self.max_diffusion_step,
                                num_nodes=self.num_station, num_proj=None,
                                input_dim=2,
