@@ -59,7 +59,10 @@ def main():
     args = parse.parse_args()
     #
     data_folder = '../../datasets/' + args.dataset + '-data/data/'
-    output_folder = './data/' + args.dataset
+    if args.dim > 0:
+        output_folder = './data/' + args.dataset + '/dim1/'
+    else:
+        output_folder = './data/' + args.dataset
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     print('load train, test data...')
