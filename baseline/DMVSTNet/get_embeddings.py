@@ -15,7 +15,7 @@ def getGraphEmbedding(data, week_length=24 * 7, output_folder='./'):
     :return:
     """
     #embedding = None
-    graph = np.zeros([data.shape[1] * data.shape[2], data.shape[1] * data.shape[2]], dtype=np.float32)
+    #graph = np.zeros([data.shape[1] * data.shape[2], data.shape[1] * data.shape[2]], dtype=np.float32)
     s = np.zeros([week_length, data.shape[1], data.shape[2]])
     count = 0
     for i in range(0, data.shape[0], week_length):
@@ -32,16 +32,19 @@ def getGraphEmbedding(data, week_length=24 * 7, output_folder='./'):
     print('fastdtw...')
     dtw_output = [[fastdtw(s[:,i], s[:,j], dist=euclidean)[0] for j in range(i, s.shape[1])] for i in range(s.shape[1])]
     print('save graph data...')
-    np.save(os.path.join(output_folder, 'graph.npy'), graph)
+    dump_pickle(dtw_output, os.path.join(output_folder, 'graph.pkl'))
+    #np.save(os.path.join(output_folder, 'graph.npy'), graph)
     # graph = np.load("./graph.npy")
     print('generate graph_embedding_input.txt ')
     with open(os.path.join(output_folder, 'graph_embedding_input.txt'), 'w') as f:
-        for i in range(graph.shape[0]):
-            for j in range(i, graph.shape[1]):
-                f.write(str(i) + " " + str(j) + " " + str(dtw_output[i, j-i]) + "\n")
-                f.write(str(j) + " " + str(i) + " " + str(dtw_output[i, j-i]) + "\n")
-#                 f.write(str(i) + " " + str(j) + " " + str(graph[i, j]) + "\n")
-#                 f.write(str(j) + " " + str(i) + " " + str(graph[i, j]) + "\n")
+        # for i in range(graph.shape[0]):
+        #     for j in range(i, graph.shape[1]):
+        #         f.write(str(i) + " " + str(j) + " " + str(graph[i, j]) + "\n")
+        #         f.write(str(j) + " " + str(i) + " " + str(graph[i, j]) + "\n")
+        for i in range(s.shape[1]):
+            for j in range(i, s.shape[1]):
+                f.write(str(i) + " " + str(j) + " " + str(dtw_output[i][j-i]) + "\n")
+                f.write(str(j) + " " + str(i) + " " + str(dtw_output[i][j-i]) + "\n")
 
 
 def main():
