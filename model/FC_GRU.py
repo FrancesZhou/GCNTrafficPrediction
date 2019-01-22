@@ -32,7 +32,7 @@ class FC_GRU():
         self.const_initializer = tf.constant_initializer()
 
 
-        cells = [tf.contrib.rnn.GRUCell(self.num_units, forget_bias=1.0, name='lstm_{0}'.format(i)) for i in range(num_layers)]
+        cells = [tf.contrib.rnn.GRUCell(self.num_units, name='gru_{0}'.format(i)) for i in range(num_layers)]
         # cell_with_projection = tf.contrib.rnn.BasicLSTMCell(self.num_station*2, forget_bias=1.0)
         # cells = [cell] * num_layers
         self.cells = tf.contrib.rnn.MultiRNNCell(cells, state_is_tuple=True)

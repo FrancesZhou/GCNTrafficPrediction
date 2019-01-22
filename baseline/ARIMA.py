@@ -28,7 +28,7 @@ def predict_by_samples(data, test_data, train_length, num_sample, output_steps, 
     #
     for t in range(test_num - output_steps):
         #pbar.update(t)
-        if t%10 == 0:
+        if t%100 == 0:
             print(t)
         error_index = []
         if if_sample:
@@ -44,9 +44,11 @@ def predict_by_samples(data, test_data, train_length, num_sample, output_steps, 
                 error_index.append(r)
                 continue
             #pre, _, _ = results.forecast(output_steps)
-            pre = results.predict(train_length, train_length+output_steps)
+            #pre = results.predict(train_length, train_length+output_steps)
+            pre = results.predict(train_length, train_length)
             test_real = test_data[i][t:t + output_steps]
             real[t, r] = test_real
+            #print(pre)
             predict[t, r] = pre
         index_all[t] = samples
         error_all.append(error_index)
