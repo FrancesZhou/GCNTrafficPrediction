@@ -46,7 +46,7 @@ def predict_by_samples(data, test_data, train_length, num_sample, output_steps, 
             #pre, _, _ = results.forecast(output_steps)
             #pre = results.predict(train_length, train_length+output_steps)
             pre = results.predict(train_length, train_length)
-            test_real = test_data[i][t:t + output_steps]
+            test_real = test_data[t:t + output_steps, i]
             real[t, r] = test_real
             #print(pre)
             predict[t, r] = pre
@@ -72,8 +72,8 @@ if __name__ == '__main__':
     output_folder = 'results/ARIMA/' + args.dataset
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
-    prediction_file_name = output_folder + 'ARIMA_prediction.npy'
-    target_file_name = output_folder + 'ARIMA_target.npy'
+    prediction_file_name = os.path.join(output_folder,'ARIMA_prediction.npy')
+    target_file_name = os.path.join(output_folder, 'ARIMA_target.npy')
     print('load train, test data...')
     if 'citibike' in args.dataset:
         split = [3672, 240, 480]
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     #if os.path.exists(prediction_file_name):
         test_predict = np.load(prediction_file_name)
         test_real = np.load(target_file_name)
-        error_all = load_pickle(output_folder+'arima_error.pkl')
+        error_all = load_pickle(os.path.join(output_folder, 'arima_error.pkl'))
         valid_num = np.array([args.num_samples - len(e) for e in error_all])
     else:
         data = np.reshape(data, (data.shape[0], -1))
@@ -108,8 +108,8 @@ if __name__ == '__main__':
         test_real = np.array(test_real, dtype=np.float32)
         np.save(prediction_file_name, test_predict)
         np.save(target_file_name, test_real)
-        np.save(output_folder + 'index_all.npy', index_all)
-        dump_pickle(error_all, output_folder + 'arima_error.pkl')
+        np.save(os.path.join(output_folder, 'index_all.npy'), index_all)
+        dump_pickle(error_all, os.path.join(output_folder, 'arima_error.pkl'))
     #
     #rmse_test = np.sqrt(np.sum(np.square(test_real-test_predict))/np.prod(test_predict.shape))
     rmse_test = np.sqrt(np.sum(np.square(test_real - test_predict)) / np.sum(valid_num))

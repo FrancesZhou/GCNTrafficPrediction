@@ -1,9 +1,9 @@
 import os
 import numpy as np
 import argparse
-from .utils import *
-from dtw import dtw
-#from fastdtw import fastdtw
+from utils import *
+#from dtw import dtw
+from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
 import math
 import pandas as pd
@@ -21,23 +21,27 @@ def getGraphEmbedding(data, week_length=24 * 7, output_folder='./'):
     for i in range(0, data.shape[0], week_length):
         if i + week_length > data.shape[0]:
             break
-        s += data[i:i + week_length, :, :, 0]
+        s += data[i:i + week_length, :, :]
         count += 1
     s = s / count
     s = np.reshape(s, [s.shape[0], -1])
-    for i in range(s.shape[1]):
-        for j in range(i, s.shape[1]):
-            # if np.sum(s[:, i]) > 1440 and np.sum(s[:, j]) > 1440:
-            #     graph[i, j], cost, acc, path = dtw(s[:, i], s[:, j], dist=lambda x, y: abs(x - y))
-            graph[i, j], cost, acc, path = dtw(s[:, i], s[:, j], dist=lambda x, y: abs(x - y))
-            print("at %d %d " % (i, j))
+#     for i in range(s.shape[1]):
+#         for j in range(i, s.shape[1]):
+#             graph[i, j], _, _, _ = dtw(s[:, i], s[:, j], dist=lambda x, y: abs(x - y))
+#             #print("at %d %d " % (i, j))
+    print('fastdtw...')
+    dtw_output = [[fastdtw(s[:,i], s[:,j], dist=euclidean)[0] for j in range(i, s.shape[1])] for i in range(s.shape[1])]
+    print('save graph data...')
     np.save(os.path.join(output_folder, 'graph.npy'), graph)
     # graph = np.load("./graph.npy")
+    print('generate graph_embedding_input.txt ')
     with open(os.path.join(output_folder, 'graph_embedding_input.txt'), 'w') as f:
         for i in range(graph.shape[0]):
             for j in range(i, graph.shape[1]):
-                f.write(str(i) + " " + str(j) + " " + str(graph[i, j]) + "\n")
-                f.write(str(j) + " " + str(i) + " " + str(graph[i, j]) + "\n")
+                f.write(str(i) + " " + str(j) + " " + str(dtw_output[i, j-i]) + "\n")
+                f.write(str(j) + " " + str(i) + " " + str(dtw_output[i, j-i]) + "\n")
+#                 f.write(str(i) + " " + str(j) + " " + str(graph[i, j]) + "\n")
+#                 f.write(str(j) + " " + str(i) + " " + str(graph[i, j]) + "\n")
 
 
 def main():
@@ -56,21 +60,18 @@ def main():
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     print('load train, test data...')
-    if 'citibike' in args.dataset:
-        split = [3672, 240, 480]
-        data, train_data, _, test_data = load_npy_data(
-            filename=[data_folder + 'd_station.npy', data_folder + 'p_station.npy'], split=split)
-        p = 24 * 7
-    elif 'taxi' in args.dataset:
+    if 'taxi' in args.dataset:
         split = [11640, 744, 720]
-        data_folder = '../datasets/' + args.dataset + '-data/graph-data/'
+        data_folder = '../../datasets/' + args.dataset + '-data/graph-data/'
         data, train_data, val_data, test_data = load_npy_data(filename=[data_folder + 'nyc_taxi_data.npy'], split=split)
+        train_data = np.reshape(train_data, [train_data.shape[0], 20, 10, -1])
         p = 24 * 7
     elif 'didi' in args.dataset:
         split = [2400, 192, 288]
         data, train_data, val_data, test_data = load_npy_data(filename=[data_folder + 'cd_didi_data.npy'], split=split)
+        train_data = np.reshape(train_data, [train_data.shape[0], 20, 20, -1])
         p = 24 * 7 * 4
-    print(data.shape)
+    print(train_data.shape)
     train_emb_data = train_data[..., args.dim]
     getGraphEmbedding(train_emb_data, week_length=p, output_folder=output_folder)
 
