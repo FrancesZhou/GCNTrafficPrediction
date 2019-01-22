@@ -99,7 +99,7 @@ if __name__ == '__main__':
         #
         print('train ARIMA model...')
         #test_data_preindex = np.vstack((train_data[-args.lag_order:], test_data))
-        test_real, test_predict, index_all, error_all, valid_num = predict_by_samples(data, test_data, args.num_samples, split[0]+split[1], args.predict_steps, lag_order=args.lag_order)
+        test_real, test_predict, index_all, error_all, valid_num = predict_by_samples(data, test_data, split[0]+split[1], args.num_samples, args.predict_steps, lag_order=args.lag_order)
         test_predict = np.clip(test_predict, 0, None)
         test_real = np.squeeze(test_real)
         test_predict = np.squeeze(test_predict)
