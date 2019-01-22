@@ -77,27 +77,29 @@ if __name__ == '__main__':
     parse.add_argument('-predict_steps', '--predict_steps', type=int, default=1, help='prediction steps')
     parse.add_argument('-input_steps', '--input_steps', type=int, default=6, help='number of input steps')
     parse.add_argument('-dim', '--dim', type=int, default=0, help='dim of data to be processed')
+    parse.add_argument('-trainable', '--trainable', type=int, default=1, help='if to train (1) or to test (0)')
     #
     args = parse.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     #
     data_folder = '../../datasets/' + args.dataset + '-data/data/'
     if args.dim > 0:
-        embedding_file = os.path.join('./data/' + args.dataset, 'dim1', 'embedding.txt')
+        output_folder = os.path.join('./data', args.dataset, 'dim1')
     else:
-        embedding_file = os.path.join('./data/'+args.dataset, 'embedding.txt')
+        output_folder = os.path.join('./data', args.dataset)
+    #
+    embedding_file = os.path.join(output_folder, 'embedding.txt')
+    #
     print('load train, test data...')
-    if 'citibike' in args.dataset:
-        split = [3672, 240, 480]
-        data, train_data, _, test_data = load_npy_data(
-            filename=[data_folder + 'd_station.npy', data_folder + 'p_station.npy'], split=split)
-    elif 'taxi' in args.dataset:
-        split = [11640, 744, 720]
+    if 'taxi' in args.dataset:
+        #split = [11640, 744, 720]
+        split = [11640+744, 720]
         data_folder = '../../datasets/' + args.dataset + '-data/graph-data/'
         data, train_data, val_data, test_data = load_npy_data(filename=[data_folder + 'nyc_taxi_data.npy'], split=split)
         train_data = np.reshape(train_data, [train_data.shape[0], 20, 10, -1])
     elif 'didi' in args.dataset:
-        split = [2400, 192, 288]
+        #split = [2400, 192, 288]
+        split = [2400+192, 288]
         data, train_data, val_data, test_data = load_npy_data(filename=[data_folder + 'cd_didi_data.npy'], split=split)
         train_data = np.reshape(train_data, [train_data.shape[0], 20, 20, -1])
 
@@ -119,4 +121,4 @@ if __name__ == '__main__':
     ktf.set_session(tf.Session(config=config))
     # train model
     model = build_model(train_y, test_y, train_image, test_image, train_embedding, test_embedding, 64, minMax,
-                        seq_len=args.input_steps, trainable=True)
+                        seq_len=args.input_steps, trainable=args.trainable, model_path=output_folder)

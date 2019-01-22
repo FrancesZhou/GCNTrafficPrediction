@@ -19,7 +19,7 @@ from keras.layers.normalization import BatchNormalization
 from random import randint
 import pickle
 
-project_path = "/home/pengshunfeng/project/DMVSTNet"
+# project_path = "/home/pengshunfeng/project/DMVSTNet"
 # project_path = "E:/pyCharm/DMVSTNet"
 
 batch_size = 64
@@ -93,7 +93,13 @@ class Local_Seq_Conv(Layer):
         return (input_shape[0], input_shape[1], input_shape[2], input_shape[3], self.output_dim)
 
 
-def build_model(trainY, testY, trainimage, testimage, traintopo, testtopo, feature_len, minMax, trainable=True, seq_len=8, name="MODEL"):
+def build_model(trainY, testY, trainimage, testimage, traintopo, testtopo,
+                feature_len,
+                minMax,
+                seq_len=8,
+                trainable=True,
+                name="MODEL",
+                model_path='./'):
     print(testimage.shape)
     # X_train, Y_train, X_test, Y_test = Featureset_get()
     image_input = Input(shape=(seq_len, local_image_size,
@@ -149,7 +155,7 @@ def build_model(trainY, testY, trainimage, testimage, traintopo, testtopo, featu
     # model.fit([trainimage, trainX, traintopo], trainY, batch_size=batch_size, epochs=max_epoch, validation_split=0.1,
     #           callbacks=[earlyStopping])
 
-    fname_param = os.path.join(project_path, 'log', name)
+    fname_param = os.path.join(model_path, 'log', name)
     if not os.path.exists(fname_param):
         os.makedirs(fname_param)
     fname_param = os.path.join(fname_param, 'DMVSTNet.best.h5')
@@ -159,8 +165,9 @@ def build_model(trainY, testY, trainimage, testimage, traintopo, testtopo, featu
     if trainable:
         model.fit([trainimage, traintopo], trainY, batch_size=batch_size, epochs=max_epoch, validation_split=0.1,
                   callbacks=[earlyStopping, model_checkpoint])
+    else:
+        model.load_weights(fname_param)
     # testLoss = model.evaluate([testimage, testtopo], testY)
-    model.load_weights(fname_param)
     score = model.evaluate([trainimage, traintopo], trainY, batch_size=trainY.shape[
                                                             0] // 48, verbose=0)
     print('Train score: %.6f rmse (norm): %.6f rmse (real): %.6f' %

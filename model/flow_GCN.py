@@ -36,27 +36,29 @@ class flow_GCN():
         else:
             adj_mx = self.f_adj_mx
         #
-        first_cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=self.max_diffusion_step,
-                               num_nodes=self.num_station, num_proj=None,
-                               input_dim=2,
-                               dy_adj=0, dy_filter=0, output_dy_adj=0)
-        cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=self.max_diffusion_step,
-                         num_nodes=self.num_station, num_proj=None,
-                         input_dim=self.num_units,
-                         dy_adj=0, dy_filter=0, output_dy_adj=0)
+        with tf.variable_scope('gcn', reuse=tf.AUTO_REUSE):
+            first_cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=self.max_diffusion_step,
+                                   num_nodes=self.num_station, num_proj=None,
+                                   input_dim=2,
+                                   dy_adj=0, dy_filter=0, output_dy_adj=0)
+            cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=self.max_diffusion_step,
+                             num_nodes=self.num_station, num_proj=None,
+                             input_dim=self.num_units,
+                             dy_adj=0, dy_filter=0, output_dy_adj=0)
         ######
-        f_first_cell = DCGRUCell(self.num_units, adj_mx=None, max_diffusion_step=self.max_diffusion_step,
-                                 num_nodes=self.num_station, num_proj=None,
-                                 input_dim=2,
-                                 dy_adj=1, dy_filter=0, output_dy_adj=1)
-        f_cell = DCGRUCell(self.num_units, adj_mx=None, max_diffusion_step=self.max_diffusion_step,
-                           num_nodes=self.num_station, num_proj=None,
-                           input_dim=self.num_units,
-                           dy_adj=1, dy_filter=0, output_dy_adj=1)
-        f_last_cell = DCGRUCell(self.num_units, adj_mx=None, max_diffusion_step=self.max_diffusion_step,
-                                num_nodes=self.num_station, num_proj=None,
-                                input_dim=self.num_units,
-                                dy_adj=1, dy_filter=0, output_dy_adj=0)
+        with tf.variable_scope('flow-gcn', reuse=tf.AUTO_REUSE):
+            f_first_cell = DCGRUCell(self.num_units, adj_mx=None, max_diffusion_step=self.max_diffusion_step,
+                                     num_nodes=self.num_station, num_proj=None,
+                                     input_dim=2,
+                                     dy_adj=1, dy_filter=0, output_dy_adj=1)
+            f_cell = DCGRUCell(self.num_units, adj_mx=None, max_diffusion_step=self.max_diffusion_step,
+                               num_nodes=self.num_station, num_proj=None,
+                               input_dim=self.num_units,
+                               dy_adj=1, dy_filter=0, output_dy_adj=1)
+            f_last_cell = DCGRUCell(self.num_units, adj_mx=None, max_diffusion_step=self.max_diffusion_step,
+                                    num_nodes=self.num_station, num_proj=None,
+                                    input_dim=self.num_units,
+                                    dy_adj=1, dy_filter=0, output_dy_adj=0)
         if num_layers>2:
             cells = [first_cell] + [cell]*(num_layers-1)
             f_cells = [f_first_cell] + [f_cell]*(num_layers-2) + [f_last_cell]
