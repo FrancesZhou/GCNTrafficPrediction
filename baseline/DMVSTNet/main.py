@@ -68,7 +68,8 @@ def prepare_data(input_length, map_data, embedding_data, splits, image_size=9):
     print(test_y.shape)
     return train_image_x, train_embedding, train_y, test_image_x, test_embedding_x, test_y
 
-if __name__ == '__main__':
+
+def main():
     parse = argparse.ArgumentParser()
     parse.add_argument('-gpu', '--gpu', type=str, default='0', help='which gpu to use: 0 or 1')
     parse.add_argument('-dataset', '--dataset', type=str, default='didi', help='datasets: didi, taxi')
@@ -122,3 +123,7 @@ if __name__ == '__main__':
     # train model
     model = build_model(train_y, test_y, train_image, test_image, train_embedding, test_embedding, 64, minMax,
                         seq_len=args.input_steps, trainable=args.trainable, model_path=output_folder)
+    
+    
+if __name__ == '__main__':
+    main()
