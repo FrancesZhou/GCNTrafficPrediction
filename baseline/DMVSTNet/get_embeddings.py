@@ -40,7 +40,7 @@ def getGraphEmbedding(data, week_length=24 * 7, output_folder='./'):
                 f.write(str(j) + " " + str(i) + " " + str(graph[i, j]) + "\n")
 
 
-if __name__ == '__main__':
+def main():
     parse = argparse.ArgumentParser()
     parse.add_argument('-dataset', '--dataset', type=str, default='didi')
     # parse.add_argument('-dataset', '--dataset', type=str, default='citibike')
@@ -73,3 +73,7 @@ if __name__ == '__main__':
     print(data.shape)
     train_emb_data = train_data[..., args.dim]
     getGraphEmbedding(train_emb_data, week_length=p, output_folder=output_folder)
+
+
+if __name__ == '__main__':
+    main()
