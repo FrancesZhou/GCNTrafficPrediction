@@ -8,7 +8,7 @@ currentPath = os.path.abspath(os.path.curdir)
 sys.path.append(currentPath)
 from .model import build_model
 from .utils import *
-from .utils.utils import *
+from .minMax import *
 
 # project_path = "/home/pengshunfeng/project/DMVSTNet"
 # project_path = "E:/pyCharm/DMVSTNet"

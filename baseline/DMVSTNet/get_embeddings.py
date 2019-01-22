@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import argparse
-from .utils.utils import *
+from .utils import *
 from dtw import dtw
 #from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
