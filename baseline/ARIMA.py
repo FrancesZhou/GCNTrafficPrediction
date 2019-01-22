@@ -11,7 +11,7 @@ sys.path.append('../')
 from utils import *
 
 
-def predict_by_samples(data, test_data, train_length, num_sample, output_steps, if_sample=True):
+def predict_by_samples(data, test_data, train_length, num_sample, output_steps, lag_order=1, if_sample=True):
     warnings.filterwarnings("ignore")
     test_num, data_dim = test_data.shape
     if not if_sample:
@@ -39,7 +39,7 @@ def predict_by_samples(data, test_data, train_length, num_sample, output_steps, 
             i = samples[r]
             train_df = data[t:train_length+t, i]
             try:
-                results = ARIMA(train_df, order=(2, 0, 2)).fit(trend='nc', disp=0)
+                results = ARIMA(train_df, order=(lag_order, 0, 1)).fit(trend='nc', disp=0)
             except:
                 error_index.append(r)
                 continue
@@ -97,7 +97,7 @@ if __name__ == '__main__':
         #
         print('train ARIMA model...')
         #test_data_preindex = np.vstack((train_data[-args.lag_order:], test_data))
-        test_real, test_predict, index_all, error_all, valid_num = predict_by_samples(data, test_data, args.num_samples, split[0]+split[1], args.predict_steps)
+        test_real, test_predict, index_all, error_all, valid_num = predict_by_samples(data, test_data, args.num_samples, split[0]+split[1], args.predict_steps, lag_order=args.lag_order)
         test_predict = np.clip(test_predict, 0, None)
         test_real = np.squeeze(test_real)
         test_predict = np.squeeze(test_predict)
