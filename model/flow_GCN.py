@@ -36,29 +36,27 @@ class flow_GCN():
         else:
             adj_mx = self.f_adj_mx
         #
-        with tf.variable_scope('gcn', reuse=tf.AUTO_REUSE):
-            first_cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=self.max_diffusion_step,
-                                   num_nodes=self.num_station, num_proj=None,
-                                   input_dim=2,
-                                   dy_adj=0, dy_filter=0, output_dy_adj=0)
-            cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=self.max_diffusion_step,
-                             num_nodes=self.num_station, num_proj=None,
-                             input_dim=self.num_units,
-                             dy_adj=0, dy_filter=0, output_dy_adj=0)
-        ######
-        with tf.variable_scope('flow-gcn', reuse=tf.AUTO_REUSE):
-            f_first_cell = DCGRUCell(self.num_units, adj_mx=None, max_diffusion_step=self.max_diffusion_step,
-                                     num_nodes=self.num_station, num_proj=None,
-                                     input_dim=2,
-                                     dy_adj=1, dy_filter=0, output_dy_adj=1)
-            f_cell = DCGRUCell(self.num_units, adj_mx=None, max_diffusion_step=self.max_diffusion_step,
+        first_cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=self.max_diffusion_step,
                                num_nodes=self.num_station, num_proj=None,
-                               input_dim=self.num_units,
-                               dy_adj=1, dy_filter=0, output_dy_adj=1)
-            f_last_cell = DCGRUCell(self.num_units, adj_mx=None, max_diffusion_step=self.max_diffusion_step,
-                                    num_nodes=self.num_station, num_proj=None,
-                                    input_dim=self.num_units,
-                                    dy_adj=1, dy_filter=0, output_dy_adj=0)
+                               input_dim=2,
+                               dy_adj=0, dy_filter=0, output_dy_adj=0)
+        cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=self.max_diffusion_step,
+                         num_nodes=self.num_station, num_proj=None,
+                         input_dim=self.num_units,
+                         dy_adj=0, dy_filter=0, output_dy_adj=0)
+        ######
+        f_first_cell = DCGRUCell(self.num_units, adj_mx=None, max_diffusion_step=self.max_diffusion_step,
+                                 num_nodes=self.num_station, num_proj=None,
+                                 input_dim=2,
+                                 dy_adj=1, dy_filter=0, output_dy_adj=1)
+        f_cell = DCGRUCell(self.num_units, adj_mx=None, max_diffusion_step=self.max_diffusion_step,
+                           num_nodes=self.num_station, num_proj=None,
+                           input_dim=self.num_units,
+                           dy_adj=1, dy_filter=0, output_dy_adj=1)
+        f_last_cell = DCGRUCell(self.num_units, adj_mx=None, max_diffusion_step=self.max_diffusion_step,
+                                num_nodes=self.num_station, num_proj=None,
+                                input_dim=self.num_units,
+                                dy_adj=1, dy_filter=0, output_dy_adj=0)
         if num_layers>2:
             cells = [first_cell] + [cell]*(num_layers-1)
             f_cells = [f_first_cell] + [f_cell]*(num_layers-2) + [f_last_cell]
@@ -84,11 +82,13 @@ class flow_GCN():
         inputs = tf.concat([x, f_all], axis=-1)
         inputs = tf.unstack(inputs, axis=0)
         #
-        outputs, _ = tf.contrib.rnn.static_rnn(self.cells, inputs, dtype=tf.float32)
-        outputs = tf.stack(outputs)
+        with tf.variable_scope('gcn', reuse=tf.AUTO_REUSE):
+            outputs, _ = tf.contrib.rnn.static_rnn(self.cells, inputs, dtype=tf.float32)
+            outputs = tf.stack(outputs)
         #
-        f_outputs, _ = tf.contrib.rnn.static_rnn(self.f_cells, inputs, dtype=tf.float32)
-        f_outputs = tf.stack(f_outputs)
+        with tf.variable_scope('flow-gcn', reuse=tf.AUTO_REUSE):
+            f_outputs, _ = tf.contrib.rnn.static_rnn(self.f_cells, inputs, dtype=tf.float32)
+            f_outputs = tf.stack(f_outputs)
         #
         # combine these two blocks to output the final prediction
         outputs = tf.reshape(outputs, (-1, self.num_units))
