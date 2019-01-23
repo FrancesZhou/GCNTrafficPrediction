@@ -7,9 +7,9 @@ import keras.backend.tensorflow_backend as ktf
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 currentPath = os.path.abspath(os.path.curdir)
 sys.path.append(currentPath)
-from .model import build_model
-from .utils import *
-from .minMax import *
+from model import build_model
+from utils import *
+from minMax import *
 
 
 def load_embedding(filename):
@@ -25,7 +25,7 @@ def load_embedding(filename):
     return embedding
 
 
-def prepare_data(input_length, map_data, embedding_data, splits, image_size=9):
+def prepare_data(input_length, map_data, embedding_data, split, image_size=9):
     height = map_data.shape[1]
     width = map_data.shape[2]
     #T = map_data.shape[0]
@@ -37,7 +37,7 @@ def prepare_data(input_length, map_data, embedding_data, splits, image_size=9):
     test_embedding_x = []
     padding = int(image_size / 2)
     #for t in range(input_length, splits[0] - input_length):
-    for t in range(input_length, splits[0]):
+    for t in range(input_length, split[0]):
         for i in range(padding, height - padding):
             for j in range(padding, width - padding):
                 if not embedding_data.__contains__(i * width + j):
@@ -97,15 +97,20 @@ def main():
         split = [11640+744, 720]
         data_folder = '../../datasets/' + args.dataset + '-data/graph-data/'
         data, train_data, val_data, test_data = load_npy_data(filename=[data_folder + 'nyc_taxi_data.npy'], split=split)
+        data = np.reshape(data, [data.shape[0], 20, 10, -1])
         train_data = np.reshape(train_data, [train_data.shape[0], 20, 10, -1])
     elif 'didi' in args.dataset:
         #split = [2400, 192, 288]
         split = [2400+192, 288]
         data, train_data, val_data, test_data = load_npy_data(filename=[data_folder + 'cd_didi_data.npy'], split=split)
+        data = np.reshape(data, [data.shape[0], 20, 20, -1])
         train_data = np.reshape(train_data, [train_data.shape[0], 20, 20, -1])
 
     #
+    print(data.shape)
     data = data[..., args.dim]
+    data = np.expand_dims(data, axis=-1)
+    print(data.shape)
     minMax = MinMax(data)
     data = minMax.transform()
     embedding = load_embedding(embedding_file)
