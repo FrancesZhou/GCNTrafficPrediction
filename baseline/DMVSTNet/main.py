@@ -111,8 +111,11 @@ def main():
     data = data[..., args.dim]
     data = np.expand_dims(data, axis=-1)
     print(data.shape)
-    minMax = MinMax(data)
-    data = minMax.transform()
+    minMax = MinMaxNormalization01()
+    minMax.fit(data[:split[0]])
+    data = minMax.transform(data)
+    #minMax = MinMax(data)
+    #data = minMax.transform()
     embedding = load_embedding(embedding_file)
     # nyb_splits = [data.shape[0]-240, 240]
     # nyt_splits = [data.shape[0] - 720, 720]
