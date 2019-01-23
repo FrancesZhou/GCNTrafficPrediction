@@ -92,6 +92,8 @@ class Local_Seq_Conv(Layer):
     def compute_output_shape(self, input_shape):
         return (input_shape[0], input_shape[1], input_shape[2], input_shape[3], self.output_dim)
 
+def squared_error(y_true, y_pred):
+    return K.sum(K.square(y_pred - y_true))
 
 def build_model(trainY, testY, trainimage, testimage, traintopo, testtopo,
                 feature_len,
@@ -148,8 +150,8 @@ def build_model(trainY, testY, trainimage, testimage, traintopo, testtopo,
     model = Model(inputs=[image_input, topo_input],
                   outputs=res)
     sgd = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=1e-6)
-    model.compile(loss=losses.mse, optimizer=sgd,
-                  metrics=[metrics.mse])
+    #model.compile(loss=losses.mse, optimizer=sgd, metrics=[metrics.mse])
+    model.compile(loss=squared_error, optimizer=sgd, metrics=[metrics.mse])
     earlyStopping = EarlyStopping(
         monitor='val_loss', patience=5, verbose=0, mode='min')
     # model.fit([trainimage, trainX, traintopo], trainY, batch_size=batch_size, epochs=max_epoch, validation_split=0.1,
@@ -170,12 +172,16 @@ def build_model(trainY, testY, trainimage, testimage, traintopo, testtopo,
     # testLoss = model.evaluate([testimage, testtopo], testY)
     score = model.evaluate([trainimage, traintopo], trainY, batch_size=trainY.shape[
                                                             0] // 48, verbose=0)
-    print('Train score: %.6f rmse (norm): %.6f rmse (real): %.6f' %
-          (score[0], score[1], minMax.inverse(np.sqrt(score[1]))))
+    # print('Train score: %.6f rmse (norm): %.6f rmse (real): %.6f' %
+    #       (score[0], score[1], minMax.inverse(np.sqrt(score[1]))))
+    print('Train score: %.6f se (norm): %.6f se (real): %.6f' %
+          (score[0], score[1], minMax.inverse(minMax.inverse(score[1]))))
 
     score = model.evaluate(
         [testimage, testtopo], testY, batch_size=testY.shape[0], verbose=0)
-    print('Test score: %.6f rmse (norm): %.6f rmse (real): %.6f' %
-          (score[0], score[1], minMax.inverse(np.sqrt(score[1]))))
+    # print('Test score: %.6f rmse (norm): %.6f rmse (real): %.6f' %
+    #       (score[0], score[1], minMax.inverse(np.sqrt(score[1]))))
+    print('Test score: %.6f se (norm): %.6f se (real): %.6f' %
+          (score[0], score[1], minMax.inverse(minMax.inverse(score[1]))))
     # model.save('local_conv_lstm_total_embed.h5')
     return model
