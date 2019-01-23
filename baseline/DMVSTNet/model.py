@@ -184,4 +184,11 @@ def build_model(trainY, testY, trainimage, testimage, traintopo, testtopo,
     print('Test score: %.6f se (norm): %.6f se (real): %.6f' %
           (score[0], score[1], minMax.inverse(minMax.inverse(score[1]))))
     # model.save('local_conv_lstm_total_embed.h5')
-    return model
+
+    prediction = model.predict([testimage, testtopo], batch_size=testY.shape[0], verbose=0)
+    print(prediction.shape)
+    test_mse = minMax.inverse(minMax.inverse(np.mean(np.square(prediction - testY))))
+    print('test mse is %.6f, and rmse : %.6f' % (test_mse, np.sqrt(test_mse)))
+    return prediction
+
+    # return model

@@ -25,7 +25,15 @@ def load_embedding(filename):
     return embedding
 
 
-def prepare_data(input_length, map_data, embedding_data, split, image_size=9):
+def prepare_data_padding(input_length, map_data, embedding_data, split, image_size=9, if_padding=False):
+    padding = int(image_size / 2)
+    #
+    if if_padding:
+        raw_map_shape = map_data.shape
+        padding_map_data = np.zeros((raw_map_shape[0], raw_map_shape[1]+2*padding, raw_map_shape[2]+2*padding, raw_map_shape[3]), dtype=np.float32)
+        padding_map_data[:, padding:-padding, padding:-padding, :] = map_data
+        map_data = padding_map_data
+    #
     height = map_data.shape[1]
     width = map_data.shape[2]
     #T = map_data.shape[0]
@@ -35,7 +43,6 @@ def prepare_data(input_length, map_data, embedding_data, split, image_size=9):
     test_image_x = []
     test_y = []
     test_embedding_x = []
-    padding = int(image_size / 2)
     #for t in range(input_length, splits[0] - input_length):
     for t in range(input_length, split[0]):
         for i in range(padding, height - padding):
@@ -66,7 +73,8 @@ def prepare_data(input_length, map_data, embedding_data, split, image_size=9):
     print(test_image_x.shape)
     print(test_embedding_x.shape)
     print(test_y.shape)
-    return train_image_x, train_embedding, train_y, test_image_x, test_embedding_x, test_y
+    test_y_shape = [np.sum(split) - np.sum(split[:-1]) - input_length, height - 2 * padding, width - 2 * padding]
+    return train_image_x, train_embedding, train_y, test_image_x, test_embedding_x, test_y, test_y_shape
 
 
 def main():
@@ -121,16 +129,21 @@ def main():
     # nyt_splits = [data.shape[0] - 720, 720]
     # didi_splits = [data.shape[0] - 288, 288]
     # prepare data
-    train_image, train_embedding, train_y, test_image, test_embedding, test_y = prepare_data(args.input_steps,
+    train_image, train_embedding, train_y, test_image, test_embedding, test_y, test_shape = prepare_data_padding(args.input_steps,
                                                                                              data, embedding,
-                                                                                             split, 9)
+                                                                                             split, 9, if_padding=True)
+    print(test_shape)
     # set gpu config
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     ktf.set_session(tf.Session(config=config))
     # train model
-    model = build_model(train_y, test_y, train_image, test_image, train_embedding, test_embedding, 64, minMax,
+    prediction = build_model(train_y, test_y, train_image, test_image, train_embedding, test_embedding, 64, minMax,
                         seq_len=args.input_steps, trainable=args.trainable, model_path=output_folder)
+    test_target = np.reshape(test_y, test_shape+[-1])
+    test_prediction = np.reshape(prediction, test_shape+[-1])
+    np.save(os.path.join(output_folder, 'test_target.npy'), test_target)
+    np.save(os.path.join(output_folder, 'test_prediction.npy', test_prediction))
     
     
 if __name__ == '__main__':
