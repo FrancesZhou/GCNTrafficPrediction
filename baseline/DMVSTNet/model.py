@@ -22,7 +22,7 @@ import pickle
 # project_path = "/home/pengshunfeng/project/DMVSTNet"
 # project_path = "E:/pyCharm/DMVSTNet"
 
-batch_size = 64
+#batch_size = 64
 mean_label = 0.0
 label_max = 0
 label_min = 0
@@ -99,6 +99,7 @@ def build_model(trainY, testY, trainimage, testimage, traintopo, testtopo,
                 feature_len,
                 minMax,
                 seq_len=8,
+                batch_size=64,
                 trainable=True,
                 name="MODEL",
                 model_path='./'):

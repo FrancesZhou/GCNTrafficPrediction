@@ -83,21 +83,26 @@ def main():
     parse.add_argument('-dataset', '--dataset', type=str, default='didi', help='datasets: didi, taxi')
     # parse.add_argument('-dataset', '--dataset', type=str, default='taxi')
     #
+    parse.add_argument('-model_save', '--model_save', type=str, default='', help='path to save model')
     parse.add_argument('-predict_steps', '--predict_steps', type=int, default=1, help='prediction steps')
     parse.add_argument('-input_steps', '--input_steps', type=int, default=6, help='number of input steps')
     parse.add_argument('-dim', '--dim', type=int, default=0, help='dim of data to be processed')
     parse.add_argument('-trainable', '--trainable', type=int, default=1, help='if to train (1) or to test (0)')
+    parse.add_argument('-batch_size', '--batch_size', type=int, default=64)
     #
     args = parse.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     #
     data_folder = '../../datasets/' + args.dataset + '-data/data/'
     if args.dim > 0:
-        output_folder = os.path.join('./data', args.dataset, 'dim1')
+        embedding_file = os.path.join('./data', args.dataset, 'dim1', 'embedding.txt')
+        output_folder = os.path.join('./data', args.dataset, 'dim1', 'model_save', args.model_save)
     else:
-        output_folder = os.path.join('./data', args.dataset)
+        embedding_file = os.path.join('./data', args.dataset, 'embedding.txt')
+        output_folder = os.path.join('./data', args.dataset, 'model_save', args.model_save)
     #
-    embedding_file = os.path.join(output_folder, 'embedding.txt')
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
     #
     print('load train, test data...')
     if 'taxi' in args.dataset:
@@ -136,7 +141,10 @@ def main():
     ktf.set_session(tf.Session(config=config))
     # train model
     prediction = build_model(train_y, test_y, train_image, test_image, train_embedding, test_embedding, 64, minMax,
-                        seq_len=args.input_steps, trainable=args.trainable, model_path=output_folder)
+                             seq_len=args.input_steps,
+                             batch_size=args.batch_size,
+                             trainable=args.trainable,
+                             model_path=output_folder)
     test_target = np.reshape(test_y, test_num+[-1])
     test_prediction = np.reshape(prediction, test_num+[-1])
     np.save(os.path.join(output_folder, 'test_target.npy'), test_target)
