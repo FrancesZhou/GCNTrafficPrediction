@@ -73,8 +73,8 @@ def prepare_data_padding(input_length, map_data, embedding_data, split, image_si
     print(test_image_x.shape)
     print(test_embedding_x.shape)
     print(test_y.shape)
-    test_y_shape = [np.sum(split) - np.sum(split[:-1]) - input_length, height - 2 * padding, width - 2 * padding]
-    return train_image_x, train_embedding, train_y, test_image_x, test_embedding_x, test_y, test_y_shape
+    test_y_num = [np.sum(split) - np.sum(split[:-1]) - input_length]
+    return train_image_x, train_embedding, train_y, test_image_x, test_embedding_x, test_y, test_y_num
 
 
 def main():
@@ -125,14 +125,11 @@ def main():
     #minMax = MinMax(data)
     #data = minMax.transform()
     embedding = load_embedding(embedding_file)
-    # nyb_splits = [data.shape[0]-240, 240]
-    # nyt_splits = [data.shape[0] - 720, 720]
-    # didi_splits = [data.shape[0] - 288, 288]
     # prepare data
-    train_image, train_embedding, train_y, test_image, test_embedding, test_y, test_shape = prepare_data_padding(args.input_steps,
+    train_image, train_embedding, train_y, test_image, test_embedding, test_y, test_num = prepare_data_padding(args.input_steps,
                                                                                              data, embedding,
                                                                                              split, 9, if_padding=True)
-    print(test_shape)
+    print(test_num)
     # set gpu config
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -140,10 +137,10 @@ def main():
     # train model
     prediction = build_model(train_y, test_y, train_image, test_image, train_embedding, test_embedding, 64, minMax,
                         seq_len=args.input_steps, trainable=args.trainable, model_path=output_folder)
-    test_target = np.reshape(test_y, test_shape+[-1])
-    test_prediction = np.reshape(prediction, test_shape+[-1])
+    test_target = np.reshape(test_y, test_num+[-1])
+    test_prediction = np.reshape(prediction, test_num+[-1])
     np.save(os.path.join(output_folder, 'test_target.npy'), test_target)
-    np.save(os.path.join(output_folder, 'test_prediction.npy', test_prediction))
+    np.save(os.path.join(output_folder, 'test_prediction.npy'), test_prediction)
     
     
 if __name__ == '__main__':
