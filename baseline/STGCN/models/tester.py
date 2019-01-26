@@ -119,7 +119,8 @@ def model_test(inputs, batch_size, n_his, n_pred, inf_mode, load_path='./output/
         evl = evaluation(x_test[0:len_test, step_idx + n_his, :, :], y_test, x_stats)
 
         for ix in tmp_idx:
-            te = evl[ix - 2:ix + 1]
+            #te = evl[ix - 2:ix + 1]
+            te = evl
             print(f'Time Step {ix + 1}: MAPE {te[0]:7.3%}; MAE  {te[1]:4.3f}; RMSE {te[2]:6.3f}.')
         print(f'Model Test Time {time.time() - start_time:.3f}s')
     print('Testing model finished!')

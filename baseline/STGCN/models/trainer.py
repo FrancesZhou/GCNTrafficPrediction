@@ -91,7 +91,8 @@ def model_train(inputs, blocks, args, sum_path='./output/tensorboard'):
                 model_inference(sess, pred, inputs, batch_size, n_his, n_pred, step_idx, min_va_val, min_val)
 
             for ix in tmp_idx:
-                va, te = min_va_val[ix - 2:ix + 1], min_val[ix - 2:ix + 1]
+                #va, te = min_va_val[ix - 2:ix + 1], min_val[ix - 2:ix + 1]
+                va, te = min_va_val, min_val
                 print(f'Time Step {ix + 1}: '
                       f'MAPE {va[0]:7.3%}, {te[0]:7.3%}; '
                       f'MAE  {va[1]:4.3f}, {te[1]:4.3f}; '

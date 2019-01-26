@@ -29,7 +29,7 @@ parser.add_argument('-gpu', '--gpu', type=str, default='0', help='which gpu to u
 parser.add_argument('-dataset', '--dataset', type=str, default='citibike', help='datasets: citibike')
 parser.add_argument('-input_steps', '--input_steps', type=int, default=6, help='number of input steps')
 parser.add_argument('-model_save', '--model_save', type=str, default='', help='path to save model')
-parser.add_argument('-trained_adj_mx', '--trained_adj_mx', type=int, default=1, help='if training adjacent matrix')
+parser.add_argument('-trained_adj_mx', '--trained_adj_mx', type=int, default=0, help='if training adjacent matrix')
 parser.add_argument('-delta', '--delta', type=int, default=1e7, help='delta to calculate rescaled weighted matrix')
 parser.add_argument('-epsilon', '--epsilon', type=float, default=0.8, help='epsilon to calculate rescaled weighted matrix')
 #
@@ -76,18 +76,19 @@ if args.trained_adj_mx:
     L = tf.get_variable('weight_matrix', shape=(n, n), dtype=tf.float32)
     Lk = cheb_poly_approx_tf(L, Ks, n)
     #W = weight_matrix(pjoin('./dataset', f'PeMSD7_W_{n}.csv'))
+    tf.add_to_collection(name='graph_kernel', value=Lk)
 else:
     # load customized graph weight matrix
     #W = weight_matrix(pjoin('./dataset', args.graph))
     w = np.load(data_folder + 'w.npy')
+    #w = np.array(w, dtype=np.float32)
     W = get_rescaled_W(w, delta=args.delta, epsilon=args.epsilon)
     # Calculate graph kernel
     L = scaled_laplacian(W)
     # Alternative approximation method: 1st approx - first_approx(W, n).
     Lk = cheb_poly_approx(L, Ks, n)
+    tf.add_to_collection(name='graph_kernel', value=tf.cast(tf.constant(Lk), tf.float32))
 
-#tf.add_to_collection(name='graph_kernel', value=tf.cast(tf.constant(Lk), tf.float32))
-tf.add_to_collection(name='graph_kernel', value=Lk)
 
 
 if __name__ == '__main__':
