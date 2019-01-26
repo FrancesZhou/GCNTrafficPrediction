@@ -29,6 +29,7 @@ def main():
     parse.add_argument('-num_layers', '--num_layers', type=int, default=2, help='number of layers in model')
     parse.add_argument('-num_units', '--num_units', type=int, default=64, help='dim of hidden states')
     parse.add_argument('-trained_adj_mx', '--trained_adj_mx', type=int, default=0, help='if training adjacent matrix')
+    parse.add_argument('-filter_type', '--filter_type', type=str, default='laplacian', help='laplacian, random_walk, or dual_random_walk')
     parse.add_argument('-dy_adj', '--dy_adj', type=int, default=1,
                        help='whether to use dynamic adjacent matrix for lower feature extraction layer')
     parse.add_argument('-dy_filter', '--dy_filter', type=int, default=0,
@@ -105,6 +106,16 @@ def main():
     else:
         f_adj_mx = train_loader.get_flow_adj_mx()
         np.save(args.folder_name + 'f_adj_mx.npy', f_adj_mx)
+    #
+    #
+    if args.filter_type == 'laplacian':
+        w = np.load(args.folder_name + 'w.npy')
+        # w = np.array(w, dtype=np.float32)
+        W = get_rescaled_W(w, delta=args.delta, epsilon=args.epsilon)
+        # Calculate graph kernel
+        L = scaled_laplacian(W)
+        #
+        f_adj_mx = L
 
     if args.model == 'FC_LSTM':
         model = FC_LSTM(num_station, args.input_steps,
@@ -119,16 +130,19 @@ def main():
                     num_layers=args.num_layers, num_units=args.num_units,
                     dy_adj=args.dy_adj, dy_filter=args.dy_filter,
                     f_adj_mx=f_adj_mx, trained_adj_mx=args.trained_adj_mx,
+                    filter_type=args.filter_type,
                     batch_size=args.batch_size)
     if args.model == 'flow_GCN':
         model = flow_GCN(num_station, args.input_steps,
                          num_layers=args.num_layers, num_units=args.num_units,
                          f_adj_mx=f_adj_mx, trained_adj_mx=args.trained_adj_mx,
+                         filter_type=args.filter_type,
                          batch_size=args.batch_size)
     if args.model == 'Coupled_GCN':
         model = Coupled_GCN(num_station, args.input_steps,
                             num_layers=args.num_layers, num_units=args.num_units,
                             f_adj_mx=f_adj_mx, trained_adj_mx=args.trained_adj_mx,
+                            filter_type=args.filter_type,
                             batch_size=args.batch_size)
     #
     model_path = os.path.join(args.output_folder_name, 'model_save', args.model_save)

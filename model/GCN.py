@@ -44,17 +44,20 @@ class GCN():
                                num_nodes=self.num_station, num_proj=None,
                                input_dim=2,
                                dy_adj=self.dy_adj, dy_filter=self.dy_filter,
-                               output_dy_adj=self.dy_adj)
+                               output_dy_adj=self.dy_adj,
+                               filter_type=self.filter_type)
         cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=max_diffusion_step,
                          num_nodes=self.num_station, num_proj=None,
                          input_dim=self.num_units,
                          dy_adj=self.dy_adj, dy_filter=0,
-                         output_dy_adj=self.dy_adj)
+                         output_dy_adj=self.dy_adj,
+                         filter_type=self.filter_type)
         cell_with_projection = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=max_diffusion_step,
                                          num_nodes=self.num_station, num_proj=2,
                                          input_dim=self.num_units,
                                          dy_adj=self.dy_adj, dy_filter=0,
-                                         output_dy_adj=False)
+                                         output_dy_adj=False,
+                                         filter_type=self.filter_type)
         if num_layers > 2:
             cells = [first_cell] + [cell] * (num_layers-2) + [cell_with_projection]
         else:

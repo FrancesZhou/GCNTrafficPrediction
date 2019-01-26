@@ -47,17 +47,20 @@ class Coupled_GCN():
                                        max_diffusion_step=self.max_diffusion_steps,
                                        num_nodes=self.num_nodes, num_proj=None,
                                        input_dim=2,
-                                       output_dy_adj=1)
+                                       output_dy_adj=1,
+                                       filter_type=self.filter_type)
         cell = Coupled_DCGRUCell(num_units=self.num_units, adj_mx=adj_mx,
                                  max_diffusion_step=self.max_diffusion_steps,
                                  num_nodes=self.num_nodes, num_proj=None,
                                  input_dim=self.num_units,
-                                 output_dy_adj=1)
+                                 output_dy_adj=1,
+                                 filter_type=self.filter_type)
         last_cell = Coupled_DCGRUCell(num_units=self.num_units, adj_mx=adj_mx,
                                       max_diffusion_step=self.max_diffusion_steps,
                                       num_nodes=self.num_nodes, num_proj=None,
                                       input_dim=self.num_units,
-                                      output_dy_adj=0)
+                                      output_dy_adj=0,
+                                      filter_type=self.filter_type)
 
         if num_layers > 2:
             cells = [first_cell] + [cell] * (num_layers-2) + [last_cell]

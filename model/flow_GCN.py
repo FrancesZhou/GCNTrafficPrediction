@@ -39,24 +39,29 @@ class flow_GCN():
         first_cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=self.max_diffusion_step,
                                num_nodes=self.num_station, num_proj=None,
                                input_dim=2,
-                               dy_adj=0, dy_filter=0, output_dy_adj=0)
+                               dy_adj=0, dy_filter=0, output_dy_adj=0,
+                               filter_type=self.filter_type)
         cell = DCGRUCell(self.num_units, adj_mx=adj_mx, max_diffusion_step=self.max_diffusion_step,
                          num_nodes=self.num_station, num_proj=None,
                          input_dim=self.num_units,
-                         dy_adj=0, dy_filter=0, output_dy_adj=0)
+                         dy_adj=0, dy_filter=0, output_dy_adj=0,
+                         filter_type=self.filter_type)
         ######
         f_first_cell = DCGRUCell(self.num_units, adj_mx=None, max_diffusion_step=self.max_diffusion_step,
                                  num_nodes=self.num_station, num_proj=None,
                                  input_dim=2,
-                                 dy_adj=1, dy_filter=0, output_dy_adj=1)
+                                 dy_adj=1, dy_filter=0, output_dy_adj=1,
+                                 filter_type=self.filter_type)
         f_cell = DCGRUCell(self.num_units, adj_mx=None, max_diffusion_step=self.max_diffusion_step,
                            num_nodes=self.num_station, num_proj=None,
                            input_dim=self.num_units,
-                           dy_adj=1, dy_filter=0, output_dy_adj=1)
+                           dy_adj=1, dy_filter=0, output_dy_adj=1,
+                           filter_type=self.filter_type)
         f_last_cell = DCGRUCell(self.num_units, adj_mx=None, max_diffusion_step=self.max_diffusion_step,
                                 num_nodes=self.num_station, num_proj=None,
                                 input_dim=self.num_units,
-                                dy_adj=1, dy_filter=0, output_dy_adj=0)
+                                dy_adj=1, dy_filter=0, output_dy_adj=0,
+                                filter_type=self.filter_type)
         if num_layers>2:
             cells = [first_cell] + [cell]*(num_layers-1)
             f_cells = [f_first_cell] + [f_cell]*(num_layers-2) + [f_last_cell]

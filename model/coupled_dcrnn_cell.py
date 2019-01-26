@@ -68,7 +68,9 @@ class Coupled_DCGRUCell(RNNCell):
 
         if adj_mx is not None:
             # for fixed adjacent matrix
-            if self.filter_type == "random_walk":
+            if self.filter_type == 'laplacian':
+                self._supports.append(tf.convert_to_tensor(adj_mx, dtype=tf.float32))
+            elif self.filter_type == "random_walk":
                 self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
             elif self.filter_type == "dual_random_walk":
                 self._supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx)))
@@ -203,11 +205,11 @@ class Coupled_DCGRUCell(RNNCell):
         return random_walk_mx
 
 
-    def get_supports(self, adj_mx):
+    def get_supports(self, adj_mx, filter_type='dual_random_walk'):
         supports = []
-        if self.filter_type == "random_walk":
+        if filter_type == "random_walk":
             supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx), (0, 2, 1)))
-        elif self.filter_type == "dual_random_walk":
+        elif filter_type == "dual_random_walk":
             supports.append(tf.transpose(self.calculate_random_walk_matrix(adj_mx), (0, 2, 1)))
             supports.append(tf.transpose(self.calculate_random_walk_matrix(tf.transpose(adj_mx, (0, 2, 1))), (0, 2, 1)))
         else:

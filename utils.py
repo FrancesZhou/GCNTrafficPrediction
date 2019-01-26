@@ -4,6 +4,7 @@ import scipy.io as sio
 import scipy.sparse as sp
 from scipy.sparse import linalg
 from sklearn import preprocessing
+from scipy.sparse.linalg import eigs
 
 class StrToBytes:
     def __init__(self, fileobj):
@@ -43,12 +44,12 @@ def load_pickle(file):
     return data
 
 
-def get_subarea_index(n1, n2):
-    delta = n2 - n1
-    indices = []
-    for i in range(delta, delta+n1):
-        indices.append(np.arange(i*n2 + delta - 1, i*n2 + delta -1 + n1))
-    return np.concatenate(indices)
+# def get_subarea_index(n1, n2):
+#     delta = n2 - n1
+#     indices = []
+#     for i in range(delta, delta+n1):
+#         indices.append(np.arange(i*n2 + delta - 1, i*n2 + delta -1 + n1))
+#     return np.concatenate(indices)
 
 
 
@@ -149,6 +150,31 @@ def calculate_scaled_laplacian(adj_mx, lambda_max=2, undirected=True):
     L = (2 / lambda_max * L) - I
     return L.astype(np.float32)
 
+def get_rescaled_W(w, delta=1e7, epsilon=0.8):
+    w2 = np.exp(-w / delta, dtype=np.float32)
+    zero_index = np.eye(len(w2)) + np.array(w2 < epsilon, np.int32)
+    W = w2 + zero_index * (-w2)
+    return W
+
+def scaled_laplacian(W):
+    '''
+    Normalized graph Laplacian function.
+    :param W: np.ndarray, [n_route, n_route], weighted adjacency matrix of G.
+    :return: np.matrix, [n_route, n_route].
+    '''
+    # d ->  diagonal degree matrix
+    n, d = np.shape(W)[0], np.sum(W, axis=1)
+    # L -> graph Laplacian
+    L = -W
+    L[np.diag_indices_from(L)] = d
+    for i in range(n):
+        for j in range(n):
+            if (d[i] > 0) and (d[j] > 0):
+                L[i, j] = L[i, j] / np.sqrt(d[i] * d[j])
+    # lambda_max \approx 2.0, the largest eigenvalues of L.
+    lambda_max = eigs(L, k=1, which='LR')[0][0].real
+    return np.mat(2 * L / lambda_max - np.identity(n))
+
 
 def get_index_for_month(year, month):
     if year=='2012' or year=='2016':
@@ -238,6 +264,7 @@ def gen_timestamps_for_year_ymdhm(year):
             timestamps.append(t_d[:])
     timestamps = np.hstack(np.array(timestamps))
     return timestamps
+
 
 def batch_data(d_data, f_data, batch_size=32, input_steps=10, output_steps=10):
     # d_data: [num, num_station, 2]
