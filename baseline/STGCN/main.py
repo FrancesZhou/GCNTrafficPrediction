@@ -29,7 +29,7 @@ parser.add_argument('-gpu', '--gpu', type=str, default='0', help='which gpu to u
 parser.add_argument('-dataset', '--dataset', type=str, default='citibike', help='datasets: citibike')
 parser.add_argument('-input_steps', '--input_steps', type=int, default=6, help='number of input steps')
 parser.add_argument('-model_save', '--model_save', type=str, default='', help='path to save model')
-parser.add_argument('-trained_adj_mx', '--trained_adj_mx', type=int, default=0, help='if training adjacent matrix')
+parser.add_argument('-trained_adj_mx', '--trained_adj_mx', type=int, default=1, help='if training adjacent matrix')
 parser.add_argument('-delta', '--delta', type=int, default=1e7, help='delta to calculate rescaled weighted matrix')
 parser.add_argument('-epsilon', '--epsilon', type=float, default=0.8, help='epsilon to calculate rescaled weighted matrix')
 #
@@ -44,7 +44,7 @@ parser.add_argument('--kt', type=int, default=3)
 parser.add_argument('-lr', '--lr', type=float, default=1e-3)
 parser.add_argument('--opt', type=str, default='RMSProp')
 parser.add_argument('--graph', type=str, default='default')
-parser.add_argument('--inf_mode', type=str, default='merge')
+parser.add_argument('--inf_mode', type=str, default='sep')
 
 args = parser.parse_args()
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
