@@ -36,12 +36,12 @@ parser.add_argument('-epsilon', '--epsilon', type=float, default=0.8, help='epsi
 parser.add_argument('--n_route', type=int, default=0)
 parser.add_argument('--n_his', type=int, default=6)
 parser.add_argument('--n_pred', type=int, default=1)
-parser.add_argument('--batch_size', type=int, default=50)
-parser.add_argument('--epoch', type=int, default=50)
+parser.add_argument('-batch_size', '--batch_size', type=int, default=50)
+parser.add_argument('-epoch', '--epoch', type=int, default=50)
 parser.add_argument('--save', type=int, default=10)
 parser.add_argument('--ks', type=int, default=3)
 parser.add_argument('--kt', type=int, default=3)
-parser.add_argument('--lr', type=float, default=1e-3)
+parser.add_argument('-lr', '--lr', type=float, default=1e-3)
 parser.add_argument('--opt', type=str, default='RMSProp')
 parser.add_argument('--graph', type=str, default='default')
 parser.add_argument('--inf_mode', type=str, default='merge')
@@ -73,7 +73,7 @@ blocks = [[2, 32, 64]]
 
 # Load wighted adjacency matrix W
 if args.trained_adj_mx:
-    L = tf.get_variable('weight_matrix', shape=(n, n), dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer)
+    L = tf.get_variable('weight_matrix', shape=(n, n), dtype=tf.float32)
     Lk = cheb_poly_approx_tf(L, Ks, n)
     #W = weight_matrix(pjoin('./dataset', f'PeMSD7_W_{n}.csv'))
 else:

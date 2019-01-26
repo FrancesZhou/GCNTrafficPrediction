@@ -84,6 +84,7 @@ def evaluation(y, y_, x_stats):
         # y -> [time_step, batch_size, n_route, 1]
         y = np.swapaxes(y, 0, 1)
         # recursively call
+        print(y_.shape)
         for i in range(y_.shape[0]):
             tmp_res = evaluation(y[i], y_[i], x_stats)
             tmp_list.append(tmp_res)

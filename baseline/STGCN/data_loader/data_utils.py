@@ -100,7 +100,7 @@ def cheb_poly_approx_tf(L, Ks, n):
     :param n: int, number of routes / size of graph.
     :return: tensor, [n_route, Ks*n_route].
     '''
-    L0 = tf.eye(n)
+    L0 = tf.Variable(initial_value=tf.eye(n))
     L1 = tf.Variable(initial_value=L)
     if Ks > 1:
         L_list = [L0, L1]
@@ -108,8 +108,8 @@ def cheb_poly_approx_tf(L, Ks, n):
             Ln = 2 * tf.matmul(L, L1) - L0
             L_list.append(tf.identity(Ln))
             #
-            L0.assign(L1)
-            L1.assign(L)
+            tf.assign(L0, L1)
+            tf.assign(L1, L)
         return tf.concat(L_list, axis=-1)
     elif Ks == 1:
         return L0
@@ -158,9 +158,9 @@ def data_gen_2(filename, split, n_frame=21):
 
     n_route = train.shape[1]
 
-    seq_train = seq_gen_2(train, n_frame, n_route)
-    seq_val = seq_gen_2(validate, n_frame, n_route)
-    seq_test = seq_gen_2(test, n_frame, n_route)
+    seq_train = seq_gen_2(train, n_frame, n_route, train.shape[-1])
+    seq_val = seq_gen_2(validate, n_frame, n_route, validate.shape[-1])
+    seq_test = seq_gen_2(test, n_frame, n_route, test.shape[-1])
 
     # x_stats: dict, the stats for the train dataset, including the value of mean and standard deviation.
     x_stats = {'mean': np.mean(seq_train), 'std': np.std(seq_train)}
