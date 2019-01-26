@@ -33,7 +33,8 @@ hidden_dim = 512
 threshold = 10.0
 maxtruey = 0
 mintruey = 0
-eps = 1e-5
+#eps = 1e-5
+eps = 1e-6
 loss_lambda = 10.0
 feature_len = 0
 local_image_size = 9
@@ -145,12 +146,14 @@ def build_model(trainY, testY, trainimage, testimage, traintopo, testtopo,
     topo_emb = Dense(units=6, activation='tanh')(topo_input)
     static_dynamic_concate = concatenate([lstm_out, topo_emb], axis=-1)
 
-    res = Dense(units=1, activation='sigmoid')(static_dynamic_concate)
+    #res = Dense(units=1, activation='sigmoid')(static_dynamic_concate)
+    res = Dense(units=2, activation='sigmoid')(static_dynamic_concate)
     # model = Model(inputs=[image_input, lstm_input, topo_input],
     #               outputs=res)
     model = Model(inputs=[image_input, topo_input],
                   outputs=res)
-    sgd = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=1e-6)
+    #sgd = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=1e-6)
+    sgd = Adam(lr=0.0002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=1e-6)
     #model.compile(loss=losses.mse, optimizer=sgd, metrics=[metrics.mse])
     model.compile(loss=squared_error, optimizer=sgd, metrics=[metrics.mse])
     earlyStopping = EarlyStopping(

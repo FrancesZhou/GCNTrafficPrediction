@@ -121,8 +121,8 @@ def main():
 
     #
     print(data.shape)
-    data = data[..., args.dim]
-    data = np.expand_dims(data, axis=-1)
+    #data = data[..., args.dim]
+    #data = np.expand_dims(data, axis=-1)
     print(data.shape)
     minMax = MinMaxNormalization01()
     minMax.fit(data[:split[0]])
