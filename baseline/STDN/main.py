@@ -7,7 +7,7 @@ import keras.backend.tensorflow_backend as ktf
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 currentPath = os.path.abspath(os.path.curdir)
 sys.path.append(currentPath)
-from model import build_model
+from model_2 import build_model
 from utils import *
 from minMax import *
 
