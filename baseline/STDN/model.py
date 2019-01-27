@@ -57,10 +57,10 @@ def build_model(trainY, testY, trainX, testX, train_flow, test_flow,
                 model_path='./'):
     print(testX.shape)
     #
-    nbhd_inputs = [Input(shape=(nbhd_size, nbhd_size, 2,), name="nbhd_volume_input_time_{0}".format(ts + 1)) for
-                   ts in range(seq_len)]
-    flow_inputs = [Input(shape=(nbhd_size, nbhd_size, 1,), name="flow_volume_input_time_{0}".format(ts + 1)) for
-                   ts in range(seq_len)]
+    #nbhd_inputs = [Input(shape=(nbhd_size, nbhd_size, 2,), name="nbhd_volume_input_time_{0}".format(ts + 1)) for ts in range(seq_len)]
+    #flow_inputs = [Input(shape=(nbhd_size, nbhd_size, 1,), name="flow_volume_input_time_{0}".format(ts + 1)) for ts in range(seq_len)]
+    nbhd_inputs = Input(shape=(seq_len, nbhd_size, nbhd_size, 2,), name="nbhd_volume_input")
+    flow_inputs = Input(shape=(seq_len, nbhd_size, nbhd_size, 1,), name="flow_volume_input")
 
     # 1st level gate
     # nbhd cnn

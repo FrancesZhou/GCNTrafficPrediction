@@ -22,6 +22,7 @@ def prepare_data_padding(input_length, map_data, flow_data, split, nb_size=7):
     #
     height = padding_map_data.shape[1]
     width = padding_map_data.shape[2]
+    #
     index = np.ones((height, width), dtype=np.int32) * (-1)
     index[padding:-padding, padding:-padding] = np.reshape(np.arange(raw_map_shape[1]*raw_map_shape[2]), (raw_map_shape[1], raw_map_shape[2]))
     #
@@ -34,25 +35,26 @@ def prepare_data_padding(input_length, map_data, flow_data, split, nb_size=7):
     for t in range(input_length, split[0]):
         for i in range(padding, height - padding):
             for j in range(padding, width - padding):
-                train_image_x.append(map_data[t-input_length:t, i - padding:i + padding+1, j - padding:j + padding+1, :])
-                train_y.append(map_data[t, i, j, :])
+                train_image_x.append(padding_map_data[t-input_length:t, i - padding:i + padding+1, j - padding:j + padding+1, :])
+                train_y.append(padding_map_data[t, i, j, :])
                 #
-                ij_index = i * raw_map_shape[2] + j
+                ij_index = (i-padding) * raw_map_shape[2] + (j-padding)
                 nb_index = index[i-padding: i+padding+1, j-padding:j+padding+1].flatten()
-                ij_flow = flow_data[t, ij_index, nb_index]
-                ij_flow[nb_index<0] = 0
-                ij_flow = np.reshape(ij_flow, (nb_size, nb_size))
+                ij_flow = flow_data[t-input_length:t, ij_index, nb_index]
+                ij_flow[:, np.nonzero(nb_index<0)[0]] = 0
+                ij_flow = np.expand_dims(np.reshape(ij_flow, (-1, nb_size, nb_size)), -1)
                 train_flow.append(ij_flow)
     for t in range(np.sum(split[:-1]) + input_length, np.sum(split)):
         for i in range(padding, height - padding):
             for j in range(padding, width - padding):
-                test_image_x.append(map_data[t-input_length:t, i - padding:i + padding+1, j - padding:j + padding+1, :])
-                test_y.append(map_data[t, i, j, :])
-                ij_index = i * raw_map_shape[2] + j
+                test_image_x.append(padding_map_data[t-input_length:t, i - padding:i + padding+1, j - padding:j + padding+1, :])
+                test_y.append(padding_map_data[t, i, j, :])
+                #
+                ij_index = (i-padding) * raw_map_shape[2] + (j-padding)
                 nb_index = index[i - padding: i + padding + 1, j - padding:j + padding + 1].flatten()
-                ij_flow = flow_data[t, ij_index, nb_index]
-                ij_flow[nb_index < 0] = 0
-                ij_flow = np.reshape(ij_flow, (nb_size, nb_size))
+                ij_flow = flow_data[t-input_length:t, ij_index, nb_index]
+                ij_flow[:, np.nonzero(nb_index<0)[0]] = 0
+                ij_flow = np.expand_dims(np.reshape(ij_flow, (-1, nb_size, nb_size)), -1)
                 test_flow.append(ij_flow)
     train_image_x = np.asarray(train_image_x)
     train_flow = np.asarray(train_flow)
@@ -128,7 +130,7 @@ def main():
     # prepare data
     train_x, train_flow, train_y, test_x, test_flow, test_y, test_num = prepare_data_padding(args.input_steps,
                                                                                              data, f_data,
-                                                                                             split, 7, if_padding=True)
+                                                                                             split, 7)
     print(test_num)
     # set gpu config
     config = tf.ConfigProto()
