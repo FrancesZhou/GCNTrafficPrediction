@@ -142,10 +142,12 @@ class Coupled_DCGRUCell(RNNCell):
         couple_r = tf.nn.sigmoid(r + f_r)
         couple_u = tf.nn.sigmoid(u + f_u)
         with tf.variable_scope('candidate', reuse=tf.AUTO_REUSE):
-            c = self._gconv(inputs=inputs, state=couple_r * state, dy_adj_mx=None,
-                            output_size=self._num_units)
-            f_c = self._gconv(inputs=inputs, state=couple_r * state, dy_adj_mx=dy_adj_mx,
-                              output_size=self._num_units)
+            with tf.variable_scope('fix', reuse=tf.AUTO_REUSE):
+                c = self._gconv(inputs=inputs, state=couple_r * state, dy_adj_mx=None,
+                                output_size=self._num_units)
+            with tf.variable_scope('dy_flow', reuse=tf.AUTO_REUSE):
+                f_c = self._gconv(inputs=inputs, state=couple_r * state, dy_adj_mx=dy_adj_mx,
+                                  output_size=self._num_units)
         if self._activation is not None:
             couple_c = self._activation(c + f_c)
         else:
@@ -285,8 +287,8 @@ class Coupled_DCGRUCell(RNNCell):
                         x = self._concat(x, x2)
                         x1, x0 = x2, x1
 
-            #num_matrices = len(dy_supports) * self._max_diffusion_step + 1  # Adds for x itself.
-            num_matrices = self._len_supports * self._max_diffusion_step + 1  # Adds for x itself.
+            num_matrices = len(dy_supports) * self._max_diffusion_step + 1  # Adds for x itself.
+            #num_matrices = self._len_supports * self._max_diffusion_step + 1  # Adds for x itself.
             #
             if dy_adj_mx is None:
                 x = tf.reshape(x, shape=[num_matrices, self._num_nodes, input_size, batch_size])
