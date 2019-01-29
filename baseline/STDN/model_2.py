@@ -132,13 +132,13 @@ def build_model(trainY, testY, trainX, testX, train_flow, test_flow,
     # --------------------- 2nd level gate -----------------------
     #nbhd_convs = Conv2D(filters=64, kernel_size=(3, 3), padding="same", name="nbhd_convs_time1")(nbhd_convs)
     nbhd_convs = Local_Seq_Conv(output_dim=64, seq_len=seq_len, feature_size=feature_len,
-                                kernel_size=(3, 3, 1, 64), activation='relu',
+                                kernel_size=(3, 3, 64, 64), activation='relu',
                                 kernel_initializer='glorot_uniform', bias_initializer='zeros', padding='same',
                                 strides=(1, 1))(nbhd_convs)
     nbhd_convs = Activation("relu", name="nbhd_convs_activation_time1")(nbhd_convs)
     #flow_convs = Conv2D(filters=64, kernel_size=(3, 3), padding="same", name="flow_convs_time1")(flow_inputs)
     flow_convs = Local_Seq_Conv(output_dim=64, seq_len=seq_len, feature_size=feature_len,
-                                kernel_size=(3, 3, 1, 64), activation='relu',
+                                kernel_size=(3, 3, 64, 64), activation='relu',
                                 kernel_initializer='glorot_uniform', bias_initializer='zeros', padding='same',
                                 strides=(1, 1))(flow_convs)
     flow_convs = Activation("relu", name="flow_convs_activation_time1")(flow_convs)
@@ -148,13 +148,13 @@ def build_model(trainY, testY, trainX, testX, train_flow, test_flow,
     # -------------------- 3rd level gate --------------------------
     #nbhd_convs = Conv2D(filters=64, kernel_size=(3, 3), padding="same", name="nbhd_convs_time2")(nbhd_convs)
     nbhd_convs = Local_Seq_Conv(output_dim=64, seq_len=seq_len, feature_size=feature_len,
-                                kernel_size=(3, 3, 1, 64), activation='relu',
+                                kernel_size=(3, 3, 64, 64), activation='relu',
                                 kernel_initializer='glorot_uniform', bias_initializer='zeros', padding='same',
                                 strides=(1, 1))(nbhd_convs)
     nbhd_convs = Activation("relu", name="nbhd_convs_activation_time2")(nbhd_convs)
     #flow_convs = Conv2D(filters=64, kernel_size=(3, 3), padding="same", name="flow_convs_time2")(flow_inputs)
     flow_convs = Local_Seq_Conv(output_dim=64, seq_len=seq_len, feature_size=feature_len,
-                                kernel_size=(3, 3, 1, 64), activation='relu',
+                                kernel_size=(3, 3, 64, 64), activation='relu',
                                 kernel_initializer='glorot_uniform', bias_initializer='zeros', padding='same',
                                 strides=(1, 1))(flow_convs)
     flow_convs = Activation("relu", name="flow_convs_activation_time2")(flow_convs)
@@ -163,12 +163,16 @@ def build_model(trainY, testY, trainX, testX, train_flow, test_flow,
 
     # ========= dense part ========
     nbhd_vecs = Flatten(name="nbhd_flatten_time")(nbhd_convs)
-    nbhd_vecs = Dense(units=cnn_flat_size, name="nbhd_dense_time")(nbhd_vecs)
-    nbhd_vecs = Activation("relu", name="nbhd_dense_activation_time")(nbhd_vecs)
+    nbhd_vec = Reshape(target_shape=(seq_len, -1))(nbhd_vecs)
+    
+    nbhd_vec = Dense(units=cnn_flat_size, activation="relu", name="nbhd_dense_time")(nbhd_vec)
+    
+#     spatial = Flatten()(spatial)
+#     spatial = Reshape(target_shape=(seq_len, -1))(spatial)
+#     spatial_out = Dense(units=64, activation='relu')(spatial)
 
     #
-    #nbhd_vec = Concatenate(axis=-1)(nbhd_vecs)
-    nbhd_vec = Reshape(target_shape=(seq_len, cnn_flat_size))(nbhd_vecs)
+    
     # lstm
     lstm = LSTM(units=64, return_sequences=False, dropout=0.1, recurrent_dropout=0.1)(nbhd_vec)
     lstm_all = Dense(units=2)(lstm)
