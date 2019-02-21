@@ -9,7 +9,7 @@ from model.dcrnn_cell import DCGRUCell
 from model.ConvGRU import Dy_Conv2DGRUCell
 
 
-class flow_ConvGRU():
+class flow_ConvGRU_2():
     def __init__(self, input_shape=[20,10,2], input_steps=6,
                  num_layers=2, num_units=64, kernel_shape=[3,3],
                  f_adj_mx=None,
@@ -36,28 +36,33 @@ class flow_ConvGRU():
 
     def build_easy_model(self):
         x = tf.reshape(self.x, (-1, self.input_shape[0], self.input_shape[1], self.input_shape[2]))
-        conv_output = tf.layers.conv2d(x, filters=self.num_units, kernel_size=self.kernel_shape, padding='SAME', activation=tf.nn.relu)
+        with tf.variable_scope('conv_1'):
+            conv_output = tf.layers.conv2d(x, filters=self.num_units, kernel_size=self.kernel_shape, padding='SAME', activation=tf.nn.relu)
         #
         f = tf.reshape(self.f, (-1, self.input_shape[0]*self.input_shape[1], self.input_shape[0]*self.input_shape[1]))
-        g_x = tf.reshape(self.x, (-1, self.input_shape[0]*self.input_shape[1], self.input_shape[0]*self.input_shape[1]*self.input_shape[2]))
-        gconv_output = self._gconv(num_nodes=self.input_shape[0]*self.input_shape[1],
-                                   inputs=g_x, dy_adj_mx=f, output_size=self.num_units,
-                                   max_diffusion_step=2, filter_type='dual_random_walk')
+        g_x = tf.reshape(self.x, (-1, self.input_shape[0]*self.input_shape[1], self.input_shape[2]))
+        with tf.variable_scope('gconv_1'):
+            gconv_output = self._gconv(num_nodes=self.input_shape[0]*self.input_shape[1],
+                                       inputs=g_x, dy_adj_mx=f, output_size=self.num_units,
+                                       max_diffusion_step=2, filter_type='dual_random_walk')
         coupled_conv_output = tf.add(conv_output, tf.reshape(gconv_output, (-1, self.input_shape[0], self.input_shape[1], self.num_units)))
         # second layer
-        conv_output = tf.layers.conv2d(coupled_conv_output, filters=self.num_units, kernel_size=self.kernel_shape,
-                                       padding='SAME', activation=tf.nn.relu)
-        gconv_output = self._gconv(num_nodes=self.input_shape[0]*self.input_shape[1],
+        with tf.variable_scope('conv_2'):
+            conv_output = tf.layers.conv2d(coupled_conv_output, filters=self.num_units, kernel_size=self.kernel_shape,
+                                           padding='SAME', activation=tf.nn.relu)
+        with tf.variable_scope('gconv_2'):
+            gconv_output = self._gconv(num_nodes=self.input_shape[0]*self.input_shape[1],
                                    inputs=coupled_conv_output, dy_adj_mx=f, output_size=self.num_units,
                                    max_diffusion_step=2, filter_type='dual_random_walk')
         coupled_conv_output = tf.add(conv_output, tf.reshape(gconv_output, (-1, self.input_shape[0], self.input_shape[1], self.num_units)))
         coupled_conv_output = tf.transpose(tf.reshape(coupled_conv_output, (-1, self.input_steps, self.input_shape[0], self.input_shape[1], self.num_units)),
                                            (0, 2, 3, 1, 4))
-        coupled_conv_output = tf.transpose(coupled_conv_output, (-1, self.input_steps, self.num_units))
+        coupled_conv_output = tf.reshape(coupled_conv_output, (-1, self.input_steps, self.num_units))
+        rnn_input = tf.unstack(coupled_conv_output, axis=1)
         #
         cell = tf.nn.rnn_cell.BasicLSTMCell(num_units=self.num_units, activation=tf.nn.relu, reuse=tf.AUTO_REUSE, name='lstm')
         #
-        outputs, _ = tf.contrib.rnn.static_rnn(cell, coupled_conv_output, dtype=tf.float32)
+        outputs, _ = tf.contrib.rnn.static_rnn(cell, rnn_input, dtype=tf.float32)
         outputs = tf.stack(outputs)
         #
         outputs = tf.reshape(outputs, (-1, self.num_units))

@@ -8,6 +8,7 @@ from model.FC_GRU import FC_GRU
 from model.GCN import GCN
 from model.ConvGRU import ConvGRU
 from model.flow_ConvGRU import flow_ConvGRU
+from model.flow_ConvGRU_2 import flow_ConvGRU_2
 from model.Coupled_ConvGRU import CoupledConvGRU
 from solver import ModelSolver
 from preprocessing import *
@@ -146,6 +147,12 @@ def main():
         model = CoupledConvGRU(input_shape=[20, 10, input_dim], input_steps=args.input_steps,
                                 num_layers=args.num_layers, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
                                 batch_size=args.batch_size)
+    
+    if args.model == 'flow_ConvGRU_2':
+        model = flow_ConvGRU_2(input_shape=[20, 10, input_dim], input_steps=args.input_steps,
+                               num_layers=args.num_layers, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
+                               f_adj_mx=f_adj_mx,
+                               batch_size=args.batch_size)
     #
     model_path = os.path.join(args.output_folder_name, 'model_save', args.model_save)
     if not os.path.exists(model_path):

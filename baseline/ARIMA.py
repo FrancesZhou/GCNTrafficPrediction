@@ -87,8 +87,9 @@ if __name__ == '__main__':
         data, train_data, val_data, test_data = load_npy_data(filename=[data_folder + 'cd_didi_data.npy'], split=split)
     s = data.shape
     print(s)
-    if 0:
-    #if os.path.exists(prediction_file_name):
+    #if 0:
+    if os.path.exists(prediction_file_name):
+        print('load pre-trained prediction file')
         test_predict = np.load(prediction_file_name)
         test_real = np.load(target_file_name)
         error_all = load_pickle(os.path.join(output_folder, 'arima_error.pkl'))
@@ -113,7 +114,9 @@ if __name__ == '__main__':
     #
     #rmse_test = np.sqrt(np.sum(np.square(test_real-test_predict))/np.prod(test_predict.shape))
     rmse_test = np.sqrt(np.sum(np.square(test_real - test_predict)) / np.sum(valid_num))
+    mae_test = np.mean(np.abs(test_real-test_predict))
     print('test in/out rmse is %.4f' % rmse_test)
+    print('test in/out mae is %.4f' % mae_test)
     #
     # if not os.path.exists(prediction_file_name):
     #     test_predict = np.array(test_predict, dtype=np.float32)
