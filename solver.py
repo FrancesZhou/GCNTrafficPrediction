@@ -256,7 +256,8 @@ class ModelSolver(object):
                         val_loss = np.sqrt(val_l2_loss / t_count)
                         val_rmse = np.sqrt(np.mean(np.square(val_target-val_prediction)))
                         val_rmlse = np.sqrt(np.mean(np.square(np.log(val_target+1)-np.log(val_prediction+1))))
-                        w_text_2 = 'at epoch %d, val loss is %s, validate prediction rmse/rmlse is %s/%s \n' % (e, val_loss, val_rmse, val_rmlse)
+                        val_mae = np.mean(np.abs(val_target-val_prediction))
+                        w_text_2 = 'at epoch %d, val loss is %.6f, validate prediction rmse/rmlse/mae is %.6f/%.6f/%.6f \n' % (e, val_loss, val_rmse, val_rmlse, val_mae)
                         o_file.write(w_text_2)
                     else:
                         w_text_2 = ''
@@ -306,7 +307,8 @@ class ModelSolver(object):
                     test_loss = np.sqrt(test_l2_loss / t_count)
                     test_rmse = np.sqrt(np.mean(np.square(test_target - test_prediction)))
                     test_rmlse = np.sqrt(np.mean(np.square(np.log(test_target+1) - np.log(test_prediction+1))))
-                    w_text_3 = 'at epoch %d, test loss is %.6f, test prediction rmse/rmlse is %.6f/%.6f \n' % (e, test_loss, test_rmse, test_rmlse)
+                    test_mae = np.mean(np.abs(test_target - test_prediction))
+                    w_text_3 = 'at epoch %d, test loss is %.6f, test prediction rmse/rmlse/mae is %.6f/%.6f/%.6f \n' % (e, test_loss, test_rmse, test_rmlse, test_mae)
                     o_file.write(w_text_3)
                     print(w_text_1)
                     print(w_text_2)
@@ -385,8 +387,9 @@ class ModelSolver(object):
                 test_loss = np.sqrt(test_l2_loss / t_count)
                 test_rmse = np.sqrt(np.mean(np.square(test_target - test_prediction)))
                 test_rmlse = np.sqrt(np.mean(np.square(np.log(test_target + 1) - np.log(test_prediction + 1))))
-                w_text_3 = 'test loss is %.6f, test prediction rmse/rmlse is %.6f/%.6f \n' % (
-                test_loss, test_rmse, test_rmlse)
+                test_mae = np.mean(np.abs(test_target-test_prediction))
+                w_text_3 = 'test loss is %.6f, test prediction rmse/rmlse is %.6f/%.6f/%.6f \n' % (
+                test_loss, test_rmse, test_rmlse, test_mae)
                 print(w_text_3)
                 return np.array(test_target), np.array(test_prediction)
 
