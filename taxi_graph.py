@@ -3,12 +3,13 @@ import argparse
 import numpy as np
 import tensorflow as tf
 #from gensim.models import Word2Vec
-from model.FC_LSTM import FC_LSTM
+#from model.FC_LSTM import FC_LSTM
 from model.FC_GRU import FC_GRU
-from model.GCN import GCN
+#from model.GCN import GCN
 from model.ConvGRU import ConvGRU
-from model.flow_ConvGRU import flow_ConvGRU
+#from model.flow_ConvGRU import flow_ConvGRU
 from model.flow_ConvGRU_2 import flow_ConvGRU_2
+from model.Stack_ConvGRU import Stack_ConvGRU
 from model.Coupled_ConvGRU import CoupledConvGRU
 from solver import ModelSolver
 from preprocessing import *
@@ -120,36 +121,42 @@ def main():
         f_adj_mx = train_loader.get_flow_adj_mx()
         np.save(args.folder_name + 'f_adj_mx.npy', f_adj_mx)
 
-    if args.model == 'FC_LSTM':
-        model = FC_LSTM(num_station, args.input_steps,
-                        num_layers=args.num_layers, num_units=args.num_units,
-                        batch_size=args.batch_size)
+    # if args.model == 'FC_LSTM':
+    #     model = FC_LSTM(num_station, args.input_steps,
+    #                     num_layers=args.num_layers, num_units=args.num_units,
+    #                     batch_size=args.batch_size)
     if args.model == 'FC_GRU':
         model = FC_GRU(num_station, args.input_steps,
                         num_layers=args.num_layers, num_units=args.num_units,
                         batch_size=args.batch_size)
-    if args.model == 'GCN':
-        model = GCN(num_station, args.input_steps,
-                    num_layers=args.num_layers, num_units=args.num_units,
-                    dy_adj=args.dy_adj, dy_filter=args.dy_filter,
-                    f_adj_mx=f_adj_mx,
-                    batch_size=args.batch_size)
+    # if args.model == 'GCN':
+    #     model = GCN(num_station, args.input_steps,
+    #                 num_layers=args.num_layers, num_units=args.num_units,
+    #                 dy_adj=args.dy_adj, dy_filter=args.dy_filter,
+    #                 f_adj_mx=f_adj_mx,
+    #                 batch_size=args.batch_size)
     if args.model == 'ConvGRU':
         model = ConvGRU(input_shape=[map_size[0], map_size[1], input_dim], input_steps=args.input_steps,
                         num_layers=args.num_layers, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
                         batch_size=args.batch_size)
-    if args.model == 'flow_ConvGRU':
-        model = flow_ConvGRU(input_shape=[20, 10, input_dim], input_steps=args.input_steps,
-                              num_layers=args.num_layers, num_units=args.num_units,kernel_shape=[args.kernel_size, args.kernel_size],
-                              f_adj_mx=f_adj_mx,
-                              batch_size=args.batch_size)
+    # if args.model == 'flow_ConvGRU':
+    #     model = flow_ConvGRU(input_shape=[20, 10, input_dim], input_steps=args.input_steps,
+    #                           num_layers=args.num_layers, num_units=args.num_units,kernel_shape=[args.kernel_size, args.kernel_size],
+    #                           f_adj_mx=f_adj_mx,
+    #                           batch_size=args.batch_size)
     if args.model == 'Coupled_ConvGRU':
         model = CoupledConvGRU(input_shape=[20, 10, input_dim], input_steps=args.input_steps,
                                 num_layers=args.num_layers, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
                                 batch_size=args.batch_size)
-    
+    ##
+    # flow_ConvGRU_2 is stack_ConvGRU with 2 layers.
     if args.model == 'flow_ConvGRU_2':
         model = flow_ConvGRU_2(input_shape=[20, 10, input_dim], input_steps=args.input_steps,
+                               num_layers=args.num_layers, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
+                               f_adj_mx=f_adj_mx,
+                               batch_size=args.batch_size)
+    if args.model == 'Stack_ConvGRU':
+        model = Stack_ConvGRU(input_shape=[20, 10, input_dim], input_steps=args.input_steps,
                                num_layers=args.num_layers, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
                                f_adj_mx=f_adj_mx,
                                batch_size=args.batch_size)
