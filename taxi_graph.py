@@ -5,7 +5,7 @@ import tensorflow as tf
 #from gensim.models import Word2Vec
 #from model.FC_LSTM import FC_LSTM
 from model.FC_GRU import FC_GRU
-#from model.GCN import GCN
+from model.GCN import GCN
 from model.ConvGRU import ConvGRU
 #from model.flow_ConvGRU import flow_ConvGRU
 from model.flow_ConvGRU_2 import flow_ConvGRU_2
@@ -129,12 +129,12 @@ def main():
         model = FC_GRU(num_station, args.input_steps,
                         num_layers=args.num_layers, num_units=args.num_units,
                         batch_size=args.batch_size)
-    # if args.model == 'GCN':
-    #     model = GCN(num_station, args.input_steps,
-    #                 num_layers=args.num_layers, num_units=args.num_units,
-    #                 dy_adj=args.dy_adj, dy_filter=args.dy_filter,
-    #                 f_adj_mx=f_adj_mx,
-    #                 batch_size=args.batch_size)
+    if args.model == 'GCN':
+        model = GCN(num_station, args.input_steps,
+                    num_layers=args.num_layers, num_units=args.num_units,
+                    dy_adj=args.dy_adj, dy_filter=args.dy_filter,
+                    f_adj_mx=f_adj_mx,
+                    batch_size=args.batch_size)
     if args.model == 'ConvGRU':
         model = ConvGRU(input_shape=[map_size[0], map_size[1], input_dim], input_steps=args.input_steps,
                         num_layers=args.num_layers, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
