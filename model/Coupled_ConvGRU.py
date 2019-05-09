@@ -49,11 +49,20 @@ class CoupledConvGRU():
                                           num_proj=None,
                                           input_dim=self.num_units,
                                           output_dy_adj=0)
+        ## for only one layer
+        one_cell = Coupled_Conv2DGRUCell(num_units=self.num_units,
+                                         input_shape=self.input_shape,
+                                         kernel_shape=self.kernel_shape,
+                                         num_proj=None,
+                                         input_dim=self.input_shape[-1],
+                                         output_dy_adj=0)
 
         if num_layers > 2:
             cells = [first_cell] + [cell] * (num_layers-2) + [last_cell]
         else:
             cells = [first_cell, last_cell]
+        if num_layers == 1:
+            cells = [one_cell]
 
         self.cells = tf.contrib.rnn.MultiRNNCell(cells, state_is_tuple=True)
 
