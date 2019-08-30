@@ -13,7 +13,8 @@ from model.ConvLSTM import ConvLSTM
 from model.flow_ConvGRU_2 import flow_ConvGRU_2
 from model.Stack_ConvGRU import Stack_ConvGRU
 from model.Coupled_ConvGRU import CoupledConvGRU
-from solver import ModelSolver
+from solver import ModelSolver as ModelSolver
+from solver import ModelSolver as MS2
 from preprocessing import *
 from utils import *
 from dataloader import *
@@ -174,6 +175,19 @@ def main():
     if not os.path.exists(model_path):
         os.makedirs(model_path)
     #model_path = os.path.join(args.folder_name, 'model_save', args.model_save)
+    '''
+    if args.model == 'FC_LSTM' or 'ConvLSTM':
+        solver = MS2(model, train_loader, val_loader, test_loader, pre_process,
+                     batch_size=args.batch_size,
+                     show_batches=args.show_batches,
+                     n_epochs=args.n_epochs,
+                     pretrained_model=args.pretrained_model_path,
+                     update_rule=args.update_rule,
+                     learning_rate=args.learning_rate,
+                     model_path=model_path,
+                     )
+    else:
+    '''
     solver = ModelSolver(model, train_loader, val_loader, test_loader, pre_process,
                          batch_size=args.batch_size,
                          show_batches=args.show_batches,

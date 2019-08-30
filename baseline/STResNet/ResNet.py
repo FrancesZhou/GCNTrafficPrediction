@@ -1,7 +1,6 @@
 from __future__ import division
 
 import tensorflow as tf
-from model import BasicConvLSTMCell
 
 class ResNet(object):
     def __init__(self, input_conf=[[3,2,16,8],[4,2,16,8],[4,2,16,8],[8]], batch_size=32, layer={}, layer_param={}):

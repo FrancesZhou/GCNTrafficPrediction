@@ -42,7 +42,7 @@ class ConvLSTM():
                               kernel_shape=self.kernel_shape,
                               input_dim=self.num_units, dy_adj=self.dy_adj, dy_filter=self.dy_filter, output_dy_adj=self.dy_adj)
         last_cell = Dy_Conv2DLSTMCell(input_shape=[self.input_shape[0], self.input_shape[1], self.num_units],
-                                   output_channels=self.input_shape[-1],
+                                   output_channels=self.num_units,
                                    kernel_shape=self.kernel_shape,
                                    input_dim=self.num_units, dy_adj=self.dy_adj, dy_filter=self.dy_filter, output_dy_adj=0)
 
@@ -70,10 +70,12 @@ class ConvLSTM():
         outputs, _ = tf.contrib.rnn.static_rnn(self.cells, inputs, dtype=tf.float32)
         outputs = tf.stack(outputs)
         #
+        #print(outputs.get_shape().as_list())
         # projection
         outputs = tf.layers.dense(tf.reshape(outputs, (-1, self.num_units)), units=self.input_shape[-1],
                                   activation=None, kernel_initializer=self.weight_initializer)
         #
+        #print(outputs.get_shape().as_list())
         outputs = tf.reshape(outputs, (self.input_steps, self.batch_size, self.input_shape[0], self.input_shape[1], -1))
         outputs = tf.transpose(outputs, [1, 0, 2, 3, 4])
         loss = 2 * tf.nn.l2_loss(self.y - outputs)

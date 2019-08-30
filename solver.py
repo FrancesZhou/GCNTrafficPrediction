@@ -126,6 +126,12 @@ class ModelSolver(object):
         # build graphs
         y_, loss = self.model.build_easy_model()
         y_test, loss_test = y_, loss
+        '''
+        with tf.name_scope('train'):
+            with tf.variable_scope('model', reuse=tf.AUTO_REUSE):
+                y_, loss = self.model.build_easy_model()
+                y_test, loss_test = y_, loss
+        '''
 #         with tf.name_scope('Train'):
 #             with tf.variable_scope('DCRNN', reuse=False):
 #                 y_, loss = self.model.build_easy_model(is_training=True)

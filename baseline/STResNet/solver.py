@@ -63,7 +63,7 @@ class ModelSolver(object):
             saver = tf.train.Saver(tf.global_variables())
             if self.pretrained_model is not None:
                 print("Start training with pretrained model...")
-                pretrained_model_path = self.model_path + self.pretrained_model
+                pretrained_model_path = os.path.join(self.model_path, self.pretrained_model)
                 saver.restore(sess, pretrained_model_path)
             #curr_loss = 0
             start_t = time.time()
@@ -85,7 +85,7 @@ class ModelSolver(object):
                 for c in range(len(y)):
                     t_count += np.prod(np.array(y[c]).shape)
                 t_rmse = np.sqrt(curr_loss/t_count)
-                print("at epoch " + str(e) + ", train loss is " + str(curr_loss) + ' , ' + str(t_rmse) + ' , ' + str(self.preprocessing.real_loss(t_rmse)))
+                #print("at epoch " + str(e) + ", train loss is " + str(curr_loss) + ' , ' + str(t_rmse) + ' , ' + str(self.preprocessing.real_loss(t_rmse)))
                 # ================================= validate =================================
                 print('validate for val data...')
                 val_loss = 0
@@ -104,11 +104,11 @@ class ModelSolver(object):
                 v_count = 0
                 for v in range(len(y_val)):
                     v_count += np.prod(np.array(y_val[v]).shape)
-                rmse = np.sqrt(val_loss/v_count)
-                print("at epoch " + str(e) + ", validate loss is " + str(val_loss) + ' , ' + str(rmse) + ' , ' + str(self.preprocessing.real_loss(rmse)))
-                print("elapsed time: ", time.time() - start_t)
+                v_rmse = np.sqrt(val_loss/v_count)
+                #print("at epoch " + str(e) + ", validate loss is " + str(val_loss) + ' , ' + str(rmse) + ' , ' + str(self.preprocessing.real_loss(v_rmse)))
+                #print("elapsed time: ", time.time() - start_t)
                 if (e+1)%self.save_every == 0:
-                    save_name = self.model_path+'model'
+                    save_name = os.path.join(self.model_path, 'model')
                     saver.save(sess, save_name, global_step=e+1)
                     print("model-%s saved." % (e+1))
                 # ============================ for test data ===============================
@@ -136,6 +136,8 @@ class ModelSolver(object):
                 rmse, mae, mape = RMSE(y_prediction, y_true), MAE(y_prediction, y_true), MAPE(y_prediction, y_true)
                 text = 'at epoch %d, test loss is %.6f, test prediction rmse/mae/mape is %.6f/%.6f/%.6f \n' % (
                     e, t_loss, rmse, mae, mape)
+                print("at epoch " + str(e) + ", train loss is " + str(curr_loss) + ' , ' + str(t_rmse) + ' , ' + str(self.preprocessing.real_loss(t_rmse)))
+                print("at epoch " + str(e) + ", validate loss is " + str(val_loss) + ' , ' + str(rmse) + ' , ' + str(self.preprocessing.real_loss(v_rmse)))
                 print(text)
             return np.array(y_prediction)
 
@@ -144,6 +146,7 @@ class ModelSolver(object):
         y = data['y']
         # build graphs
         y_, loss = self.model.build_model()
+        tf.get_variable_scope().reuse_variables()
         y_pred_all = []
 
         with tf.Session() as sess:

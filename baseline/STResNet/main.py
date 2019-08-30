@@ -3,7 +3,8 @@ import sys
 import os
 import argparse
 #import tensorflow as tf
-#from ResNet import ResNet
+from ResNet import ResNet
+from solver import ModelSolver
 from preprocessing import *
 from utils import *
 
@@ -23,16 +24,20 @@ def main():
     parse.add_argument('-input_steps', '--input_steps', type=int, default=6, help='number of input steps')
     parse.add_argument('-dim', '--dim', type=int, default=0, help='dim of data to be processed')
     parse.add_argument('-batch_size', '--batch_size', type=int, default=8)
+    parse.add_argument('-n_epochs', '--n_epochs', type=int, default=30)
+    parse.add_argument('-update_rule', '--update_rule', type=str, default='adam', help='update_rule')
+    parse.add_argument('-lr', '--lr', type=float, default=0.0002)
     #
-    parse.add_argument('-train', '--train', type=int, default=0, help='whether to train')
+    parse.add_argument('-train', '--train', type=int, default=1, help='whether to train')
     parse.add_argument('-test', '--test', type=int, default=0, help='whether to train')
+    parse.add_argument('-pretrained_model', '--pretrained_model', type=str, default=None, help='path to the pretrained model')
     parse.add_argument('-save_results', '--save_results', type=int, default=1, help='whether to train')
     #
     args = parse.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     #
     data_folder = '../../datasets/' + args.dataset + '-data/data/'
-    output_folder = os.path.join('./data', args.dataset, 'model_save', args.model_save)
+    output_folder = os.path.join('./data', args.dataset, 'model_save/', args.model_save)
     #
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
@@ -92,7 +97,7 @@ def main():
 
     print('build ResNet model...')
     model_path = output_folder
-    log_path = os.path.join(output_folder, '/log')
+    log_path = os.path.join(output_folder, 'log/')
     model = ResNet(input_conf=[[args.closeness, nb_flow, row, col], [args.period, nb_flow, row, col],
                                [args.trend, nb_flow, row, col], [8]], batch_size=args.batch_size,
                    layer=['conv', 'res_net', 'conv'],
@@ -104,28 +109,28 @@ def main():
                          n_epochs=args.n_epochs,
                          batch_size=args.batch_size,
                          update_rule=args.update_rule,
-                         learning_rate=args.lr, save_every=args.save_every,
+                         learning_rate=args.lr,
                          pretrained_model=args.pretrained_model, model_path=model_path,
                          test_model='citibike-results/model_save/ResNet/model-' + str(args.n_epochs),
                          log_path=log_path,
-                         cross_val=False, cpt_ext=True)
+                         cpt_ext=True)
     if args.train:
         print('begin training...')
         test_prediction = solver.train(test)
         test_target = test['y']
         if args.save_results:
-            save_path = os.path.join(output_folder, '/results/')
+            save_path = os.path.join(output_folder, 'results/')
             if not os.path.exists(save_path):
                 os.makedirs(save_path)
             np.save(save_path + 'test_target.npy', test_target)
             np.save(save_path + 'test_prediction.npy', test_prediction)
     if args.test:
         print('begin testing...')
-        solver.test_model = solver.model_path + args.pretrained_model
+        solver.test_model = os.path.join(solver.model_path, args.pretrained_model)
         solver.test(test)
         test_target = test['y']
         if args.save_results:
-            save_path = os.path.join(output_folder, '/results/')
+            save_path = os.path.join(output_folder, 'results/')
             if not os.path.exists(save_path):
                 os.makedirs(save_path)
             np.save(save_path + 'test_target.npy', test_target)
