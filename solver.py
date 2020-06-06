@@ -393,6 +393,7 @@ class ModelSolver(object):
                 test_loss = np.sqrt(test_l2_loss / t_count)
                 test_rmse = np.sqrt(np.mean(np.square(test_target - test_prediction)))
                 test_rmlse = np.sqrt(np.mean(np.square(np.log(test_target + 1) - np.log(test_prediction + 1))))
+                test_mape = np.mean(np.abs((test_prediction - x_true)/(test_target + 1)))
                 test_mae = np.mean(np.abs(test_target-test_prediction))
                 w_text_3 = 'test loss is %.6f, test prediction rmse/rmlse/mae is %.6f/%.6f/%.6f \n' % (
                 test_loss, test_rmse, test_rmlse, test_mae)
