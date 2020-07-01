@@ -86,8 +86,8 @@ class Coupled_GCN():
         outputs = tf.stack(outputs)
         #
         # projection
-        outputs = tf.layers.dense(tf.reshape(outputs, (-1, self.num_units)), units=2,
-                                  activation=None, kernel_initializer=self.weight_initializer)
+        with tf.variable_scope('dense', reuse=tf.AUTO_REUSE):
+            outputs = tf.layers.dense(tf.reshape(outputs, (-1, self.num_units)), units=2, activation=None, kernel_initializer=self.weight_initializer)
         #
         outputs = tf.reshape(outputs, (self.input_steps, self.batch_size, self.num_nodes, -1))
         outputs = tf.transpose(outputs, [1, 0, 2, 3])
