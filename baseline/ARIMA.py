@@ -60,11 +60,11 @@ def predict_by_samples(data, test_data, train_length, num_sample, output_steps, 
 if __name__ == '__main__':
     parse = argparse.ArgumentParser()
     # parse.add_argument('-dataset', '--dataset', type=str, default='didi')
-    # parse.add_argument('-dataset', '--dataset', type=str, default='citibike')
-    parse.add_argument('-dataset', '--dataset', type=str, default='taxi')
+    parse.add_argument('-dataset', '--dataset', type=str, default='citibike')
+    # parse.add_argument('-dataset', '--dataset', type=str, default='taxi')
     parse.add_argument('-predict_steps', '--predict_steps', type=int, default=1, help='prediction steps')
-    parse.add_argument('-lag_order', '--lag_order', type=int, default=1, help='lag order in VAR and ARIMA models')
-    parse.add_argument('-num_samples', '--num_samples', type=int, default=5, help='number of samples for ARIMA model')
+    parse.add_argument('-lag_order', '--lag_order', type=int, default=5, help='lag order in VAR and ARIMA models')
+    parse.add_argument('-num_samples', '--num_samples', type=int, default=3, help='number of samples for ARIMA model')
     #
     args = parse.parse_args()
     #
