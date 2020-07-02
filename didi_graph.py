@@ -11,8 +11,8 @@ from model.ConvGRU import ConvGRU
 from model.ConvLSTM import ConvLSTM
 from model.Coupled_ConvGRU import CoupledConvGRU
 from model.DRF_ST import DRF_ST
-from solver_att import ModelSolver as ModelSolver
-#from solver import ModelSolver as ModelSolver
+#from solver_att import ModelSolver as ModelSolver
+from solver import ModelSolver as ModelSolver
 from preprocessing import *
 from utils import *
 from dataloader import *

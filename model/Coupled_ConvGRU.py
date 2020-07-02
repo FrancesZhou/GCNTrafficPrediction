@@ -87,16 +87,17 @@ class CoupledConvGRU():
         outputs, _ = tf.contrib.rnn.static_rnn(self.cells, inputs, dtype=tf.float32)
         outputs = tf.stack(outputs)
         # temporal attention
+        outputs = tf.reshape(outputs, (self.input_steps, self.batch_size, self.input_shape[0], self.input_shape[1], -1))
         # outputs: [input_steps, batch_size, -, -, -]
         if self.dy_temporal:
             with tf.variable_scope('temporal_attention', reuse=tf.AUTO_REUSE):
                 h_states = tf.transpose(outputs[:-1], (1,0,2,3,4))
-                att_states = self.temporal_attention_layer(outputs[-1], h_states, self.att_units, reuse=tf.AUTO_REUSE)
-                output = tf.concat((outputs[:-1], att_states), -1)
+                att_states, _ = self.temporal_attention_layer(outputs[-1], h_states, self.att_units, reuse=tf.AUTO_REUSE)
+                output = tf.concat([outputs[-1], att_states], -1)
         else:
             output = outputs[-1]
         # projection
-        output = tf.layer.dense(output, units=self.input_shape[-1], activation=None, kernel_initializer=self.weight_initializer)
+        output = tf.layers.dense(output, units=self.input_shape[-1], activation=None, kernel_initializer=self.weight_initializer)
         loss = 2 * tf.nn.l2_loss(self.y[:, -1, :, :, :] - output)
         #output = tf.expand_dims(output, 1)
         return tf.expand_dims(output, 1), loss
@@ -114,7 +115,7 @@ class CoupledConvGRU():
         with tf.variable_scope('att', reuse=reuse):
             with tf.variable_scope('att_o_state', reuse=reuse):
                 w = tf.get_variable('att_o_w', [np.prod(o_shape[1:]), att_units], initializer=self.weight_initializer)
-                o_att = tf.matmul(tf.reshape(o_state, (-1, np.prod(o_shape[1:])), w))
+                o_att = tf.matmul(tf.reshape(o_state, (-1, np.prod(o_shape[1:]))), w)
                 # o_att: [batch_size, att_units]
             with tf.variable_scope('att_h_state', reuse=reuse):
                 w = tf.get_variable('att_h_w', [np.prod(h_shape[2:]), att_units], initializer=self.weight_initializer)
