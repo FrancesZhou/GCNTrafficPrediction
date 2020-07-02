@@ -85,9 +85,9 @@ class DRF_ST():
                 # feed forward
                 #x_time = tf.reshape(x_time, (self.batch_size*self.input_steps*self._num_nodes, -1))
                 with tf.variable_scope('feedforward', reuse=tf.AUTO_REUSE):
-                    outputs = tf.layers.dense(x_time, self.num_units)
-                    outputs += x_time
-                    outputs = ln(outputs)
+                    outputs = tf.layers.dense(x_time, self.num_units, activation=tf.nn.relu)
+                    #outputs += x_time
+                    #outputs = ln(outputs)
             x = outputs
 
         # projection

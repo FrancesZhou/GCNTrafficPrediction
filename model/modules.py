@@ -194,10 +194,10 @@ def multihead_attention(queries, keys, values,
         outputs = tf.concat(tf.split(outputs, num_heads, axis=0), axis=2 ) # (N, T_q, d_model)
               
         # Residual connection
-        outputs += queries
+        #outputs += queries
               
         # Normalize
-        outputs = ln(outputs)
+        #outputs = ln(outputs)
  
     return outputs
 
