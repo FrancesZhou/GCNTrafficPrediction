@@ -36,8 +36,8 @@ def main():
     parse.add_argument('-kernel_size', '--kernel_size', type=int, default=3, help='kernel size in convolutional operations')
     parse.add_argument('-dropout_rate', '--dropout_rate', type=float, default=0.3, help='dropout rate')
     #
-    parse.add_argument('-use_spatial', '--use_spatil', type=int, default=1, help='whether to use spatial modeling')
-    parse.add_argument('-use_spatial', '--use_flow', type=int, default=1, help='whether to use flow modeling')
+    parse.add_argument('-use_spatial', '--use_spatial', type=int, default=1, help='whether to use spatial modeling')
+    parse.add_argument('-use_flow', '--use_flow', type=int, default=1, help='whether to use flow modeling')
     #
     parse.add_argument('-dy_adj', '--dy_adj', type=int, default=1,
                        help='whether to use dynamic adjacent matrix for lower feature extraction layer')

@@ -13,14 +13,13 @@ from model.coupled_convgru_cell import Coupled_Conv2DGRUCell
 
 
 class DRF_ST():
-    def __init__(self, input_shape=[20,10,2], num_station=331, adj_mx=None,
+    def __init__(self, input_shape=[20,10,2], adj_mx=None,
                  structure='grid', use_spatial=1, use_flow=1, trained_adj_mx=0,
                  input_steps=6,
                  num_layers=2, num_units=64, num_heads=8,
                  kernel_shape=[3,3], max_diffusion_step=2, filter_type='dual_random_walk',
                  dropout_rate=0.3, batch_size=32):
         self.input_shape = input_shape
-        self.num_station = num_station
         self.adj_mx = adj_mx
         #
         self.structure = structure
@@ -42,14 +41,16 @@ class DRF_ST():
         self._supports = []
         #
         self._input_dim = self.input_shape[-1]
+        self._num_nodes = np.prod(self.input_shape[:-1])
+        '''
         if self.structure == 'grid':
             self._num_nodes = np.prod(self.input_shape[:-1])
         elif self.structure == 'graph':
             self._num_nodes = self.num_station
-
+        '''
         if trained_adj_mx:
             with tf.variable_scope('trained_adj_mx', reuse=tf.AUTO_REUSE):
-                adj_mx = tf.get_variable('adj_mx', [num_station, num_station], dtype=tf.float32,
+                adj_mx = tf.get_variable('adj_mx', [self._num_nodes, self._num_nodes], dtype=tf.float32,
                                          initializer=self.weight_initializer)
         if adj_mx is not None:
             # for fixed adjacent matrix
@@ -90,16 +91,15 @@ class DRF_ST():
             x = outputs
 
         # projection
-        outputs = tf.layers.dense(tf.reshape(outputs, (-1, self.num_units)), units=self.input_shape[-1],
-                                  activation=None, kernel_initializer=self.weight_initializer)
+        outputs = tf.layers.dense(x, units=self._input_dim, activation=None, kernel_initializer=self.weight_initializer)
         #
-        outputs = tf.reshape(outputs, (self.input_steps, self.batch_size, self.input_shape[0], self.input_shape[1], -1))
-        outputs = tf.transpose(outputs, [1, 0, 2, 3, 4])
+        #outputs = tf.reshape(outputs, (self.input_steps, self.batch_size, self.input_shape[0], self.input_shape[1], -1))
         loss = 2 * tf.nn.l2_loss(self.y - outputs)
         return outputs, loss
 
 
     def time_modeling(self, x, training):
+        # x: [batch_size, input_steps, num_nodes, -1]
         x = tf.reshape(x, (self.batch_size, self.input_steps, self._num_nodes, -1))
         x = tf.reshape(tf.transpose(x, (0, 2, 1, 3)), (self.batch_size*self._num_nodes, self.input_steps, -1))
         x_temporal = multihead_attention(queries=x,
@@ -110,6 +110,7 @@ class DRF_ST():
                                   training=training,
                                   causality=False,
                                   scope="self_attention")
+        x_temporal = tf.transpose(tf.reshape(x_temporal, (self.batch_size, self._num_nodes, self.input_steps, -1)), (0, 2, 1, 3))
         return x_temporal
 
     def space_modeling(self, x, f, bias_start=0.0):
@@ -133,7 +134,8 @@ class DRF_ST():
         if self.use_flow:
             with tf.variable_scope("flow_modeling", reuse=tf.AUTO_REUSE):
                 flow_inputs_3d = tf.reshape(x, (self.batch_size*self.input_steps, self._num_nodes, -1))
-                x_flow = self._gconv(flow_inputs_3d, f, self.num_units, False)
+                flow_f_3d = tf.reshape(f, (self.batch_size*self.input_steps, self._num_nodes, self._num_nodes))
+                x_flow = self._gconv(flow_inputs_3d, flow_f_3d, self.num_units, False)
                 x_flow = tf.reshape(x_flow, (self.batch_size, self.input_steps, self._num_nodes, self.num_units))
         else:
             x_flow = tf.zeros((self.batch_size, self.input_steps, self._num_nodes, self.num_units))

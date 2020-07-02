@@ -118,7 +118,7 @@ class ModelSolver(object):
             w_att_1, w_att_2, w_h_in, w_h_out = sess.run([self.model.w_att_1, self.model.w_att_2, self.model.w_h_in, self.model.w_h_out])
             return w_att_1, w_att_2, w_h_in, w_h_out
 
-    def train(self, training=True, output_file_path=None):
+    def train(self, output_file_path=None):
         o_file = open(output_file_path, 'w')
         train_loader = self.train_data
         val_loader = self.val_data
@@ -134,10 +134,10 @@ class ModelSolver(object):
         '''
         with tf.name_scope('Train'):
             with tf.variable_scope('DCRNN', reuse=False):
-                y_, loss = self.model.build_easy_model(is_training=True)
+                y_, loss = self.model.build_easy_model(training=True)
         with tf.name_scope('Test'):
             with tf.variable_scope('DCRNN', reuse=True):
-                y_test, loss_test = self.model.build_easy_model(is_training=False)
+                y_test, loss_test = self.model.build_easy_model(training=False)
         # train op
         with tf.name_scope('optimizer'):
             optimizer = self.optimizer(learning_rate=self.learning_rate)
