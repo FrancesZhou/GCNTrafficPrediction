@@ -39,7 +39,10 @@ def main():
     parse.add_argument('-use_spatial', '--use_spatial', type=int, default=1, help='whether to use spatial modeling')
     parse.add_argument('-use_flow', '--use_flow', type=int, default=1, help='whether to use flow modeling')
     #
-    parse.add_argument('-dy_adj', '--dy_adj', type=int, default=1,
+    parse.add_argument('-dy_temporal', '--dy_temporal', type=int, default=0,
+                       help='whether to use temporal attention module before output layer')
+    parse.add_argument('-att_units', '--att_units', type=int, default=64, help='dim of hidden states')
+    parse.add_argument('-dy_adj', '--dy_adj', type=int, default=0,
                        help='whether to use dynamic adjacent matrix for lower feature extraction layer')
     parse.add_argument('-dy_filter', '--dy_filter', type=int, default=0,
                        help='whether to use dynamic filter generate region-specific filter ')
@@ -152,8 +155,11 @@ def main():
                          batch_size=args.batch_size)
     if args.model == 'Coupled_ConvGRU':
         model = CoupledConvGRU(input_shape=[20, 20, input_dim], input_steps=args.input_steps,
-                                num_layers=args.num_layers, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
-                                batch_size=args.batch_size)
+                               num_layers=args.num_layers, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
+                               dy_temporal=args.dy_temporal, att_units=args.att_units,
+                               batch_size=args.batch_size)
+    '''
+    # bad results...
     if args.model == 'DRF_ST':
         model = DRF_ST(input_shape=[map_size[0], map_size[1], input_dim], structure='grid',
                        use_spatial=args.use_spatial, use_flow=args.use_flow,
@@ -161,8 +167,7 @@ def main():
                        num_layers=args.num_layers, num_units=args.num_units, num_heads=args.num_heads,
                        kernel_shape=[args.kernel_size, args.kernel_size], dropout_rate=args.dropout_rate,
                        batch_size=args.batch_size)
-
-    ##
+    '''
     '''
     # flow_ConvGRU_2 is Stack_ConvGRU with 2 conv layers.
     if args.model == 'flow_ConvGRU_2':
