@@ -44,6 +44,7 @@ def main():
     parse.add_argument('-multi_loss', '--multi_loss', type=int, default=0,
                        help='whether to only consider last prediction into loss function.')
     parse.add_argument('-att_units', '--att_units', type=int, default=64, help='dim of hidden states')
+    #
     parse.add_argument('-dy_adj', '--dy_adj', type=int, default=0,
                        help='whether to use dynamic adjacent matrix for lower feature extraction layer')
     parse.add_argument('-dy_filter', '--dy_filter', type=int, default=0,
