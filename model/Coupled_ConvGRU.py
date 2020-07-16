@@ -15,6 +15,7 @@ class CoupledConvGRU():
                  dy_temporal=0, att_units=64,
                  dy_adj=0,
                  dy_filter=0,
+                 multi_loss=0,
                  batch_size=32):
         self.input_shape = input_shape
         self.input_steps = input_steps
@@ -27,7 +28,7 @@ class CoupledConvGRU():
         self.att_units = att_units
         # self.dy_adj = dy_adj
         # self.dy_filter = dy_filter
-
+        self.multi_loss = multi_loss
         self.batch_size = batch_size
 
         self.weight_initializer = tf.contrib.layers.xavier_initializer()
@@ -89,6 +90,50 @@ class CoupledConvGRU():
         # temporal attention
         outputs = tf.reshape(outputs, (self.input_steps, self.batch_size, self.input_shape[0], self.input_shape[1], -1))
         # outputs: [input_steps, batch_size, -, -, -]
+        if self.multi_loss:
+            if self.dy_temporal:
+                with tf.variable_scope('temporal_attention', reuse=tf.AUTO_REUSE):
+                    h_states = tf.transpose(outputs, (1, 0, 2, 3, 4))
+                    att_states = []
+                    for t in range(self.input_steps):
+                        att_state, _ = self.temporal_attention_layer(outputs[t], h_states, self.att_units, reuse=tf.AUTO_REUSE)
+                        att_states.append(att_state)
+                    att_states = tf.stack(att_states)
+                    outputs = tf.concat([outputs, att_states], -1)
+            # projection
+            outputs = tf.layers.dense(outputs, units=self.input_shape[-1], activation=None, kernel_initializer=self.weight_initializer)
+            outputs = tf.transpose(outputs, [1, 0, 2, 3, 4])
+            loss = 2 * tf.nn.l2_loss(self.y - outputs)
+            return outputs, loss
+        else:
+            if self.dy_temporal:
+                with tf.variable_scope('temporal_attention', reuse=tf.AUTO_REUSE):
+                    h_states = tf.transpose(outputs[:-1], (1, 0, 2, 3, 4))
+                    att_states, _ = self.temporal_attention_layer(outputs[-1], h_states, self.att_units,
+                                                                  reuse=tf.AUTO_REUSE)
+                    output = tf.concat([outputs[-1], att_states], -1)
+            else:
+                output = outputs[-1]
+            # projection
+            output = tf.layers.dense(output, units=self.input_shape[-1], activation=None,
+                                     kernel_initializer=self.weight_initializer)
+            loss = 2 * tf.nn.l2_loss(self.y[:, -1, :, :, :] - output)
+            return tf.expand_dims(output, 1), loss
+
+    '''
+    # single loss
+    def build_easy_model(self):
+        x = tf.transpose(tf.reshape(self.x, (self.batch_size, self.input_steps, -1)), [1, 0, 2])
+        #inputs = tf.unstack(x, axis=0)
+        f_all = tf.transpose(tf.reshape(self.f, (self.batch_size, self.input_steps, -1)), [1, 0, 2])
+        inputs = tf.concat([x, f_all], axis=-1)
+        inputs = tf.unstack(inputs, axis=0)
+        #
+        outputs, _ = tf.contrib.rnn.static_rnn(self.cells, inputs, dtype=tf.float32)
+        outputs = tf.stack(outputs)
+        # temporal attention
+        outputs = tf.reshape(outputs, (self.input_steps, self.batch_size, self.input_shape[0], self.input_shape[1], -1))
+        # outputs: [input_steps, batch_size, -, -, -]
         if self.dy_temporal:
             with tf.variable_scope('temporal_attention', reuse=tf.AUTO_REUSE):
                 h_states = tf.transpose(outputs[:-1], (1,0,2,3,4))
@@ -99,13 +144,8 @@ class CoupledConvGRU():
         # projection
         output = tf.layers.dense(output, units=self.input_shape[-1], activation=None, kernel_initializer=self.weight_initializer)
         loss = 2 * tf.nn.l2_loss(self.y[:, -1, :, :, :] - output)
-        #output = tf.expand_dims(output, 1)
         return tf.expand_dims(output, 1), loss
-        #outputs = tf.layers.dense(tf.reshape(outputs, (-1, self.num_units)), units=self.input_shape[-1], activation=None, kernel_initializer=self.weight_initializer)
-        #outputs = tf.reshape(outputs, (self.input_steps, self.batch_size, self.input_shape[0], self.input_shape[1], -1))
-        #outputs = tf.transpose(outputs, [1, 0, 2, 3, 4])
-        #loss = 2 * tf.nn.l2_loss(self.y - outputs)
-        #return outputs, loss
+    '''
 
     def temporal_attention_layer(self, o_state, h_states, att_units, reuse=True):
         # o_state: [batch_size, row, col, channel]

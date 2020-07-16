@@ -41,6 +41,8 @@ def main():
     #
     parse.add_argument('-dy_temporal', '--dy_temporal', type=int, default=0,
                        help='whether to use temporal attention module before output layer')
+    parse.add_argument('-multi_loss', '--multi_loss', type=int, default=0,
+                       help='whether to only consider last prediction into loss function.')
     parse.add_argument('-att_units', '--att_units', type=int, default=64, help='dim of hidden states')
     parse.add_argument('-dy_adj', '--dy_adj', type=int, default=0,
                        help='whether to use dynamic adjacent matrix for lower feature extraction layer')
@@ -157,6 +159,7 @@ def main():
         model = CoupledConvGRU(input_shape=[20, 20, input_dim], input_steps=args.input_steps,
                                num_layers=args.num_layers, num_units=args.num_units, kernel_shape=[args.kernel_size, args.kernel_size],
                                dy_temporal=args.dy_temporal, att_units=args.att_units,
+                               multi_loss=args.multi_loss,
                                batch_size=args.batch_size)
     '''
     # bad results...
